@@ -306,7 +306,7 @@ if iwv_prices is not None and iwv_dd is not None:
             margin=dict(l=0, r=0, t=40, b=0)
         )
 
-        st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+        st.plotly_chart(fig, width='stretch', config=CHART_CONFIG)
 
     ""  # Space
 
@@ -326,6 +326,9 @@ if iwv_prices is not None and iwv_dd is not None:
 
     with details_container:
         display_df = dd_data.copy()
+
+        # Convert rank to string to avoid mixed type issues
+        display_df['rank'] = display_df['rank'].astype(str)
 
         # Format numeric columns as strings
         display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
@@ -353,7 +356,7 @@ if iwv_prices is not None and iwv_dd is not None:
 
         st.dataframe(
             display_df,
-            use_container_width=True,
+            width='stretch',
             hide_index=True
         )
 else:

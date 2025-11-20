@@ -64,7 +64,7 @@ for idx, (etf, filename) in enumerate(ark_files.items()):
 
                 st.markdown(f"**File:** `{filename}`")
                 st.markdown(f"**Rows:** {len(df):,} | **Columns:** {len(df.columns)}")
-                st.dataframe(df, use_container_width=True, height=500)
+                st.dataframe(df, width='stretch', height=500)
             except Exception as e:
                 st.error(f"Error loading {filename}: {e}")
         else:
@@ -95,7 +95,7 @@ for idx, (name, filename) in enumerate(companyname_files.items()):
                 df = pd.read_excel(file_path, sheet_name='value')
                 st.markdown(f"**File:** `{filename}`")
                 st.markdown(f"**Rows:** {len(df):,} | **Columns:** {len(df.columns)}")
-                st.dataframe(df, use_container_width=True, height=400)
+                st.dataframe(df, width='stretch', height=400)
             except Exception as e:
                 st.error(f"Error loading {filename}: {e}")
         else:
@@ -126,7 +126,7 @@ for idx, (name, filename) in enumerate(industry_files.items()):
                 df = pd.read_excel(file_path, sheet_name='value')
                 st.markdown(f"**File:** `{filename}`")
                 st.markdown(f"**Rows:** {len(df):,} | **Columns:** {len(df.columns)}")
-                st.dataframe(df, use_container_width=True, height=400)
+                st.dataframe(df, width='stretch', height=400)
             except Exception as e:
                 st.error(f"Error loading {filename}: {e}")
         else:
@@ -154,7 +154,7 @@ if not russell_file.startswith('~$'):
 
             st.markdown(f"**File:** `{russell_file}`")
             st.markdown(f"**Rows:** {len(df):,} | **Columns:** {len(df.columns)}")
-            st.dataframe(df, use_container_width=True, height=500)
+            st.dataframe(df, width='stretch', height=500)
         except Exception as e:
             st.error(f"Error loading {russell_file}: {e}")
     else:

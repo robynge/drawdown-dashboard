@@ -90,7 +90,7 @@ if len(etf_prices) > 0:
             margin=dict(l=0, r=0, t=30, b=60)
         )
 
-        st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+        st.plotly_chart(fig, width='stretch', config=CHART_CONFIG)
 else:
     st.error("No ETF price data available")
 
@@ -291,7 +291,7 @@ with right_panel:
             margin=dict(l=0, r=0, t=40, b=0)
         )
 
-        st.plotly_chart(fig2, use_container_width=True, config=CHART_CONFIG)
+        st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
     else:
         st.error(f"No data available for {selected_etf}")
 
@@ -316,6 +316,9 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
         etf_dd_data = etf_dd[etf_dd['ETF'] == selected_etf]
         display_df = etf_dd_data.copy()
 
+        # Convert rank to string to avoid mixed type issues
+        display_df['rank'] = display_df['rank'].astype(str)
+
         # Format numeric columns as strings
         display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
         display_df['Peak Date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
@@ -334,7 +337,7 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
 
         st.dataframe(
             display_df,
-            use_container_width=True,
+            width='stretch',
             hide_index=True
         )
 
@@ -360,7 +363,7 @@ if len(etf_dd) > 0:
 
         st.dataframe(
             etf_summary,
-            use_container_width=True,
+            width='stretch',
             hide_index=True
         )
 else:
