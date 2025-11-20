@@ -40,6 +40,10 @@ def load_ark_holdings(etf):
     df = pd.read_excel(file_path)
     df['Date'] = pd.to_datetime(df['Date'])
 
+    # Fix CUSIP column type for PyArrow compatibility
+    if 'CUSIP' in df.columns:
+        df['CUSIP'] = df['CUSIP'].astype(str)
+
     _cache[cache_key] = df
     _save_to_cache(cache_key, df)
     return df
@@ -62,6 +66,10 @@ def load_r3000_holdings():
 
     df = pd.concat(all_data, ignore_index=True)
     df['Date'] = pd.to_datetime(df['Date'])
+
+    # Fix CUSIP column type for PyArrow compatibility
+    if 'CUSIP' in df.columns:
+        df['CUSIP'] = df['CUSIP'].astype(str)
 
     _cache['r3000_holdings'] = df
     _save_to_cache('r3000_holdings', df)
