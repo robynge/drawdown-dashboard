@@ -326,40 +326,35 @@ if iwv_prices is not None and iwv_dd is not None:
 
     with details_container:
         display_df = dd_data.copy()
-        display_df['depth_pct'] = display_df['depth_pct'].round(2)
-        display_df['peak_price'] = display_df['peak_price'].round(2)
-        display_df['trough_price'] = display_df['trough_price'].round(2)
+
+        # Format numeric columns as strings
+        display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
+        display_df['Peak Date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
+        display_df['Trough Date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
+
+        # Label depends on whether it's peer group
+        if is_peer_group:
+            display_df['Peak Value'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
+            display_df['Trough Value'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
+            cols_to_show = ['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Value', 'Trough Value']
+        else:
+            display_df['Peak Price'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
+            display_df['Trough Price'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
+            cols_to_show = ['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']
 
         # Reorder to put Current first
         current_row = display_df[display_df['rank'] == 'Current']
         historical_rows = display_df[display_df['rank'] != 'Current']
         display_df = pd.concat([current_row, historical_rows], ignore_index=True)
 
-        # Column config depends on whether it's peer group
-        if is_peer_group:
-            column_config = {
-                "rank": st.column_config.TextColumn("Rank"),
-                "depth_pct": st.column_config.NumberColumn("Depth %", format="%.2f%%"),
-                "peak_date": st.column_config.DateColumn("Peak Date", format="YYYY-MM-DD"),
-                "trough_date": st.column_config.DateColumn("Trough Date", format="YYYY-MM-DD"),
-                "peak_price": st.column_config.NumberColumn("Peak Value", format="$,.2f"),
-                "trough_price": st.column_config.NumberColumn("Trough Value", format="$,.2f")
-            }
-        else:
-            column_config = {
-                "rank": st.column_config.TextColumn("Rank"),
-                "depth_pct": st.column_config.NumberColumn("Depth %", format="%.2f%%"),
-                "peak_date": st.column_config.DateColumn("Peak Date", format="YYYY-MM-DD"),
-                "trough_date": st.column_config.DateColumn("Trough Date", format="YYYY-MM-DD"),
-                "peak_price": st.column_config.NumberColumn("Peak Price", format="$,.2f"),
-                "trough_price": st.column_config.NumberColumn("Trough Price", format="$,.2f")
-            }
+        # Select columns and rename
+        display_df = display_df[cols_to_show]
+        display_df = display_df.rename(columns={'rank': 'Rank'})
 
         st.dataframe(
             display_df,
             use_container_width=True,
-            hide_index=True,
-            column_config=column_config
+            hide_index=True
         )
 else:
     st.error("Russell 3000 Index data not available")

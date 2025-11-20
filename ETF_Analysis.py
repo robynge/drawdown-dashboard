@@ -315,28 +315,27 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
     with details_container:
         etf_dd_data = etf_dd[etf_dd['ETF'] == selected_etf]
         display_df = etf_dd_data.copy()
-        display_df['depth_pct'] = display_df['depth_pct'].round(2)
-        display_df['peak_price'] = display_df['peak_price'].round(2)
-        display_df['trough_price'] = display_df['trough_price'].round(2)
+
+        # Format numeric columns as strings
+        display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
+        display_df['Peak Date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
+        display_df['Trough Date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
+        display_df['Peak Price'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
+        display_df['Trough Price'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
 
         # Reorder to put Current first
         current_row = display_df[display_df['rank'] == 'Current']
         historical_rows = display_df[display_df['rank'] != 'Current']
         display_df = pd.concat([current_row, historical_rows], ignore_index=True)
 
+        # Select and rename columns for display
+        display_df = display_df[['ETF', 'rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
+        display_df = display_df.rename(columns={'rank': 'Rank'})
+
         st.dataframe(
             display_df,
             use_container_width=True,
-            hide_index=True,
-            column_config={
-                "ETF": st.column_config.TextColumn("ETF"),
-                "rank": st.column_config.TextColumn("Rank"),
-                "depth_pct": st.column_config.NumberColumn("Depth %", format="%.2f%%"),
-                "peak_date": st.column_config.DateColumn("Peak Date", format="YYYY-MM-DD"),
-                "trough_date": st.column_config.DateColumn("Trough Date", format="YYYY-MM-DD"),
-                "peak_price": st.column_config.NumberColumn("Peak Price", format="$,.2f"),
-                "trough_price": st.column_config.NumberColumn("Trough Price", format="$,.2f")
-            }
+            hide_index=True
         )
 
 ""  # Add space
@@ -350,21 +349,19 @@ if len(etf_dd) > 0:
     with comparison_container:
         # Show only max drawdown per ETF
         etf_summary = etf_dd[etf_dd['rank'] == 1][['ETF', 'depth_pct', 'peak_date', 'trough_date']].copy()
-        etf_summary.rename(columns={
-            'depth_pct': 'Max Drawdown %',
-            'peak_date': 'Peak Date',
-            'trough_date': 'Trough Date'
-        }, inplace=True)
+
+        # Format columns as strings
+        etf_summary['Max Drawdown %'] = etf_summary['depth_pct'].apply(lambda x: f"{x:.2f}%")
+        etf_summary['Peak Date'] = etf_summary['peak_date'].dt.strftime('%Y-%m-%d')
+        etf_summary['Trough Date'] = etf_summary['trough_date'].dt.strftime('%Y-%m-%d')
+
+        # Select final columns
+        etf_summary = etf_summary[['ETF', 'Max Drawdown %', 'Peak Date', 'Trough Date']]
 
         st.dataframe(
             etf_summary,
             use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Max Drawdown %": st.column_config.NumberColumn(format="%.2f%%"),
-                "Peak Date": st.column_config.DateColumn(format="YYYY-MM-DD"),
-                "Trough Date": st.column_config.DateColumn(format="YYYY-MM-DD")
-            }
+            hide_index=True
         )
 else:
     st.info("No ETF drawdown data available")
