@@ -3,11 +3,15 @@ import streamlit as st
 import pandas as pd
 import sys
 from pathlib import Path
+from datetime import datetime, timedelta
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import INPUT_DIR
+
+# Filter to show only last 1 year of data
+ONE_YEAR_AGO = datetime.now() - timedelta(days=365)
 
 st.set_page_config(
     page_title="Raw Data",
@@ -32,6 +36,7 @@ st.markdown("""
 
 # Section 1: ETF Holdings Data
 st.subheader("ETF Holdings Data")
+st.caption("📅 Showing only the most recent 1 year of data for faster loading")
 
 ark_etfs_dir = INPUT_DIR / 'ark_etfs'
 ark_files = {
@@ -62,8 +67,15 @@ for idx, (etf, filename) in enumerate(ark_files.items()):
                 cols_to_drop += [col for col in df.columns if 'yfinance' in col.lower() and 'price' in col.lower()]
                 df = df.drop(columns=cols_to_drop, errors='ignore')
 
+                # Filter to last 1 year if Date column exists
+                total_rows = len(df)
+                if 'Date' in df.columns:
+                    df['Date'] = pd.to_datetime(df['Date'])
+                    df = df[df['Date'] >= ONE_YEAR_AGO]
+                    df = df.sort_values('Date', ascending=False)
+
                 st.markdown(f"**File:** `{filename}`")
-                st.markdown(f"**Rows:** {len(df):,} | **Columns:** {len(df.columns)}")
+                st.markdown(f"**Rows:** {len(df):,} / {total_rows:,} (last 1 year) | **Columns:** {len(df.columns)}")
                 st.dataframe(df, width='stretch', height=500)
             except Exception as e:
                 st.error(f"Error loading {filename}: {e}")
@@ -136,6 +148,7 @@ for idx, (name, filename) in enumerate(industry_files.items()):
 
 # Section 4: Russell 3000 Data
 st.subheader("iShares Russell 3000 ETF (IWV)")
+st.caption("📅 Showing only the most recent 1 year of data for faster loading")
 
 russell_dir = INPUT_DIR / 'russell_3000'
 russell_file = 'IWV_Transformed_Data.xlsx'
@@ -152,8 +165,15 @@ if not russell_file.startswith('~$'):
             cols_to_drop += [col for col in df.columns if 'yfinance' in col.lower() and 'price' in col.lower()]
             df = df.drop(columns=cols_to_drop, errors='ignore')
 
+            # Filter to last 1 year if Date column exists
+            total_rows = len(df)
+            if 'Date' in df.columns:
+                df['Date'] = pd.to_datetime(df['Date'])
+                df = df[df['Date'] >= ONE_YEAR_AGO]
+                df = df.sort_values('Date', ascending=False)
+
             st.markdown(f"**File:** `{russell_file}`")
-            st.markdown(f"**Rows:** {len(df):,} | **Columns:** {len(df.columns)}")
+            st.markdown(f"**Rows:** {len(df):,} / {total_rows:,} (last 1 year) | **Columns:** {len(df.columns)}")
             st.dataframe(df, width='stretch', height=500)
         except Exception as e:
             st.error(f"Error loading {russell_file}: {e}")
