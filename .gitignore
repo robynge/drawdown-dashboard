@@ -29,3 +29,12 @@ Thumbs.db
 # Temporary files
 ~$*
 *.tmp
+
+# Claude Code files
+.claude/
+*.local.json
+PROJECT_CONTEXT.md
+CLAUDE_NOTES.md
+*CLAUDE*.md
+GITHUB_COMMIT_RULES.md
+IMPLEMENTATION_SUMMARY.md
