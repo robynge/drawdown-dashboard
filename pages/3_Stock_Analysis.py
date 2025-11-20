@@ -15,20 +15,24 @@ from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 
-def calculate_recovery_probability(price_series, current_price, target_price, years=2, n_simulations=10000):
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def calculate_recovery_probability(price_series_hash, current_price, target_price, years=2, n_simulations=2000):
     """
     Estimate probability of recovering to target price within T years using GBM and Monte Carlo simulation.
 
     Parameters:
-    - price_series: pandas Series of historical prices
+    - price_series_hash: tuple of (price values, length) for caching
     - current_price: current price S0
     - target_price: target peak price B
     - years: time horizon in years (default 2)
-    - n_simulations: number of Monte Carlo paths (default 10000)
+    - n_simulations: number of Monte Carlo paths (reduced to 2000 for performance)
 
     Returns:
     - probability: fraction of paths that hit target
     """
+    # Reconstruct price series from hash
+    price_values = price_series_hash[0]
+    price_series = pd.Series(price_values)
 
     if len(price_series) < 2 or current_price >= target_price:
         return 1.0 if current_price >= target_price else 0.0
@@ -47,19 +51,17 @@ def calculate_recovery_probability(price_series, current_price, target_price, ye
     dt = 1/252  # Daily time step
     n_steps = int(years * 252)  # Number of trading days
 
-    # Monte Carlo simulation
-    recovery_count = 0
+    # Vectorized Monte Carlo simulation (much faster!)
+    np.random.seed(42)  # For reproducibility
+    Z = np.random.standard_normal((n_simulations, n_steps))
 
-    for _ in range(n_simulations):
-        # Generate random normal shocks
-        Z = np.random.standard_normal(n_steps)
+    # Simulate all paths at once using vectorization
+    price_paths = current_price * np.exp(
+        np.cumsum((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * Z, axis=1)
+    )
 
-        # Simulate GBM path
-        price_path = current_price * np.exp(np.cumsum((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * Z))
-
-        # Check if path hits target
-        if np.any(price_path >= target_price):
-            recovery_count += 1
+    # Check if any point in each path hits target
+    recovery_count = np.sum(np.any(price_paths >= target_price, axis=1))
 
     probability = recovery_count / n_simulations
     return probability
@@ -757,12 +759,13 @@ def calculate_all_stocks_recovery(etf, months):
 
             # Calculate Recovery Probability using Monte Carlo simulation
             years_horizon = months / 12.0  # Convert months to years
+            # Create hashable version of price series for caching
+            price_series_hash = (tuple(stock_data['Price'].values), len(stock_data['Price']))
             recovery_prob = calculate_recovery_probability(
-                price_series=stock_data['Price'],
+                price_series_hash=price_series_hash,
                 current_price=current_price,
                 target_price=peak_price,
-                years=years_horizon,
-                n_simulations=10000
+                years=years_horizon
             ) * 100  # Convert to percentage
 
             # Get ticker symbol for company name lookup
