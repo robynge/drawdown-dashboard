@@ -16,7 +16,7 @@ from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour
-def calculate_recovery_probability(price_series_hash, current_price, target_price, years=2, n_simulations=2000):
+def calculate_recovery_probability(price_series_hash, current_price, target_price, years=2, n_simulations=10000):
     """
     Estimate probability of recovering to target price within T years using GBM and Monte Carlo simulation.
 
@@ -25,7 +25,7 @@ def calculate_recovery_probability(price_series_hash, current_price, target_pric
     - current_price: current price S0
     - target_price: target peak price B
     - years: time horizon in years (default 2)
-    - n_simulations: number of Monte Carlo paths (reduced to 2000 for performance)
+    - n_simulations: number of Monte Carlo paths (default 10000)
 
     Returns:
     - probability: fraction of paths that hit target
