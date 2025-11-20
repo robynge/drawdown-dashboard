@@ -49,24 +49,6 @@ A **drawdown** is defined as the decline from a peak to a trough in an asset's v
 4. **Rank Drawdowns**: Sort all historical drawdowns by depth (magnitude) to identify the top 10
 
 **Current Drawdown**: The ongoing drawdown from the most recent peak to the current date.
-
-**Recovery Metrics:**
-
-**Recovery Rate**: The percentage gain required to return from the trough to the peak price.
-- Formula: Recovery Rate % = (Peak Price - Trough Price) / Trough Price × 100
-- Example: If price drops from $100 (peak) to $70 (trough), the drawdown is -30%, but the recovery rate needed is +42.86%
-  - Recovery Rate = ($100 - $70) / $70 × 100 = 42.86%
-- Note: Recovery rate is always larger in magnitude than the drawdown percentage due to mathematical asymmetry
-
-**Recovery Probability**: The estimated likelihood of recovering to the peak price within a given timeframe, based on historical volatility.
-- Calculation approach:
-  1. Calculate historical daily return volatility (σ) for the asset
-  2. Estimate required return (μ) to reach peak from current trough
-  3. Estimate time horizon (T) for recovery window
-  4. Use geometric Brownian motion to estimate probability: P(recovery) = Φ((μ - 0.5σ²)√T / σ)
-     - Where Φ is the cumulative standard normal distribution
-- Interpretation: Higher volatility increases recovery probability for shorter horizons, but also increases downside risk
-- Limitations: Assumes returns are normally distributed (often violated during market stress)
 """)
 
 ""  # Space
