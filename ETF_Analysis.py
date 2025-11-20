@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import sys
 from pathlib import Path
+import pickle
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
@@ -12,6 +13,10 @@ from config import ARK_ETFS, START_DATE, END_DATE
 from data_loader import load_etf_prices, get_stock_etf_mapping
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
+
+# Precomputed data directory
+PRECOMP_DIR = Path(__file__).parent / 'data' / 'precomputed'
+PRECOMP_FILE = PRECOMP_DIR / 'etf_data.pkl'
 
 st.set_page_config(
     page_title="ETF Analysis",
@@ -33,7 +38,20 @@ st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DAT
 # Load and cache ETF price and drawdown data
 @st.cache_data
 def load_all_etf_data():
-    """Load price and drawdown data for all ETFs"""
+    """Load price and drawdown data for all ETFs - from precomputed file if available"""
+    # Try to load from precomputed data first
+    if PRECOMP_FILE.exists():
+        with open(PRECOMP_FILE, 'rb') as f:
+            all_data = pickle.load(f)
+
+        # Extract prices and drawdowns from precomputed data
+        price_data = {etf: data['prices'] for etf, data in all_data.items()}
+        dd_data = [data['drawdowns'] for etf, data in all_data.items()]
+        all_dd = pd.concat(dd_data, ignore_index=True) if dd_data else pd.DataFrame()
+
+        return price_data, all_dd
+
+    # Fallback: Calculate on the fly if precomputed data doesn't exist
     price_data = {}
     dd_data = []
 
