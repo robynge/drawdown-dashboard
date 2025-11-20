@@ -462,7 +462,7 @@ if True:
                 margin=dict(l=0, r=0, t=40, b=0)
             )
 
-            st.plotly_chart(fig1, use_container_width=True, config=CHART_CONFIG)
+            st.plotly_chart(fig1, width='stretch', config=CHART_CONFIG)
 
             # ============ CHART 2: PEER GROUP ============
             if gics and len(peer_prices) > 0:
@@ -600,7 +600,7 @@ if True:
                     margin=dict(l=0, r=0, t=40, b=0)
                 )
 
-                st.plotly_chart(fig2, use_container_width=True, config=CHART_CONFIG)
+                st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 
     ""  # Space
 
@@ -648,7 +648,7 @@ if True:
             display_df,
             column_config=column_config,
             hide_index=True,
-            use_container_width=True
+            width='stretch'
         )
 
 # ============ CURRENT DRAWDOWN & RECOVERY RATE ============
@@ -825,7 +825,7 @@ if len(recovery_df) > 0:
             "Recovery Probability %": st.column_config.NumberColumn(f"Recovery Prob ({recovery_months}M) %", format="%.2f%%")
         },
         hide_index=True,
-        use_container_width=True,
+        width='stretch',
         height=600
     )
 else:
