@@ -37,7 +37,7 @@ st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DAT
 
 # Load and cache ETF price and drawdown data
 @st.cache_data
-def load_all_etf_data():
+def load_all_etf_data(cache_key=None):
     """Load price and drawdown data for all ETFs - from precomputed file if available"""
     # Try to load from precomputed data first
     if PRECOMP_FILE.exists():
@@ -71,7 +71,7 @@ def load_all_etf_data():
 
 # Load data
 with st.spinner("Loading ETF drawdown data..."):
-    etf_prices, etf_dd = load_all_etf_data()
+    etf_prices, etf_dd = load_all_etf_data(cache_key=f"{START_DATE}_{END_DATE}")
 
 # Section 1: ARK ETF Price Overview
 st.subheader("ARK ETF Price Trends")

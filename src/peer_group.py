@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 from data_loader import load_r3000_holdings, load_industry_info
+from config import START_DATE, END_DATE
 
 _cache = {}
 
@@ -11,8 +12,9 @@ def calculate_peer_group_prices_mv():
     Returns:
         DataFrame with columns: Date, GICS, Value
     """
-    if 'peer_group_prices_mv' in _cache:
-        return _cache['peer_group_prices_mv']
+    cache_key = f'peer_group_prices_mv_{START_DATE}_{END_DATE}'
+    if cache_key in _cache:
+        return _cache[cache_key]
 
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
@@ -41,7 +43,7 @@ def calculate_peer_group_prices_mv():
     peer_prices = holdings_with_gics.groupby(['Date', 'GICS'])['Market_Value'].sum().reset_index()
     peer_prices.columns = ['Date', 'GICS', 'Value']
 
-    _cache['peer_group_prices_mv'] = peer_prices
+    _cache[cache_key] = peer_prices
     return peer_prices
 
 
@@ -56,8 +58,9 @@ def calculate_peer_group_prices_weighted():
     Returns:
         DataFrame with columns: Date, GICS, Value
     """
-    if 'peer_group_prices_weighted' in _cache:
-        return _cache['peer_group_prices_weighted']
+    cache_key = f'peer_group_prices_weighted_{START_DATE}_{END_DATE}'
+    if cache_key in _cache:
+        return _cache[cache_key]
 
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
@@ -99,7 +102,7 @@ def calculate_peer_group_prices_weighted():
     peer_prices = holdings_with_gics.groupby(['Date', 'GICS'])['Weighted_Price'].sum().reset_index()
     peer_prices.columns = ['Date', 'GICS', 'Value']
 
-    _cache['peer_group_prices_weighted'] = peer_prices
+    _cache[cache_key] = peer_prices
     return peer_prices
 
 
