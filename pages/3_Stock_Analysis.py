@@ -222,7 +222,7 @@ if True:
                     st.markdown("##### Key Metrics")
 
                     current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
-                    top_dd = dd_data[dd_data['rank'] == 1].iloc[0]
+                    top_dd = dd_data[dd_data['rank'] == '1'].iloc[0]
 
                     # Calculate RoMaD
                     # Check which price column has actual data
