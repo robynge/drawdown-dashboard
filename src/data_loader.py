@@ -112,8 +112,17 @@ def load_industry_info(source='ark'):
         else:
             raise ValueError(f"Cannot find GICS Industry Group column in {file_path}")
 
-    # Extract Bloomberg Name and GICS Industry Group
-    df_clean = df[['Bloomberg Name', gics_col]].copy()
+    # Find the ticker/name column (different column names for ARK vs R3000)
+    ticker_col = None
+    if 'Bloomberg Name' in df.columns:
+        ticker_col = 'Bloomberg Name'
+    elif 'Ticker' in df.columns:
+        ticker_col = 'Ticker'
+    else:
+        raise ValueError(f"Cannot find ticker column (Bloomberg Name or Ticker) in {file_path}")
+
+    # Extract ticker and GICS Industry Group
+    df_clean = df[[ticker_col, gics_col]].copy()
     df_clean.columns = ['Bloomberg_Name', 'GICS']
 
     # Remove rows where GICS is NaN
