@@ -11,8 +11,8 @@ CACHE_DIR = DATA_DIR / 'cache'
 PROCESSED_DIR = DATA_DIR / 'processed'
 
 # Analysis settings
-START_DATE = pd.to_datetime('2024-04-01')
-END_DATE = pd.to_datetime('2025-11-18')
+START_DATE = pd.to_datetime('2024-01-02')
+END_DATE = pd.to_datetime('2025-11-21')
 
 # ETFs
 ARK_ETFS = ['ARKK', 'ARKQ', 'ARKW', 'ARKG', 'ARKF', 'ARKX']
