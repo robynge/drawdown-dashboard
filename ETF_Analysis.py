@@ -138,7 +138,7 @@ with left_panel:
     if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0:
         etf_dd_data = etf_dd[etf_dd['ETF'] == selected_etf]
         current_dd = etf_dd_data[etf_dd_data['rank'] == 'Current'].iloc[0]
-        max_dd = etf_dd_data[etf_dd_data['rank'] == 1].iloc[0]
+        max_dd = etf_dd_data[etf_dd_data['rank'] == '1'].iloc[0]
 
         # Calculate RoMaD (Return over Maximum Drawdown)
         price_df = etf_prices[selected_etf]
@@ -369,7 +369,7 @@ if len(etf_dd) > 0:
 
     with comparison_container:
         # Show only max drawdown per ETF
-        etf_summary = etf_dd[etf_dd['rank'] == 1][['ETF', 'depth_pct', 'peak_date', 'trough_date']].copy()
+        etf_summary = etf_dd[etf_dd['rank'] == '1'][['ETF', 'depth_pct', 'peak_date', 'trough_date']].copy()
 
         # Format columns as strings
         etf_summary['Max Drawdown %'] = etf_summary['depth_pct'].apply(lambda x: f"{x:.2f}%")

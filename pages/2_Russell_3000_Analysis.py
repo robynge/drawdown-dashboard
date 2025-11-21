@@ -133,7 +133,7 @@ if iwv_prices is not None and iwv_dd is not None:
             st.markdown("<small><b>Key Metrics</b></small>", unsafe_allow_html=True)
 
             current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
-            top_dd = dd_data[dd_data['rank'] == 1].iloc[0]
+            top_dd = dd_data[dd_data['rank'] == '1'].iloc[0]
 
             # Calculate RoMaD (Return over Maximum Drawdown)
             first_price = prices[price_column].iloc[0]
