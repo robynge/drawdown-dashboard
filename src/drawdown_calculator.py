@@ -128,6 +128,11 @@ def calculate_drawdowns(prices_df, ticker=None):
     })
 
     df = pd.DataFrame(results)
+
+    # Convert rank to string to avoid PyArrow serialization issues
+    if 'rank' in df.columns:
+        df['rank'] = df['rank'].astype(str)
+
     if ticker:
         df.insert(0, 'ticker', ticker)
 

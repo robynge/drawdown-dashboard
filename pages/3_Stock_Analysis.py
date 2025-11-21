@@ -577,6 +577,9 @@ if True:
 
         display_df = dd_data[display_cols].copy()
 
+        # Convert rank to string to avoid mixed type issues with PyArrow
+        display_df['rank'] = display_df['rank'].astype(str)
+
         # Format dates
         if 'peak_date' in display_df.columns:
             display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
