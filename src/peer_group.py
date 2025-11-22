@@ -19,16 +19,15 @@ def calculate_peer_group_prices_mv():
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
 
-    # Filter out non-trading days (weekends and holidays) by only keeping dates where Price > 0
-    # This ensures we only include actual trading days
-    holdings = holdings[holdings['Price'] > 0].copy()
-
     # Calculate Market Value if not present
     if 'Market_Value' not in holdings.columns:
         if 'Position' in holdings.columns and 'Price' in holdings.columns:
             holdings['Market_Value'] = holdings['Position'] * holdings['Price']
         else:
             raise ValueError("Cannot calculate Market_Value: missing Position or Price columns")
+
+    # Filter out rows with zero or negative Market Value (non-trading days, zero positions, etc.)
+    holdings = holdings[holdings['Market_Value'] > 0].copy()
 
     # Map GICS to tickers
     # First try exact match on full ticker
@@ -69,16 +68,15 @@ def calculate_peer_group_prices_weighted():
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
 
-    # Filter out non-trading days (weekends and holidays) by only keeping dates where Price > 0
-    # This ensures we only include actual trading days
-    holdings = holdings[holdings['Price'] > 0].copy()
-
     # Calculate Market Value if not present
     if 'Market_Value' not in holdings.columns:
         if 'Position' in holdings.columns and 'Price' in holdings.columns:
             holdings['Market_Value'] = holdings['Position'] * holdings['Price']
         else:
             raise ValueError("Cannot calculate Market_Value: missing Position or Price columns")
+
+    # Filter out rows with zero or negative Market Value (non-trading days, zero positions, etc.)
+    holdings = holdings[holdings['Market_Value'] > 0].copy()
 
     # Map GICS to tickers
     # First try exact match on full ticker
