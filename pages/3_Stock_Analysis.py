@@ -14,7 +14,7 @@ from data_loader import load_ark_holdings, load_industry_info, load_company_name
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
-from recovery_probability import get_recovery_probability_for_depth, get_drawdowns_in_depth_range
+from recovery_probability import get_stock_drawdowns_in_depth_range
 
 st.set_page_config(
     page_title="Individual Stock vs Peer Group",
@@ -606,11 +606,10 @@ if True:
 
             ""  # Space
 
-            st.markdown("#### Recovery Probability Analysis")
+            st.markdown("#### Historical Drawdown Analysis for This Stock")
 
-            st.markdown("""
-            <small>Recovery Probability是基于历史统计数据，表示在相同跌幅区间内的股票最终回到前高的概率。
-            选择一个跌幅区间来查看该区间内所有历史drawdown的详细信息。</small>
+            st.markdown(f"""
+            <small>查看 <b>{selected_ticker}</b> 在不同跌幅区间的历史drawdown记录，了解该股票在各个深度的历史表现和恢复情况。</small>
             """, unsafe_allow_html=True)
 
             ""  # Space
@@ -633,28 +632,28 @@ if True:
                 index=current_range_idx
             )
 
-            # Get drawdowns in selected range
-            with st.spinner(f"Loading historical drawdowns for {selected_range}..."):
-                range_drawdowns = get_drawdowns_in_depth_range(selected_range)
+            # Get drawdowns in selected range for THIS stock only
+            with st.spinner(f"Loading {selected_ticker} historical drawdowns for {selected_range}..."):
+                range_drawdowns = get_stock_drawdowns_in_depth_range(selected_ticker, selected_etf, selected_range)
 
             if len(range_drawdowns) > 0:
-                # Calculate recovery probability for this range
+                # Calculate recovery statistics for this stock
                 total_events = len(range_drawdowns)
                 recovered_events = range_drawdowns['recovered'].sum()
                 recovery_probability = recovered_events / total_events if total_events > 0 else 0
 
-                # Display recovery probability stats
+                # Display recovery statistics
                 st.markdown(f"""
-                **{selected_range} Recovery Statistics:**
-                - Total Events: {total_events}
-                - Recovered Events: {recovered_events}
-                - **Recovery Probability: {recovery_probability * 100:.1f}%**
+                **{selected_ticker} - {selected_range} Historical Statistics:**
+                - Total Drawdowns: {total_events}
+                - Recovered: {recovered_events}
+                - **Recovery Rate: {recovery_probability * 100:.1f}%**
                 """)
 
                 ""  # Space
 
                 # Display detailed table
-                st.markdown(f"**All Historical Drawdowns in {selected_range}:**")
+                st.markdown(f"**{selected_ticker} - All Historical Drawdowns in {selected_range}:**")
 
                 # Format the dataframe for display
                 display_range_dd = range_drawdowns.copy()
@@ -672,15 +671,13 @@ if True:
                     lambda x: f'{int(x)}' if pd.notna(x) else 'N/A'
                 )
 
-                # Select and rename columns
-                display_cols = ['ticker', 'etf', 'Peak Date', 'Trough Date', 'duration_days',
+                # Select and rename columns (no ticker/etf needed since it's all the same stock)
+                display_cols = ['Peak Date', 'Trough Date', 'duration_days',
                               'Depth %', 'Peak Price', 'Trough Price',
                               'Recovered', 'Recovery Date', 'Days to Recover', 'Recovery Rate']
 
                 display_range_dd = display_range_dd[display_cols]
                 display_range_dd = display_range_dd.rename(columns={
-                    'ticker': 'Ticker',
-                    'etf': 'ETF',
                     'duration_days': 'Duration (Days)'
                 })
 
@@ -691,7 +688,7 @@ if True:
                     height=400
                 )
             else:
-                st.info(f"No historical drawdowns found in {selected_range} range.")
+                st.info(f"{selected_ticker} has no historical drawdowns in {selected_range} range.")
 
     ""  # Space
 
