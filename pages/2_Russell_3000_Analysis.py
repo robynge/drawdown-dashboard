@@ -136,31 +136,35 @@ if iwv_prices is not None and iwv_dd is not None:
         with metrics_card:
             st.markdown("<small><b>Key Metrics</b></small>", unsafe_allow_html=True)
 
-            current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
-            top_dd = dd_data[dd_data['rank'] == '1'].iloc[0]
+            # Check if drawdown data is valid
+            if len(dd_data) == 0 or 'rank' not in dd_data.columns:
+                st.error("Insufficient data to calculate drawdowns for this selection")
+            else:
+                current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
+                top_dd = dd_data[dd_data['rank'] == '1'].iloc[0]
 
-            # Calculate RoMaD (Return over Maximum Drawdown)
-            first_price = prices[price_column].iloc[0]
-            last_price = prices[price_column].iloc[-1]
-            overall_return = ((last_price - first_price) / first_price) * 100
-            max_dd_abs = abs(top_dd['depth_pct'])
-            romad = overall_return / max_dd_abs if max_dd_abs > 0 else 0
+                # Calculate RoMaD (Return over Maximum Drawdown)
+                first_price = prices[price_column].iloc[0]
+                last_price = prices[price_column].iloc[-1]
+                overall_return = ((last_price - first_price) / first_price) * 100
+                max_dd_abs = abs(top_dd['depth_pct'])
+                romad = overall_return / max_dd_abs if max_dd_abs > 0 else 0
 
-            cols_metrics = st.columns(2)
-            with cols_metrics[0]:
-                st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
-            with cols_metrics[1]:
-                st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                cols_metrics = st.columns(2)
+                with cols_metrics[0]:
+                    st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                with cols_metrics[1]:
+                    st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
 
-            if not is_peer_group:
-                cols_price = st.columns(2)
-                with cols_price[0]:
-                    st.markdown(f"<small>Current</small><br><b>${prices['Close'].iloc[-1]:,.2f}</b>", unsafe_allow_html=True)
-                with cols_price[1]:
-                    st.markdown(f"<small>Peak</small><br><b>${prices['Close'].max():,.2f}</b>", unsafe_allow_html=True)
+                if not is_peer_group:
+                    cols_price = st.columns(2)
+                    with cols_price[0]:
+                        st.markdown(f"<small>Current</small><br><b>${prices['Close'].iloc[-1]:,.2f}</b>", unsafe_allow_html=True)
+                    with cols_price[1]:
+                        st.markdown(f"<small>Peak</small><br><b>${prices['Close'].max():,.2f}</b>", unsafe_allow_html=True)
 
-            # RoMaD row
-            st.markdown(f"<small>RoMaD</small><br><b>{romad:.2f}</b>", unsafe_allow_html=True)
+                # RoMaD row
+                st.markdown(f"<small>RoMaD</small><br><b>{romad:.2f}</b>", unsafe_allow_html=True)
 
     # Right column: chart
     right_panel = cols[1].container(border=True, height=700)
@@ -170,7 +174,7 @@ if iwv_prices is not None and iwv_dd is not None:
         fig = go.Figure()
 
         # Get top 10 drawdowns
-        if len(dd_data) > 0:
+        if len(dd_data) > 0 and 'rank' in dd_data.columns:
             top_10_dd = dd_data[dd_data['rank'] != 'Current'].head(10)
 
             # Color palette for drawdowns
@@ -194,7 +198,7 @@ if iwv_prices is not None and iwv_dd is not None:
         price_df_copy['DD_Info'] = ''
 
         # Add drawdown info for each date
-        if len(dd_data) > 0:
+        if len(dd_data) > 0 and 'rank' in dd_data.columns:
             top_10_dd = dd_data[dd_data['rank'] != 'Current'].head(10)
             for _, row in top_10_dd.iterrows():
                 mask = (price_df_copy['Date'] >= row['peak_date']) & (price_df_copy['Date'] <= row['trough_date'])
@@ -227,7 +231,7 @@ if iwv_prices is not None and iwv_dd is not None:
         ))
 
         # Add current drawdown line and shaded area
-        if len(dd_data) > 0:
+        if len(dd_data) > 0 and 'rank' in dd_data.columns:
             current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
             peak_price = current_dd['peak_price']
             peak_date = current_dd['peak_date']
@@ -329,39 +333,42 @@ if iwv_prices is not None and iwv_dd is not None:
     details_container = st.container(border=True)
 
     with details_container:
-        display_df = dd_data.copy()
-
-        # Convert rank to string to avoid mixed type issues
-        display_df['rank'] = display_df['rank'].astype(str)
-
-        # Format numeric columns as strings
-        display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
-        display_df['Peak Date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
-        display_df['Trough Date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
-
-        # Label depends on whether it's peer group
-        if is_peer_group:
-            display_df['Peak Value'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
-            display_df['Trough Value'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
-            cols_to_show = ['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Value', 'Trough Value']
+        if len(dd_data) == 0 or 'rank' not in dd_data.columns:
+            st.info("No drawdown data available for display")
         else:
-            display_df['Peak Price'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
-            display_df['Trough Price'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
-            cols_to_show = ['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']
+            display_df = dd_data.copy()
 
-        # Reorder to put Current first
-        current_row = display_df[display_df['rank'] == 'Current']
-        historical_rows = display_df[display_df['rank'] != 'Current']
-        display_df = pd.concat([current_row, historical_rows], ignore_index=True)
+            # Convert rank to string to avoid mixed type issues
+            display_df['rank'] = display_df['rank'].astype(str)
 
-        # Select columns and rename
-        display_df = display_df[cols_to_show]
-        display_df = display_df.rename(columns={'rank': 'Rank'})
+            # Format numeric columns as strings
+            display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
+            display_df['Peak Date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
+            display_df['Trough Date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
 
-        st.dataframe(
-            display_df,
-            width='stretch',
-            hide_index=True
-        )
+            # Label depends on whether it's peer group
+            if is_peer_group:
+                display_df['Peak Value'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
+                display_df['Trough Value'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
+                cols_to_show = ['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Value', 'Trough Value']
+            else:
+                display_df['Peak Price'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
+                display_df['Trough Price'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
+                cols_to_show = ['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']
+
+            # Reorder to put Current first
+            current_row = display_df[display_df['rank'] == 'Current']
+            historical_rows = display_df[display_df['rank'] != 'Current']
+            display_df = pd.concat([current_row, historical_rows], ignore_index=True)
+
+            # Select columns and rename
+            display_df = display_df[cols_to_show]
+            display_df = display_df.rename(columns={'rank': 'Rank'})
+
+            st.dataframe(
+                display_df,
+                width='stretch',
+                hide_index=True
+            )
 else:
     st.error("Russell 3000 Index data not available")
