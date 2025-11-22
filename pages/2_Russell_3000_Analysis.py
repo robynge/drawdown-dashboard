@@ -40,6 +40,10 @@ def load_iwv_data():
     drawdowns['peak_date'] = pd.to_datetime(drawdowns['peak_date'])
     drawdowns['trough_date'] = pd.to_datetime(drawdowns['trough_date'])
 
+    # Convert rank to string for consistency with dynamically calculated drawdowns
+    if 'rank' in drawdowns.columns:
+        drawdowns['rank'] = drawdowns['rank'].astype(str)
+
     return prices, drawdowns
 
 # Load peer group data
