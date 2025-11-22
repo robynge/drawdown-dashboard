@@ -387,7 +387,7 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
                 'Recovery Rate': f'{recovery_rate * 100:.1f}%'
             }])
 
-            st.dataframe(current_dd_info, hide_index=True, use_container_width=True)
+            st.dataframe(current_dd_info, hide_index=True, width='stretch')
 
             ""  # Space
 
@@ -474,7 +474,7 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
                 st.dataframe(
                     display_range_dd,
                     hide_index=True,
-                    use_container_width=True,
+                    width='stretch',
                     height=400
                 )
             else:

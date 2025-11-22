@@ -625,7 +625,7 @@ if True:
                 'Recovery Rate': f'{recovery_rate * 100:.1f}%'
             }])
 
-            st.dataframe(current_dd_info, hide_index=True, use_container_width=True)
+            st.dataframe(current_dd_info, hide_index=True, width='stretch')
 
             ""  # Space
 
@@ -710,7 +710,7 @@ if True:
                 st.dataframe(
                     display_range_dd,
                     hide_index=True,
-                    use_container_width=True,
+                    width='stretch',
                     height=400
                 )
             else:
