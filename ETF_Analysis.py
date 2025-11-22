@@ -13,6 +13,7 @@ from config import ARK_ETFS, START_DATE, END_DATE
 from data_loader import load_etf_prices, get_stock_etf_mapping
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
+from recovery_probability import get_etf_drawdowns_in_depth_range
 
 # Precomputed data directory
 PRECOMP_DIR = Path(__file__).parent / 'data' / 'precomputed'
@@ -358,6 +359,93 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
             }])
 
             st.dataframe(current_dd_info, hide_index=True, use_container_width=True)
+
+            ""  # Space
+
+            st.markdown("#### Historical Drawdown Analysis for This ETF")
+
+            st.markdown(f"""
+            <small>查看 <b>{selected_etf}</b> 在不同跌幅区间的历史drawdown记录，了解该ETF在各个深度的历史表现和恢复情况。</small>
+            """, unsafe_allow_html=True)
+
+            ""  # Space
+
+            # Depth range selector
+            depth_ranges = ['< -80%', '-70% to -80%', '-60% to -70%', '-50% to -60%',
+                          '-40% to -50%', '-30% to -40%', '-20% to -30%', '-10% to -20%', '0% to -10%']
+
+            # Determine default selection based on current drawdown depth
+            bins = [-float('inf'), -80, -70, -60, -50, -40, -30, -20, -10, 0]
+            current_range_idx = 8  # Default to '0% to -10%'
+            for i in range(len(bins) - 1):
+                if bins[i] < current_dd_pct <= bins[i+1]:
+                    current_range_idx = i
+                    break
+
+            selected_range = st.selectbox(
+                "Select Drawdown Depth Range",
+                depth_ranges,
+                index=current_range_idx,
+                key=f"etf_depth_range_{selected_etf}"
+            )
+
+            # Get drawdowns in selected range for THIS ETF only
+            with st.spinner(f"Loading {selected_etf} historical drawdowns for {selected_range}..."):
+                range_drawdowns = get_etf_drawdowns_in_depth_range(selected_etf, selected_range)
+
+            if len(range_drawdowns) > 0:
+                # Calculate recovery statistics for this ETF
+                total_events = len(range_drawdowns)
+                recovered_events = range_drawdowns['recovered'].sum()
+                recovery_probability = recovered_events / total_events if total_events > 0 else 0
+
+                # Display recovery statistics
+                st.markdown(f"""
+                **{selected_etf} - {selected_range} Historical Statistics:**
+                - Total Drawdowns: {total_events}
+                - Recovered: {recovered_events}
+                - **Recovery Rate: {recovery_probability * 100:.1f}%**
+                """)
+
+                ""  # Space
+
+                # Display detailed table
+                st.markdown(f"**{selected_etf} - All Historical Drawdowns in {selected_range}:**")
+
+                # Format the dataframe for display
+                display_range_dd = range_drawdowns.copy()
+                display_range_dd['Peak Date'] = display_range_dd['peak_date'].dt.strftime('%Y-%m-%d')
+                display_range_dd['Trough Date'] = display_range_dd['trough_date'].dt.strftime('%Y-%m-%d')
+                display_range_dd['Recovery Date'] = display_range_dd['recovery_date'].apply(
+                    lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else 'Not Recovered'
+                )
+                display_range_dd['Depth %'] = display_range_dd['depth_pct'].apply(lambda x: f'{x:.2f}%')
+                display_range_dd['Peak Price'] = display_range_dd['peak_price'].apply(lambda x: f'${x:.2f}')
+                display_range_dd['Trough Price'] = display_range_dd['trough_price'].apply(lambda x: f'${x:.2f}')
+                display_range_dd['Recovery Rate'] = display_range_dd['recovery_rate'].apply(lambda x: f'{x * 100:.1f}%')
+                display_range_dd['Recovered'] = display_range_dd['recovered'].apply(lambda x: 'Yes' if x else 'No')
+                display_range_dd['Days to Recover'] = display_range_dd['days_to_recover'].apply(
+                    lambda x: f'{int(x)}' if pd.notna(x) else 'N/A'
+                )
+
+                # Select and rename columns (no ETF column needed since all same ETF)
+                display_cols = ['Peak Date', 'Trough Date', 'duration_days',
+                              'Depth %', 'Peak Price', 'Trough Price',
+                              'Recovered', 'Recovery Date', 'Days to Recover', 'Recovery Rate']
+
+                display_range_dd = display_range_dd[display_cols]
+                display_range_dd = display_range_dd.rename(columns={
+                    'duration_days': 'Duration (Days)'
+                })
+
+                st.dataframe(
+                    display_range_dd,
+                    hide_index=True,
+                    use_container_width=True,
+                    height=400
+                )
+            else:
+                st.info(f"{selected_etf} has no historical drawdowns in {selected_range} range.")
 
 ""  # Add space
 
