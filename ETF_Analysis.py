@@ -151,12 +151,6 @@ with left_panel:
         st.markdown("### Key Metrics")
 
         st.metric(
-            "Current Drawdown",
-            f"{current_dd['depth_pct']:.2f}%",
-            delta=None
-        )
-
-        st.metric(
             "Max Drawdown",
             f"{max_dd['depth_pct']:.2f}%",
             delta=None
@@ -315,7 +309,59 @@ with right_panel:
 
 ""  # Add space
 
-# Section 3: Drawdown Details
+# Section 3: Current Drawdown Analysis
+if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0:
+    etf_dd_data = etf_dd[etf_dd['ETF'] == selected_etf]
+
+    # Check if there is a current drawdown
+    if len(etf_dd_data[etf_dd_data['rank'] == 'Current']) > 0:
+        st.subheader("Current Drawdown Analysis")
+
+        current_dd_container = st.container(border=True)
+        with current_dd_container:
+            st.markdown("#### Current Drawdown Information")
+
+            current_dd = etf_dd_data[etf_dd_data['rank'] == 'Current'].iloc[0]
+            price_df = etf_prices[selected_etf]
+
+            current_price = price_df['Close'].iloc[-1]
+            current_date = price_df['Date'].iloc[-1]
+            peak_price = current_dd['peak_price']
+            peak_date = current_dd['peak_date']
+            current_dd_pct = current_dd['depth_pct']
+
+            # For Current drawdown, find the actual trough (lowest price) from peak to now
+            drawdown_period = price_df[price_df['Date'] >= peak_date]
+            actual_trough_price = drawdown_period['Close'].min()
+            actual_trough_date = drawdown_period[drawdown_period['Close'] == actual_trough_price]['Date'].iloc[0]
+
+            # Calculate duration
+            duration_days = (current_date - peak_date).days
+
+            # Calculate Recovery Rate
+            if peak_price != actual_trough_price:
+                recovery_rate = (current_price - actual_trough_price) / (peak_price - actual_trough_price)
+            else:
+                recovery_rate = 0.0
+
+            # Create current drawdown info DataFrame
+            current_dd_info = pd.DataFrame([{
+                'Peak Date': peak_date.strftime('%Y-%m-%d'),
+                'Peak Price': f'${peak_price:.2f}',
+                'Trough Date': actual_trough_date.strftime('%Y-%m-%d'),
+                'Trough Price': f'${actual_trough_price:.2f}',
+                'Current Date': current_date.strftime('%Y-%m-%d'),
+                'Current Price': f'${current_price:.2f}',
+                'Duration (Days)': duration_days,
+                'Drawdown Depth': f'{current_dd_pct:.2f}%',
+                'Recovery Rate': f'{recovery_rate * 100:.1f}%'
+            }])
+
+            st.dataframe(current_dd_info, hide_index=True, use_container_width=True)
+
+""  # Add space
+
+# Section 4: Drawdown Details
 st.subheader("Drawdown Details")
 
 # Add CSS for left alignment
@@ -332,7 +378,9 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
 
     with details_container:
         etf_dd_data = etf_dd[etf_dd['ETF'] == selected_etf]
-        display_df = etf_dd_data.copy()
+
+        # Filter out Current drawdown (shown in separate section above)
+        display_df = etf_dd_data[etf_dd_data['rank'] != 'Current'].copy()
 
         # Convert rank to string to avoid mixed type issues
         display_df['rank'] = display_df['rank'].astype(str)
@@ -343,11 +391,6 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
         display_df['Trough Date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
         display_df['Peak Price'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
         display_df['Trough Price'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
-
-        # Reorder to put Current first
-        current_row = display_df[display_df['rank'] == 'Current']
-        historical_rows = display_df[display_df['rank'] != 'Current']
-        display_df = pd.concat([current_row, historical_rows], ignore_index=True)
 
         # Select and rename columns for display
         display_df = display_df[['ETF', 'rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
