@@ -616,14 +616,14 @@ if True:
             ""  # Space
 
             # Depth range selector
-            depth_ranges = ['0% to -10%', '-10% to -20%', '-20% to -30%', '-30% to -40%',
-                          '-40% to -50%', '-50% to -60%', '-60% to -70%', '-70% to -80%', '< -80%']
+            depth_ranges = ['< -80%', '-70% to -80%', '-60% to -70%', '-50% to -60%',
+                          '-40% to -50%', '-30% to -40%', '-20% to -30%', '-10% to -20%', '0% to -10%']
 
             # Determine default selection based on current drawdown depth
-            bins = [0, -10, -20, -30, -40, -50, -60, -70, -80, -float('inf')]
-            current_range_idx = 0
+            bins = [-float('inf'), -80, -70, -60, -50, -40, -30, -20, -10, 0]
+            current_range_idx = 8  # Default to '0% to -10%'
             for i in range(len(bins) - 1):
-                if bins[i] >= current_dd_pct > bins[i+1]:
+                if bins[i] < current_dd_pct <= bins[i+1]:
                     current_range_idx = i
                     break
 
