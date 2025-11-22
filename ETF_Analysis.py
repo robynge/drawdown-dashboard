@@ -362,10 +362,10 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
 
             ""  # Space
 
-            st.markdown("#### Historical Drawdown Analysis for This ETF")
+            st.markdown("#### Historical Drawdown Analysis for ETF Constituent Stocks")
 
             st.markdown(f"""
-            <small>View historical drawdown records for <b>{selected_etf}</b> across different depth ranges to understand its performance and recovery patterns at various levels.</small>
+            <small>View historical drawdown records for all constituent stocks in <b>{selected_etf}</b> across different depth ranges to understand their performance and recovery patterns at various levels.</small>
             """, unsafe_allow_html=True)
 
             ""  # Space
@@ -397,15 +397,15 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
                 range_drawdowns = get_etf_drawdowns_in_depth_range(selected_etf, selected_range)
 
             if len(range_drawdowns) > 0:
-                # Calculate recovery statistics for this ETF
+                # Calculate recovery statistics for constituent stocks
                 total_events = len(range_drawdowns)
                 recovered_events = range_drawdowns['recovered'].sum()
                 recovery_probability = recovered_events / total_events if total_events > 0 else 0
 
                 # Display recovery statistics
                 st.markdown(f"""
-                **{selected_etf} - {selected_range} Historical Statistics:**
-                - Total Drawdowns: {total_events}
+                **{selected_etf} Constituent Stocks - {selected_range} Historical Statistics:**
+                - Total Drawdowns (all stocks): {total_events}
                 - Recovered: {recovered_events}
                 - **Recovery Rate: {recovery_probability * 100:.1f}%**
                 """)
@@ -413,7 +413,7 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
                 ""  # Space
 
                 # Display detailed table
-                st.markdown(f"**{selected_etf} - All Historical Drawdowns in {selected_range}:**")
+                st.markdown(f"**{selected_etf} - All Constituent Stock Drawdowns in {selected_range}:**")
 
                 # Format the dataframe for display
                 display_range_dd = range_drawdowns.copy()
@@ -431,13 +431,14 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
                     lambda x: f'{int(x)}' if pd.notna(x) else 'N/A'
                 )
 
-                # Select and rename columns (no ETF column needed since all same ETF)
-                display_cols = ['Peak Date', 'Trough Date', 'duration_days',
+                # Select and rename columns (include ticker since showing all constituent stocks)
+                display_cols = ['ticker', 'Peak Date', 'Trough Date', 'duration_days',
                               'Depth %', 'Peak Price', 'Trough Price',
                               'Recovered', 'Recovery Date', 'Days to Recover', 'Recovery Rate']
 
                 display_range_dd = display_range_dd[display_cols]
                 display_range_dd = display_range_dd.rename(columns={
+                    'ticker': 'Ticker',
                     'duration_days': 'Duration (Days)'
                 })
 
@@ -448,7 +449,7 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
                     height=400
                 )
             else:
-                st.info(f"{selected_etf} has no historical drawdowns in {selected_range} range.")
+                st.info(f"{selected_etf} constituent stocks have no historical drawdowns in {selected_range} range.")
 
 ""  # Add space
 
