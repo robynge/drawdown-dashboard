@@ -569,8 +569,15 @@ if True:
 
             current_price = stock_data[price_col].iloc[-1]
             peak_price = current_dd['peak_price']
-            trough_price = current_dd['trough_price']
+            peak_date = current_dd['peak_date']
             current_dd_pct = current_dd['depth_pct']
+
+            # Find the actual trough (lowest price) from peak to current
+            # For Current drawdown, trough_price in dd_data is just the current price
+            # We need to find the real lowest point between peak and now
+            prices_since_peak = stock_data[stock_data['Date'] >= peak_date][price_col]
+            trough_price = prices_since_peak.min()
+            trough_date = stock_data[stock_data[price_col] == trough_price]['Date'].iloc[0]
 
             # Calculate Recovery Rate
             # Recovery Rate = (Current Price - Trough Price) / (Peak Price - Trough Price)
@@ -595,9 +602,9 @@ if True:
 
             with metric_cols[0]:
                 st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd_pct:.2f}%</b>", unsafe_allow_html=True)
-                st.markdown(f"<small>Peak: {current_dd['peak_date'].strftime('%Y-%m-%d')}</small><br>"
+                st.markdown(f"<small>Peak: {peak_date.strftime('%Y-%m-%d')}</small><br>"
                           f"<small>Price: ${peak_price:.2f}</small>", unsafe_allow_html=True)
-                st.markdown(f"<small>Trough: {current_dd['trough_date'].strftime('%Y-%m-%d')}</small><br>"
+                st.markdown(f"<small>Trough: {trough_date.strftime('%Y-%m-%d')}</small><br>"
                           f"<small>Price: ${trough_price:.2f}</small>", unsafe_allow_html=True)
                 st.markdown(f"<small>Current: {stock_data['Date'].iloc[-1].strftime('%Y-%m-%d')}</small><br>"
                           f"<small>Price: ${current_price:.2f}</small>", unsafe_allow_html=True)
