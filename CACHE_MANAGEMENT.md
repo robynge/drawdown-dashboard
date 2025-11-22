@@ -113,18 +113,22 @@ PYTHONPATH=. python precompute_data.py
 @st.cache_data
 def load_all_etf_data(cache_key=None):
     # Streamlit caches the return value in memory
-    # Even if the underlying files change, Streamlit returns cached value
     # Cache key determines when to invalidate
+
+# Cache key includes file modification time (auto-invalidates when file changes)
+precomp_mtime = PRECOMP_FILE.stat().st_mtime if PRECOMP_FILE.exists() else 0
+load_all_etf_data(cache_key=f"{START_DATE}_{END_DATE}_{precomp_mtime}")
 ```
 
-**Why it causes problems:**
-- Persists across code changes and file updates
-- Even if you delete `data/cache/` and `data/precomputed/`, Streamlit still serves old data
-- Cache survives until you restart the app or manually clear it
+**Auto-invalidation (Fixed):**
+- ✅ ETF_Analysis.py now includes precomputed file modification time in cache_key
+- ✅ When you regenerate precomputed data, cache automatically invalidates
+- ✅ Just refresh browser (F5 or Cmd+R) to see updated data
+- ❌ Other pages (Russell 3000, Stock Analysis) may still need manual cache clearing
 
-**How to clear:**
+**How to clear (if auto-invalidation doesn't work):**
 
-**Option 1: In Browser (easiest)**
+**Option 1: In Browser**
 - Click hamburger menu (☰) top-right
 - Click "Clear cache"
 - Click "Rerun"
@@ -134,12 +138,6 @@ def load_all_etf_data(cache_key=None):
 # In terminal where streamlit is running
 Ctrl + C  # Stop
 streamlit run ETF_Analysis.py  # Restart
-```
-
-**Option 3: Clear Streamlit cache directory**
-```bash
-# This varies by system, Streamlit stores cache in temp directories
-rm -rf ~/.streamlit/cache/
 ```
 
 ---
@@ -203,12 +201,11 @@ rm -f data/precomputed/*.pkl data/precomputed/*.csv
 # Step 3: Regenerate precomputed data (loads fresh from CSV/Excel)
 PYTHONPATH=. python precompute_data.py
 
-# Step 4a: Clear Streamlit cache in browser
-# Click ☰ menu > Clear cache > Rerun
-
-# OR Step 4b: Restart Streamlit app
-# Ctrl+C, then: streamlit run ETF_Analysis.py
+# Step 4: Refresh browser (ETF Analysis page will auto-reload)
+# Press F5 or Cmd+R in your browser
 ```
+
+**Note:** As of the latest update, ETF_Analysis.py automatically detects when precomputed data changes and invalidates its cache. You only need to refresh your browser, no manual cache clearing required.
 
 ### Quick Clear All Script
 
