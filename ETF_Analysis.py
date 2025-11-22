@@ -158,6 +158,12 @@ with left_panel:
         )
 
         st.metric(
+            "RoMaD",
+            f"{romad:.2f}",
+            delta=None
+        )
+
+        st.metric(
             "Current Price",
             f"${price_df['Close'].iloc[-1]:.2f}",
             delta=None
@@ -166,12 +172,6 @@ with left_panel:
         st.metric(
             "Peak Price",
             f"${price_df['Close'].max():.2f}",
-            delta=None
-        )
-
-        st.metric(
-            "RoMaD",
-            f"{romad:.2f}",
             delta=None
         )
 
