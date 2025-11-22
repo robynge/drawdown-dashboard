@@ -365,7 +365,7 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
             st.markdown("#### Historical Drawdown Analysis for This ETF")
 
             st.markdown(f"""
-            <small>查看 <b>{selected_etf}</b> 在不同跌幅区间的历史drawdown记录，了解该ETF在各个深度的历史表现和恢复情况。</small>
+            <small>View historical drawdown records for <b>{selected_etf}</b> across different depth ranges to understand its performance and recovery patterns at various levels.</small>
             """, unsafe_allow_html=True)
 
             ""  # Space
