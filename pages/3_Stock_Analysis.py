@@ -14,6 +14,7 @@ from data_loader import load_ark_holdings, load_industry_info, load_company_name
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
+from recovery_probability import get_recovery_probability_for_depth
 
 st.set_page_config(
     page_title="Individual Stock vs Peer Group",
@@ -555,6 +556,65 @@ if True:
 
     ""  # Space
 
+    # Current Drawdown Analysis (only for current holdings)
+    if stock_data is not None and len(stock_data) > 0 and len(dd_data) > 0 and is_current:
+        st.markdown("### Current Drawdown Analysis")
+
+        current_dd_container = st.container(border=True)
+        with current_dd_container:
+            current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
+
+            # Determine which price column to use
+            if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
+                price_col = 'YFinance Close Price'
+            else:
+                price_col = 'Stock_Price'
+
+            current_price = stock_data[price_col].iloc[-1]
+            peak_price = current_dd['peak_price']
+            trough_price = current_dd['trough_price']
+            current_dd_pct = current_dd['depth_pct']
+
+            # Calculate Recovery Rate
+            # Recovery Rate = (Current Price - Trough Price) / (Peak Price - Trough Price)
+            if peak_price != trough_price:
+                recovery_rate = (current_price - trough_price) / (peak_price - trough_price)
+            else:
+                recovery_rate = 0.0
+
+            # Get Recovery Probability
+            try:
+                recovery_prob = get_recovery_probability_for_depth(current_dd_pct)
+                if recovery_prob is not None:
+                    recovery_prob_display = f"{recovery_prob * 100:.1f}%"
+                else:
+                    recovery_prob_display = "N/A"
+            except Exception as e:
+                recovery_prob_display = "Error"
+                print(f"Error calculating recovery probability: {e}")
+
+            # Display metrics in 3 columns
+            metric_cols = st.columns(3)
+
+            with metric_cols[0]:
+                st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd_pct:.2f}%</b>", unsafe_allow_html=True)
+                st.markdown(f"<small>Peak: {current_dd['peak_date'].strftime('%Y-%m-%d')}</small><br>"
+                          f"<small>Price: ${peak_price:.2f}</small>", unsafe_allow_html=True)
+                st.markdown(f"<small>Trough: {current_dd['trough_date'].strftime('%Y-%m-%d')}</small><br>"
+                          f"<small>Price: ${trough_price:.2f}</small>", unsafe_allow_html=True)
+                st.markdown(f"<small>Current: {stock_data['Date'].iloc[-1].strftime('%Y-%m-%d')}</small><br>"
+                          f"<small>Price: ${current_price:.2f}</small>", unsafe_allow_html=True)
+
+            with metric_cols[1]:
+                st.markdown(f"<small>Recovery Rate</small><br><b>{recovery_rate * 100:.1f}%</b>", unsafe_allow_html=True)
+                st.markdown(f"<small>(Current - Trough) / (Peak - Trough)</small>", unsafe_allow_html=True)
+
+            with metric_cols[2]:
+                st.markdown(f"<small>Recovery Probability</small><br><b>{recovery_prob_display}</b>", unsafe_allow_html=True)
+                st.markdown(f"<small>Based on historical drawdowns in similar depth range</small>", unsafe_allow_html=True)
+
+    ""  # Space
+
     # Drawdown Details
     if stock_data is not None and len(stock_data) > 0 and len(dd_data) > 0:
         st.markdown("### Drawdown Details")
@@ -568,14 +628,17 @@ if True:
         </style>
         """, unsafe_allow_html=True)
 
+        # Filter out Current drawdown (shown in separate module above)
+        historical_dd = dd_data[dd_data['rank'] != 'Current'].copy()
+
         # Select columns to display
         display_cols = ['rank', 'depth_pct', 'peak_date', 'trough_date', 'peak_price', 'trough_price',
                        'PeerGroup_DD_%', 'Cosine_Similarity']
 
         # Filter to only columns that exist
-        display_cols = [col for col in display_cols if col in dd_data.columns]
+        display_cols = [col for col in display_cols if col in historical_dd.columns]
 
-        display_df = dd_data[display_cols].copy()
+        display_df = historical_dd[display_cols].copy()
 
         # Convert rank to string to avoid mixed type issues with PyArrow
         display_df['rank'] = display_df['rank'].astype(str)
