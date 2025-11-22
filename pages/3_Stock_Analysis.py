@@ -251,11 +251,8 @@ if True:
                     if gics:
                         st.markdown(f"<small>GICS Industry Group</small><br><b>{gics}</b>", unsafe_allow_html=True)
 
-                    cols_metrics = st.columns(2)
-                    with cols_metrics[0]:
-                        st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
-                    with cols_metrics[1]:
-                        st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                    # Max Drawdown
+                    st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
 
                     cols_price = st.columns(2)
                     with cols_price[0]:
