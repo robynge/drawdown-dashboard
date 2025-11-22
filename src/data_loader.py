@@ -1,41 +1,11 @@
-"""Data loading with caching"""
+"""Data loading without manual caching - caching handled by Streamlit"""
 import pandas as pd
-import pickle
 from pathlib import Path
-from config import INPUT_DIR, CACHE_DIR, OUTPUT_DIR, CACHE_ENABLED, ARK_ETFS
+from config import INPUT_DIR, OUTPUT_DIR, ARK_ETFS
 
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
-_cache = {}
-
-def _get_cache_path(name):
-    return CACHE_DIR / f'{name}.pkl'
-
-def _load_from_cache(name):
-    if not CACHE_ENABLED:
-        return None
-    cache_path = _get_cache_path(name)
-    if cache_path.exists():
-        with open(cache_path, 'rb') as f:
-            return pickle.load(f)
-    return None
-
-def _save_to_cache(name, data):
-    if not CACHE_ENABLED:
-        return
-    with open(_get_cache_path(name), 'wb') as f:
-        pickle.dump(data, f)
 
 def load_ark_holdings(etf):
-    """Load ARK ETF holdings"""
-    cache_key = f'ark_holdings_{etf}'
-    if cache_key in _cache:
-        return _cache[cache_key]
-
-    cached = _load_from_cache(cache_key)
-    if cached is not None:
-        _cache[cache_key] = cached
-        return cached
-
+    """Load ARK ETF holdings - no caching, let Streamlit handle it"""
     file_path = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
     df = pd.read_excel(file_path)
     df['Date'] = pd.to_datetime(df['Date'])
@@ -44,20 +14,11 @@ def load_ark_holdings(etf):
     if 'CUSIP' in df.columns:
         df['CUSIP'] = df['CUSIP'].astype(str)
 
-    _cache[cache_key] = df
-    _save_to_cache(cache_key, df)
     return df
 
+
 def load_r3000_holdings():
-    """Load Russell 3000 holdings"""
-    if 'r3000_holdings' in _cache:
-        return _cache['r3000_holdings']
-
-    cached = _load_from_cache('r3000_holdings')
-    if cached is not None:
-        _cache['r3000_holdings'] = cached
-        return cached
-
+    """Load Russell 3000 holdings - no caching, let Streamlit handle it"""
     file_path = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
     all_data = []
     for sheet in ['2024', '2025']:
@@ -71,9 +32,8 @@ def load_r3000_holdings():
     if 'CUSIP' in df.columns:
         df['CUSIP'] = df['CUSIP'].astype(str)
 
-    _cache['r3000_holdings'] = df
-    _save_to_cache('r3000_holdings', df)
     return df
+
 
 def load_industry_info(source='ark'):
     """Load industry mapping from 'value' sheet
@@ -81,15 +41,6 @@ def load_industry_info(source='ark'):
     Maps tickers by their symbol only (e.g., 'AAPL' from 'AAPL US Equity')
     to handle different exchange codes (US/UW/UN/etc)
     """
-    cache_key = f'industry_info_{source}'
-    if cache_key in _cache:
-        return _cache[cache_key]
-
-    cached = _load_from_cache(cache_key)
-    if cached is not None:
-        _cache[cache_key] = cached
-        return cached
-
     if source == 'ark':
         file_path = INPUT_DIR / 'industry_mappings' / 'ARK ETFs industry info.xlsx'
     else:  # r3000
@@ -145,9 +96,8 @@ def load_industry_info(source='ark'):
         # For ARK: Use full Bloomberg Name
         industry_dict = dict(zip(df_valid['Bloomberg_Name'], df_valid['GICS']))
 
-    _cache[cache_key] = industry_dict
-    _save_to_cache(cache_key, industry_dict)
     return industry_dict
+
 
 def load_company_name(source='ark'):
     """Load company name mapping from 'value' sheet
@@ -155,15 +105,6 @@ def load_company_name(source='ark'):
     Maps tickers by their symbol only (e.g., 'AAPL' from 'AAPL US Equity')
     to handle different exchange codes (US/UW/UN/etc)
     """
-    cache_key = f'company_name_{source}'
-    if cache_key in _cache:
-        return _cache[cache_key]
-
-    cached = _load_from_cache(cache_key)
-    if cached is not None:
-        _cache[cache_key] = cached
-        return cached
-
     if source == 'ark':
         file_path = INPUT_DIR / 'companyname_mappings' / 'ARK ETFs company name.xlsx'
     else:  # r3000
@@ -191,9 +132,8 @@ def load_company_name(source='ark'):
         company_dict[symbol] = company_name
         company_dict[row['Bloomberg_Name']] = company_name
 
-    _cache[cache_key] = company_dict
-    _save_to_cache(cache_key, company_dict)
     return company_dict
+
 
 def load_all_ark_stock_tickers():
     """Get list of all unique stocks across ARK ETFs"""
@@ -209,6 +149,7 @@ def load_all_ark_stock_tickers():
                     continue
             all_tickers.add(ticker)
     return sorted(all_tickers)
+
 
 def get_stock_etf_mapping():
     """Map each stock to the ETFs it appears in"""
@@ -229,17 +170,9 @@ def get_stock_etf_mapping():
             stock_map[ticker_clean].append((etf, ticker))
     return stock_map
 
+
 def load_etf_prices(etf):
-    """Load ETF price data from CSV"""
-    cache_key = f'etf_prices_{etf}'
-    if cache_key in _cache:
-        return _cache[cache_key]
-
-    cached = _load_from_cache(cache_key)
-    if cached is not None:
-        _cache[cache_key] = cached
-        return cached
-
+    """Load ETF price data from CSV - no caching, let Streamlit handle it"""
     file_path = OUTPUT_DIR / f'{etf}_prices.csv'
     if not file_path.exists():
         return pd.DataFrame()
@@ -247,6 +180,4 @@ def load_etf_prices(etf):
     df = pd.read_csv(file_path)
     df['Date'] = pd.to_datetime(df['Date'])
 
-    _cache[cache_key] = df
-    _save_to_cache(cache_key, df)
     return df

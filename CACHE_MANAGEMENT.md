@@ -1,391 +1,329 @@
-# Cache Management Documentation
+# Cache Management Documentation (Updated Architecture)
 
 ## Overview
 
-This dashboard uses **THREE SEPARATE CACHING SYSTEMS** that work independently. When you update input data, ALL THREE must be cleared for changes to appear.
+**The dashboard now uses a simple, single-layer caching system.**
+
+Previous multi-layer caching (application cache + precomputed + Streamlit) has been replaced with **Streamlit-only caching with automatic invalidation**.
 
 ---
 
-## The Three Cache Systems
+## Current Caching Architecture
 
-### 1. Application-Level Pickle Cache (`data/cache/`)
+### Single Cache Layer: Streamlit `@st.cache_data`
 
-**Location:** `data/cache/*.pkl`
-
-**Managed by:** `src/data_loader.py`
-
-**What it caches:**
-- `ark_holdings_*.pkl` - ARK ETF holdings data from Excel files
-- `r3000_holdings.pkl` - Russell 3000 holdings data
-- `etf_prices_*.pkl` - ETF price data loaded from CSV files
-- `industry_info_*.pkl` - Industry mapping data
-- `company_name_*.pkl` - Company name mapping data
+**What it does:**
+- All data loading functions use `@st.cache_data` decorator
+- Cache automatically invalidates when input files change
+- No manual cache clearing needed in normal operation
 
 **How it works:**
 ```python
-# In data_loader.py
-def load_etf_prices(etf):
-    cache_key = f'etf_prices_{etf}'
+# Helper function tracks input file modification times
+def get_input_files_hash():
+    mtimes = []
+    for etf in ARK_ETFS:
+        price_file = OUTPUT_DIR / f'{etf}_prices.csv'
+        if price_file.exists():
+            mtimes.append(price_file.stat().st_mtime)
+    return max(mtimes) if mtimes else 0
 
-    # 1. Check in-memory cache first
-    if cache_key in _cache:
-        return _cache[cache_key]
-
-    # 2. Check disk cache (data/cache/)
-    cached = _load_from_cache(cache_key)
-    if cached is not None:
-        return cached
-
-    # 3. Load from CSV only if no cache exists
-    df = pd.read_csv(file_path)
-    _save_to_cache(cache_key, df)  # Save to disk
-    return df
-```
-
-**Why it causes problems:**
-- Even if you update `output/*.csv` files, the old pickle cache is loaded instead
-- The cache is checked BEFORE reading the CSV file
-- Controlled by `CACHE_ENABLED = True` in `config.py`
-
-**How to clear:**
-```bash
-rm -f data/cache/*.pkl
-```
-
----
-
-### 2. Precomputed Data (`data/precomputed/`)
-
-**Location:** `data/precomputed/etf_data.pkl` and `data/precomputed/*_drawdowns.csv`
-
-**Managed by:** `precompute_data.py`
-
-**What it contains:**
-- All ETF price data (loaded via `data_loader.load_etf_prices()`)
-- All ETF drawdown calculations
-- Pre-calculated for all 6 ARK ETFs
-
-**How it works:**
-```python
-# In ETF_Analysis.py
+# Cache function with automatic invalidation
 @st.cache_data
-def load_all_etf_data(cache_key=None):
-    # Try to load from precomputed data first
+def load_all_etf_data(_files_hash):
+    # _files_hash (with underscore) is used for cache invalidation
+    # When input files change, _files_hash changes, cache invalidates
+    ...
+
+# Usage
+files_hash = get_input_files_hash()
+data = load_all_etf_data(files_hash)  # Auto-invalidates when files change
+```
+
+**Key features:**
+- ✅ **Automatic invalidation**: Cache invalidates when input files are modified
+- ✅ **Transparent**: You don't need to think about caching
+- ✅ **Simple**: Single caching layer, no synchronization issues
+- ✅ **Just refresh browser**: Changes appear after browser refresh (F5 or Cmd+R)
+
+---
+
+## Optional: Precomputed Data
+
+**Location:** `data/precomputed/etf_data.pkl`
+
+**Purpose:** Speed up first page load by pre-calculating drawdowns
+
+**Status:** Optional - dashboard works fine without it
+
+**How it works:**
+1. `precompute_data.py` calculates all ETF drawdowns and saves to `data/precomputed/`
+2. Dashboard checks if precomputed file exists and is newer than source files
+3. If yes, loads from precomputed (fast)
+4. If no, calculates on-the-fly (still cached by Streamlit after first calculation)
+
+**When to regenerate:**
+- Run `./clear_all_caches.sh` after updating input data
+- Or run `PYTHONPATH=. python precompute_data.py` directly
+- Or don't regenerate - dashboard will calculate on-the-fly
+
+---
+
+## What Changed from Old Architecture
+
+### Before (Three-Layer Cache Hell)
+
+```
+Input Files
+    ↓
+data/cache/*.pkl (Manual caching, never invalidates)
+    ↓
+data/precomputed/*.pkl (Depends on stale data/cache)
+    ↓
+Streamlit cache (Depends on stale precomputed)
+    ↓
+Display (Shows old data)
+```
+
+**Problems:**
+- ❌ Each layer could be stale independently
+- ❌ Required manual clearing in specific order
+- ❌ Easy to forget a layer
+- ❌ Failed silently (showed old data)
+
+### After (Single-Layer with Auto-Invalidation)
+
+```
+Input Files
+    ↓ (modification time tracked)
+Streamlit cache (auto-invalidates when files change)
+    ↓
+Display (always fresh)
+
+Optional side path:
+data/precomputed/*.pkl (checked for staleness before use)
+```
+
+**Benefits:**
+- ✅ Single source of truth
+- ✅ Automatic invalidation
+- ✅ No manual intervention needed
+- ✅ Fails obviously if something is wrong
+
+---
+
+## When You Update Input Data
+
+### Normal Workflow (No Manual Cache Clearing)
+
+```bash
+# 1. Update your input files
+# (e.g., replace ARK ETF Excel files, update price CSVs)
+
+# 2. Refresh browser
+# Press F5 or Cmd+R
+```
+
+**That's it!** The dashboard automatically detects file changes and reloads data.
+
+### Optional: Regenerate Precomputed Data for Faster Loads
+
+```bash
+# Run the helper script
+./clear_all_caches.sh
+
+# This will:
+# - Clear old precomputed data
+# - Regenerate fresh precomputed data
+# - Verify it worked
+```
+
+Then refresh your browser.
+
+### If Dashboard Shows Stale Data
+
+**This should not happen, but if it does:**
+
+1. **Check if you restarted Streamlit after code changes**
+   - Code changes require app restart
+   - Data changes do NOT require restart
+
+2. **Clear Streamlit cache manually in browser**
+   - Click ☰ menu (top-right)
+   - Click "Clear cache"
+   - Click "Rerun"
+
+3. **Verify your input files actually changed**
+   ```bash
+   # Check file modification time
+   ls -lh output/ARKK_prices.csv
+
+   # Check file contents
+   tail -5 output/ARKK_prices.csv
+   ```
+
+4. **If still broken, file a bug** - this is a real issue that should be fixed
+
+---
+
+## Removed Components
+
+The following are **no longer used**:
+
+### ❌ Removed: `data/cache/` Directory
+- No longer exists
+- Application-level pickle caching removed
+- All caching handled by Streamlit
+
+### ❌ Removed: `CACHE_ENABLED` Config
+- Removed from `config.py`
+- No toggle needed - caching always works correctly now
+
+### ❌ Removed: Manual Cache Functions in `data_loader.py`
+- `_cache` dictionary removed
+- `_load_from_cache()` removed
+- `_save_to_cache()` removed
+- All functions now load directly from disk
+- Streamlit handles caching at higher level
+
+---
+
+## Technical Details
+
+### How Streamlit Cache Invalidation Works
+
+**Using underscore prefix for cache keys:**
+```python
+@st.cache_data
+def load_data(_files_hash):
+    # Parameter with _ prefix is not hashed
+    # But changing it still invalidates cache
+    # This allows cache invalidation based on external state
+    ...
+```
+
+**Why this works:**
+1. When input files change, `_files_hash` changes
+2. Streamlit sees different `_files_hash` parameter
+3. Streamlit invalidates old cache
+4. Function re-executes with fresh data
+
+### Precomputed Data Staleness Check
+
+```python
+@st.cache_data
+def load_all_etf_data(_files_hash):
+    # Check if precomputed exists and is fresh
     if PRECOMP_FILE.exists():
-        with open(PRECOMP_FILE, 'rb') as f:
-            return pickle.load(f)
+        precomp_mtime = PRECOMP_FILE.stat().st_mtime
 
-    # Fallback: Calculate on the fly
-    # (but this uses data_loader which has its own cache!)
+        # Get all price file modification times
+        price_mtimes = [...]
+
+        # Only use precomputed if newer than all source files
+        if precomp_mtime >= max(price_mtimes):
+            return load_from_precomputed()
+
+    # Otherwise calculate on-the-fly (fresh data guaranteed)
+    return calculate_fresh()
 ```
 
-**Why it causes problems:**
-- Depends on `data/cache/` being clean when regenerated
-- If you regenerate precomputed data while `data/cache/` has old pickles, it bakes in the old data
-- This is why you needed multiple attempts to fix the Nov 21 issue
-
-**How to clear:**
-```bash
-rm -f data/precomputed/*.pkl data/precomputed/*.csv
-```
-
-**How to regenerate (AFTER clearing data/cache):**
-```bash
-PYTHONPATH=. python precompute_data.py
-```
-
----
-
-### 3. Streamlit In-Memory Cache
-
-**Location:** In memory + `.streamlit/` directory (system temp files)
-
-**Managed by:** Streamlit framework via `@st.cache_data` decorator
-
-**What it caches:**
-- `ETF_Analysis.py`: `load_all_etf_data()` - All ETF prices and drawdowns
-- `Russell_3000_Analysis.py`: `load_iwv_data()` - IWV prices and drawdowns
-- `Stock_Analysis.py`: `get_stock_etf_mapping()` - Stock-ETF mappings
-- Many other functions with `@st.cache_data`
-
-**How it works:**
-```python
-@st.cache_data
-def load_all_etf_data(cache_key=None):
-    # Streamlit caches the return value in memory
-    # Cache key determines when to invalidate
-
-# Cache key includes file modification time (auto-invalidates when file changes)
-precomp_mtime = PRECOMP_FILE.stat().st_mtime if PRECOMP_FILE.exists() else 0
-load_all_etf_data(cache_key=f"{START_DATE}_{END_DATE}_{precomp_mtime}")
-```
-
-**Auto-invalidation (Fixed):**
-- ✅ ETF_Analysis.py now includes precomputed file modification time in cache_key
-- ✅ When you regenerate precomputed data, cache automatically invalidates
-- ✅ Just refresh browser (F5 or Cmd+R) to see updated data
-- ❌ Other pages (Russell 3000, Stock Analysis) may still need manual cache clearing
-
-**How to clear (if auto-invalidation doesn't work):**
-
-**Option 1: In Browser**
-- Click hamburger menu (☰) top-right
-- Click "Clear cache"
-- Click "Rerun"
-
-**Option 2: Restart App**
-```bash
-# In terminal where streamlit is running
-Ctrl + C  # Stop
-streamlit run ETF_Analysis.py  # Restart
-```
-
----
-
-## The Root Cause of Multi-Attempt Cache Clearing
-
-### Problem Flow
-
-1. **You update input data** (e.g., new ARK ETF Excel file, new prices)
-
-2. **First attempt: Clear only `data/cache/`**
-   - ❌ `data/precomputed/etf_data.pkl` still has old data
-   - ❌ Streamlit cache still has old data
-   - Result: No change visible
-
-3. **Second attempt: Clear `data/precomputed/` and regenerate**
-   - ⚠️ If `data/cache/` wasn't cleared first, precompute loads from old cache
-   - ❌ Streamlit cache still has old data
-   - Result: Partial update, but Streamlit still shows old data
-
-4. **Third attempt: Restart Streamlit**
-   - ✅ Finally loads new data
-   - But inefficient and frustrating
-
-### Dependency Chain
-
-```
-Input Files (input/, output/)
-    ↓ (loaded by data_loader.py)
-    ↓ (cached in data/cache/*.pkl)
-    ↓
-data/cache/*.pkl
-    ↓ (used by precompute_data.py)
-    ↓
-data/precomputed/etf_data.pkl
-    ↓ (loaded by ETF_Analysis.py)
-    ↓ (cached by @st.cache_data)
-    ↓
-Streamlit In-Memory Cache
-    ↓
-Displayed in Browser
-```
-
-**Any cache higher in the chain blocks updates from propagating down.**
-
----
-
-## The Correct Cache Clearing Procedure
-
-### When You Update Input Data
-
-Follow these steps **IN ORDER**:
-
-```bash
-# Step 1: Clear application-level pickle cache
-rm -f data/cache/*.pkl
-
-# Step 2: Clear precomputed data
-rm -f data/precomputed/*.pkl data/precomputed/*.csv
-
-# Step 3: Regenerate precomputed data (loads fresh from CSV/Excel)
-PYTHONPATH=. python precompute_data.py
-
-# Step 4: Refresh browser (ETF Analysis page will auto-reload)
-# Press F5 or Cmd+R in your browser
-```
-
-**Note:** As of the latest update, ETF_Analysis.py automatically detects when precomputed data changes and invalidates its cache. You only need to refresh your browser, no manual cache clearing required.
-
-### Quick Clear All Script
-
-Create a helper script `clear_all_caches.sh`:
-
-```bash
-#!/bin/bash
-echo "Clearing all caches..."
-
-# Clear application caches
-rm -f data/cache/*.pkl
-echo "✓ Cleared data/cache/*.pkl"
-
-# Clear precomputed data
-rm -f data/precomputed/*.pkl data/precomputed/*.csv
-echo "✓ Cleared data/precomputed/*"
-
-# Regenerate precomputed data
-echo "Regenerating precomputed data..."
-PYTHONPATH=. python precompute_data.py
-
-echo ""
-echo "✓ All caches cleared and regenerated"
-echo ""
-echo "NEXT STEP: Restart your Streamlit app or clear cache in browser"
-echo "  Browser: Click ☰ menu > Clear cache > Rerun"
-echo "  Terminal: Ctrl+C then run: streamlit run ETF_Analysis.py"
-```
-
-Make it executable:
-```bash
-chmod +x clear_all_caches.sh
-```
-
----
-
-## When to Clear Each Cache
-
-### Clear `data/cache/` when:
-- ✅ You update input Excel files (`input/ark_etfs/*.xlsx`, `input/russell_3000/*.xlsx`)
-- ✅ You update output CSV files (`output/*_prices.csv`)
-- ✅ You update industry/company mapping files
-- ✅ You change `START_DATE` or `END_DATE` in `config.py`
-
-### Clear `data/precomputed/` when:
-- ✅ After clearing `data/cache/`
-- ✅ You modify `drawdown_calculator.py` (calculation logic changed)
-- ✅ You modify `precompute_data.py` itself
-
-### Clear Streamlit cache when:
-- ✅ After regenerating precomputed data
-- ✅ You modify any function with `@st.cache_data` decorator
-- ✅ You change the structure of cached data (columns, data types, etc.)
-- ✅ Anytime the dashboard shows stale data
-
----
-
-## Configuration: Disabling Application Cache
-
-If you want to disable the application-level pickle cache during development:
-
-```python
-# In config.py
-CACHE_ENABLED = False  # Change from True to False
-```
-
-**Pros:**
-- Data always loads fresh from disk
-- No need to clear `data/cache/`
-
-**Cons:**
-- Slower load times
-- Still need to clear `data/precomputed/` and Streamlit cache
+This ensures precomputed data is never stale, even if you forget to regenerate it.
 
 ---
 
 ## Best Practices
 
-### 1. Always Clear in Order
-Application cache → Precomputed → Streamlit (top to bottom of dependency chain)
+### 1. Trust the System
 
-### 2. Use the Helper Script
-Don't manually clear each cache - use `clear_all_caches.sh`
+The cache now invalidates automatically. Don't manually clear unless something is actually broken.
 
-### 3. Check Data After Each Step
-```bash
-# Verify CSV has latest data
-tail -3 output/ARKK_prices.csv
+### 2. Update Input Files, Refresh Browser
 
-# Verify precomputed has latest data
-python3 << 'EOF'
-import pickle
-with open('data/precomputed/etf_data.pkl', 'rb') as f:
-    data = pickle.load(f)
-print(data['ARKK']['prices'].tail(3))
-EOF
-```
+That's the entire workflow. No scripts, no manual clearing.
 
-### 4. Use Cache Keys in Streamlit Functions
-```python
-# Good: Cache invalidates when dates change
-@st.cache_data
-def load_all_etf_data(cache_key=None):
-    ...
+### 3. Regenerate Precomputed Data (Optional)
 
-# Usage
-etf_prices, etf_dd = load_all_etf_data(cache_key=f"{START_DATE}_{END_DATE}")
-```
+Only for faster initial loads. Not required for correctness.
 
-### 5. Document Cache Dependencies
-When adding new cached functions, document:
-- What data it depends on
-- When it should be invalidated
-- What cache clearing triggers it needs
+### 4. Restart Streamlit Only for Code Changes
+
+- **Data changes**: Just refresh browser
+- **Code changes**: Restart Streamlit app
+
+### 5. If You See Stale Data, Report It
+
+This should never happen. If it does, it's a bug that should be fixed, not worked around.
 
 ---
 
 ## Troubleshooting
 
-### Issue: Dashboard shows old data after clearing caches
+### Dashboard shows old data after updating input files
 
 **Diagnosis:**
 ```bash
-# 1. Check if application cache is clean
-ls data/cache/*.pkl
-# Should show: ls: data/cache/*.pkl: No such file or directory
+# 1. Verify input files actually changed
+ls -lh output/ARKK_prices.csv
+tail -3 output/ARKK_prices.csv
 
-# 2. Check precomputed data timestamp
-ls -lh data/precomputed/etf_data.pkl
-# Should show recent timestamp (within last few minutes)
+# 2. Check browser console for errors
+# (Open browser DevTools, check Console tab)
 
-# 3. Check precomputed data content
-python3 << 'EOF'
-import pickle
-with open('data/precomputed/etf_data.pkl', 'rb') as f:
-    data = pickle.load(f)
-print("Last date:", data['ARKK']['prices']['Date'].iloc[-1])
-print("Last price:", data['ARKK']['prices']['Close'].iloc[-1])
-EOF
+# 3. Try manual cache clear in browser
+# ☰ menu > Clear cache > Rerun
 ```
 
-**Solution:**
-1. If application cache exists → clear it, regenerate precomputed
-2. If precomputed has wrong data → clear it, regenerate
-3. If precomputed is correct → clear Streamlit cache in browser
+**Most common cause:**
+- You updated the wrong file
+- File didn't actually save
+- Looking at wrong dashboard page
 
-### Issue: Precomputed data is missing latest dates
+### "Module not found" or import errors
 
-**Cause:** Application cache (`data/cache/*.pkl`) had stale data when you ran `precompute_data.py`
+**Cause:** Code changes require app restart
 
 **Solution:**
 ```bash
-# Clear application cache FIRST
-rm -f data/cache/*.pkl
-
-# THEN regenerate precomputed
-rm -f data/precomputed/*.pkl data/precomputed/*.csv
-PYTHONPATH=. python precompute_data.py
+# Stop Streamlit (Ctrl+C)
+# Restart
+streamlit run ETF_Analysis.py
 ```
 
-### Issue: Changes to code don't appear
+### Precomputed data seems stale
 
-**Cause:** Streamlit caches function results, including code logic
+**This should not happen** - the code checks staleness before using precomputed data.
 
-**Solution:**
-- Change function signature or cache_key to force invalidation
-- Or clear Streamlit cache in browser
-- Or restart Streamlit app
+**If it happens anyway:**
+```bash
+# Regenerate precomputed
+./clear_all_caches.sh
+
+# Or delete it - dashboard will calculate on-the-fly
+rm data/precomputed/*.pkl
+```
 
 ---
 
 ## Summary
 
-**Three independent cache systems:**
-1. **Application pickle cache** (`data/cache/`) - caches raw data loading
-2. **Precomputed data** (`data/precomputed/`) - caches computed results (depends on #1)
-3. **Streamlit in-memory** - caches function returns (depends on #2)
+**Old way:**
+1. Update input files
+2. Clear `data/cache/`
+3. Clear `data/precomputed/`
+4. Regenerate precomputed
+5. Clear Streamlit cache
+6. Restart app
+7. Hope it worked
 
-**Clear them in order:** 1 → 2 → 3
+**New way:**
+1. Update input files
+2. Refresh browser
+3. Done
 
-**Use the script:** `./clear_all_caches.sh`
+**Optional for faster loads:**
+```bash
+./clear_all_caches.sh  # Regenerate precomputed data
+```
 
-**Always verify:** Check data at each step before moving to next
+The caching system is now invisible and automatic, as it should be.
