@@ -572,17 +572,16 @@ if True:
             peak_date = current_dd['peak_date']
             current_dd_pct = current_dd['depth_pct']
 
-            # Find the actual trough (lowest price) from peak to current
-            # For Current drawdown, trough_price in dd_data is just the current price
-            # We need to find the real lowest point between peak and now
-            prices_since_peak = stock_data[stock_data['Date'] >= peak_date][price_col]
-            trough_price = prices_since_peak.min()
-            trough_date = stock_data[stock_data[price_col] == trough_price]['Date'].iloc[0]
+            # For Current drawdown, find the actual trough (lowest price) from peak to now
+            # The trough_price in current_dd is actually the current price, not the true trough
+            drawdown_period = stock_data[stock_data['Date'] >= peak_date]
+            actual_trough_price = drawdown_period[price_col].min()
+            actual_trough_date = drawdown_period[drawdown_period[price_col] == actual_trough_price]['Date'].iloc[0]
 
             # Calculate Recovery Rate
-            # Recovery Rate = (Current Price - Trough Price) / (Peak Price - Trough Price)
-            if peak_price != trough_price:
-                recovery_rate = (current_price - trough_price) / (peak_price - trough_price)
+            # Recovery Rate = (Current Price - Actual Trough) / (Peak Price - Actual Trough)
+            if peak_price != actual_trough_price:
+                recovery_rate = (current_price - actual_trough_price) / (peak_price - actual_trough_price)
             else:
                 recovery_rate = 0.0
 
@@ -604,8 +603,8 @@ if True:
                 st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd_pct:.2f}%</b>", unsafe_allow_html=True)
                 st.markdown(f"<small>Peak: {peak_date.strftime('%Y-%m-%d')}</small><br>"
                           f"<small>Price: ${peak_price:.2f}</small>", unsafe_allow_html=True)
-                st.markdown(f"<small>Trough: {trough_date.strftime('%Y-%m-%d')}</small><br>"
-                          f"<small>Price: ${trough_price:.2f}</small>", unsafe_allow_html=True)
+                st.markdown(f"<small>Trough: {actual_trough_date.strftime('%Y-%m-%d')}</small><br>"
+                          f"<small>Price: ${actual_trough_price:.2f}</small>", unsafe_allow_html=True)
                 st.markdown(f"<small>Current: {stock_data['Date'].iloc[-1].strftime('%Y-%m-%d')}</small><br>"
                           f"<small>Price: ${current_price:.2f}</small>", unsafe_allow_html=True)
 
