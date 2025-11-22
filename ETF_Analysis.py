@@ -72,7 +72,9 @@ def load_all_etf_data(cache_key=None):
 
 # Load data
 with st.spinner("Loading ETF drawdown data..."):
-    etf_prices, etf_dd = load_all_etf_data(cache_key=f"{START_DATE}_{END_DATE}")
+    # Include file modification time in cache key to invalidate cache when precomputed data is regenerated
+    precomp_mtime = PRECOMP_FILE.stat().st_mtime if PRECOMP_FILE.exists() else 0
+    etf_prices, etf_dd = load_all_etf_data(cache_key=f"{START_DATE}_{END_DATE}_{precomp_mtime}")
 
 # Section 1: ARK ETF Price Overview
 st.subheader("ARK ETF Price Trends")
