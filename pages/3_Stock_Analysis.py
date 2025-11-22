@@ -406,7 +406,7 @@ if True:
                 showlegend=False,
                 plot_bgcolor='white',
                 paper_bgcolor='white',
-                xaxis=dict(gridcolor='lightgray', showgrid=True),
+                xaxis=dict(gridcolor='lightgray', showgrid=True, range=[START_DATE, END_DATE]),
                 yaxis=dict(gridcolor='lightgray', showgrid=True),
                 margin=dict(l=0, r=0, t=40, b=0)
             )
@@ -544,7 +544,7 @@ if True:
                     showlegend=False,
                     plot_bgcolor='white',
                     paper_bgcolor='white',
-                    xaxis=dict(gridcolor='lightgray', showgrid=True),
+                    xaxis=dict(gridcolor='lightgray', showgrid=True, range=[START_DATE, END_DATE]),
                     yaxis=dict(gridcolor='lightgray', showgrid=True),
                     margin=dict(l=0, r=0, t=40, b=0)
                 )
