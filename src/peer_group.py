@@ -19,15 +19,18 @@ def calculate_peer_group_prices_mv():
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
 
+    # Filter out dates where more than 50% of stocks have no price (Price = 0)
+    # This removes US holidays where only a few Canadian stocks have prices
+    daily_zero_pct = holdings.groupby('Date')['Price'].apply(lambda x: (x == 0).sum() / len(x))
+    valid_dates = daily_zero_pct[daily_zero_pct <= 0.5].index
+    holdings = holdings[holdings['Date'].isin(valid_dates)].copy()
+
     # Calculate Market Value if not present
     if 'Market_Value' not in holdings.columns:
         if 'Position' in holdings.columns and 'Price' in holdings.columns:
             holdings['Market_Value'] = holdings['Position'] * holdings['Price']
         else:
             raise ValueError("Cannot calculate Market_Value: missing Position or Price columns")
-
-    # Filter out rows with zero or negative Market Value (non-trading days, zero positions, etc.)
-    holdings = holdings[holdings['Market_Value'] > 0].copy()
 
     # Map GICS to tickers
     # First try exact match on full ticker
@@ -68,15 +71,18 @@ def calculate_peer_group_prices_weighted():
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
 
+    # Filter out dates where more than 50% of stocks have no price (Price = 0)
+    # This removes US holidays where only a few Canadian stocks have prices
+    daily_zero_pct = holdings.groupby('Date')['Price'].apply(lambda x: (x == 0).sum() / len(x))
+    valid_dates = daily_zero_pct[daily_zero_pct <= 0.5].index
+    holdings = holdings[holdings['Date'].isin(valid_dates)].copy()
+
     # Calculate Market Value if not present
     if 'Market_Value' not in holdings.columns:
         if 'Position' in holdings.columns and 'Price' in holdings.columns:
             holdings['Market_Value'] = holdings['Position'] * holdings['Price']
         else:
             raise ValueError("Cannot calculate Market_Value: missing Position or Price columns")
-
-    # Filter out rows with zero or negative Market Value (non-trading days, zero positions, etc.)
-    holdings = holdings[holdings['Market_Value'] > 0].copy()
 
     # Map GICS to tickers
     # First try exact match on full ticker
