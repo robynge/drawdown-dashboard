@@ -134,13 +134,14 @@ def calculate_recovery_probabilities():
         return pd.DataFrame(columns=['depth_range', 'total_events', 'recovered_events', 'recovery_probability'])
 
     # Define depth ranges (bins)
-    # We'll use ranges: 0 to -10%, -10% to -20%, ..., -70% to -80%, < -80%
-    bins = [0, -10, -20, -30, -40, -50, -60, -70, -80, -float('inf')]
-    labels = ['0% to -10%', '-10% to -20%', '-20% to -30%', '-30% to -40%',
-              '-40% to -50%', '-50% to -60%', '-60% to -70%', '-70% to -80%', '< -80%']
+    # Bins must be monotonically increasing: from -inf to 0
+    # Using right=True (default), intervals are (left, right], i.e., left exclusive, right inclusive
+    bins = [-float('inf'), -80, -70, -60, -50, -40, -30, -20, -10, 0]
+    labels = ['< -80%', '-70% to -80%', '-60% to -70%', '-50% to -60%',
+              '-40% to -50%', '-30% to -40%', '-20% to -30%', '-10% to -20%', '0% to -10%']
 
     # Assign each drawdown to a depth range
-    all_dd['depth_range'] = pd.cut(all_dd['depth_pct'], bins=bins, labels=labels, right=False, ordered=False)
+    all_dd['depth_range'] = pd.cut(all_dd['depth_pct'], bins=bins, labels=labels, ordered=False)
 
     # Calculate recovery statistics for each range
     recovery_stats = []
@@ -191,11 +192,11 @@ def get_recovery_probability_for_depth(depth_pct):
         return None
 
     # Determine which depth range this drawdown falls into
-    bins = [0, -10, -20, -30, -40, -50, -60, -70, -80, -float('inf')]
-    labels = ['0% to -10%', '-10% to -20%', '-20% to -30%', '-30% to -40%',
-              '-40% to -50%', '-50% to -60%', '-60% to -70%', '-70% to -80%', '< -80%']
+    bins = [-float('inf'), -80, -70, -60, -50, -40, -30, -20, -10, 0]
+    labels = ['< -80%', '-70% to -80%', '-60% to -70%', '-50% to -60%',
+              '-40% to -50%', '-30% to -40%', '-20% to -30%', '-10% to -20%', '0% to -10%']
 
-    depth_range = pd.cut([depth_pct], bins=bins, labels=labels, right=False, ordered=False)[0]
+    depth_range = pd.cut([depth_pct], bins=bins, labels=labels, ordered=False)[0]
 
     # Look up recovery probability for this range
     matching_rows = recovery_probs[recovery_probs['depth_range'] == depth_range]
@@ -224,12 +225,12 @@ def get_drawdowns_in_depth_range(depth_range_label):
         return pd.DataFrame()
 
     # Define depth ranges
-    bins = [0, -10, -20, -30, -40, -50, -60, -70, -80, -float('inf')]
-    labels = ['0% to -10%', '-10% to -20%', '-20% to -30%', '-30% to -40%',
-              '-40% to -50%', '-50% to -60%', '-60% to -70%', '-70% to -80%', '< -80%']
+    bins = [-float('inf'), -80, -70, -60, -50, -40, -30, -20, -10, 0]
+    labels = ['< -80%', '-70% to -80%', '-60% to -70%', '-50% to -60%',
+              '-40% to -50%', '-30% to -40%', '-20% to -30%', '-10% to -20%', '0% to -10%']
 
     # Assign each drawdown to a depth range
-    all_dd['depth_range'] = pd.cut(all_dd['depth_pct'], bins=bins, labels=labels, right=False, ordered=False)
+    all_dd['depth_range'] = pd.cut(all_dd['depth_pct'], bins=bins, labels=labels, ordered=False)
 
     # Filter to requested range
     range_dd = all_dd[all_dd['depth_range'] == depth_range_label].copy()
