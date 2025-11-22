@@ -19,6 +19,10 @@ def calculate_peer_group_prices_mv():
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
 
+    # Filter out non-trading days (weekends and holidays) by only keeping dates where Price > 0
+    # This ensures we only include actual trading days
+    holdings = holdings[holdings['Price'] > 0].copy()
+
     # Calculate Market Value if not present
     if 'Market_Value' not in holdings.columns:
         if 'Position' in holdings.columns and 'Price' in holdings.columns:
@@ -64,6 +68,10 @@ def calculate_peer_group_prices_weighted():
 
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
+
+    # Filter out non-trading days (weekends and holidays) by only keeping dates where Price > 0
+    # This ensures we only include actual trading days
+    holdings = holdings[holdings['Price'] > 0].copy()
 
     # Calculate Market Value if not present
     if 'Market_Value' not in holdings.columns:
