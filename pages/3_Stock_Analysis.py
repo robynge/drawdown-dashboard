@@ -9,7 +9,7 @@ import sys
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import START_DATE, END_DATE, OUTPUT_DIR, ARK_ETFS
+from config import START_DATE, END_DATE, OUTPUT_DIR, ARK_ETFS, INPUT_DIR
 from data_loader import load_ark_holdings, load_industry_info, load_company_name
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
@@ -26,7 +26,6 @@ st.title("Individual Stock vs Peer Group")
 # Helper to get ARK holdings files modification times for cache invalidation
 def get_ark_files_hash():
     """Get hash of ARK holdings files for cache invalidation"""
-    from config import INPUT_DIR
     mtimes = []
 
     for etf in ARK_ETFS:
