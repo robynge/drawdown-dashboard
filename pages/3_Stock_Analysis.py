@@ -14,7 +14,7 @@ from data_loader import load_ark_holdings, load_industry_info, load_company_name
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
-from recovery_probability import get_recovery_probability_for_depth
+from recovery_probability import get_recovery_probability_for_depth, get_drawdowns_in_depth_range
 
 st.set_page_config(
     page_title="Individual Stock vs Peer Group",
@@ -559,6 +559,8 @@ if True:
 
         current_dd_container = st.container(border=True)
         with current_dd_container:
+            st.markdown("#### Current Drawdown Information")
+
             current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
 
             # Determine which price column to use
@@ -568,53 +570,128 @@ if True:
                 price_col = 'Stock_Price'
 
             current_price = stock_data[price_col].iloc[-1]
+            current_date = stock_data['Date'].iloc[-1]
             peak_price = current_dd['peak_price']
             peak_date = current_dd['peak_date']
             current_dd_pct = current_dd['depth_pct']
 
             # For Current drawdown, find the actual trough (lowest price) from peak to now
-            # The trough_price in current_dd is actually the current price, not the true trough
             drawdown_period = stock_data[stock_data['Date'] >= peak_date]
             actual_trough_price = drawdown_period[price_col].min()
             actual_trough_date = drawdown_period[drawdown_period[price_col] == actual_trough_price]['Date'].iloc[0]
 
+            # Calculate duration
+            duration_days = (current_date - peak_date).days
+
             # Calculate Recovery Rate
-            # Recovery Rate = (Current Price - Actual Trough) / (Peak Price - Actual Trough)
             if peak_price != actual_trough_price:
                 recovery_rate = (current_price - actual_trough_price) / (peak_price - actual_trough_price)
             else:
                 recovery_rate = 0.0
 
-            # Get Recovery Probability
-            try:
-                recovery_prob = get_recovery_probability_for_depth(current_dd_pct)
-                if recovery_prob is not None:
-                    recovery_prob_display = f"{recovery_prob * 100:.1f}%"
-                else:
-                    recovery_prob_display = "N/A"
-            except Exception as e:
-                recovery_prob_display = "Error"
-                print(f"Error calculating recovery probability: {e}")
+            # Create current drawdown info DataFrame
+            current_dd_info = pd.DataFrame([{
+                'Peak Date': peak_date.strftime('%Y-%m-%d'),
+                'Peak Price': f'${peak_price:.2f}',
+                'Trough Date': actual_trough_date.strftime('%Y-%m-%d'),
+                'Trough Price': f'${actual_trough_price:.2f}',
+                'Current Date': current_date.strftime('%Y-%m-%d'),
+                'Current Price': f'${current_price:.2f}',
+                'Duration (Days)': duration_days,
+                'Drawdown Depth': f'{current_dd_pct:.2f}%',
+                'Recovery Rate': f'{recovery_rate * 100:.1f}%'
+            }])
 
-            # Display metrics in 3 columns
-            metric_cols = st.columns(3)
+            st.dataframe(current_dd_info, hide_index=True, use_container_width=True)
 
-            with metric_cols[0]:
-                st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd_pct:.2f}%</b>", unsafe_allow_html=True)
-                st.markdown(f"<small>Peak: {peak_date.strftime('%Y-%m-%d')}</small><br>"
-                          f"<small>Price: ${peak_price:.2f}</small>", unsafe_allow_html=True)
-                st.markdown(f"<small>Trough: {actual_trough_date.strftime('%Y-%m-%d')}</small><br>"
-                          f"<small>Price: ${actual_trough_price:.2f}</small>", unsafe_allow_html=True)
-                st.markdown(f"<small>Current: {stock_data['Date'].iloc[-1].strftime('%Y-%m-%d')}</small><br>"
-                          f"<small>Price: ${current_price:.2f}</small>", unsafe_allow_html=True)
+            ""  # Space
 
-            with metric_cols[1]:
-                st.markdown(f"<small>Recovery Rate</small><br><b>{recovery_rate * 100:.1f}%</b>", unsafe_allow_html=True)
-                st.markdown(f"<small>(Current - Trough) / (Peak - Trough)</small>", unsafe_allow_html=True)
+            st.markdown("#### Recovery Probability Analysis")
 
-            with metric_cols[2]:
-                st.markdown(f"<small>Recovery Probability</small><br><b>{recovery_prob_display}</b>", unsafe_allow_html=True)
-                st.markdown(f"<small>Based on historical drawdowns in similar depth range</small>", unsafe_allow_html=True)
+            st.markdown("""
+            <small>Recovery Probability是基于历史统计数据，表示在相同跌幅区间内的股票最终回到前高的概率。
+            选择一个跌幅区间来查看该区间内所有历史drawdown的详细信息。</small>
+            """, unsafe_allow_html=True)
+
+            ""  # Space
+
+            # Depth range selector
+            depth_ranges = ['0% to -10%', '-10% to -20%', '-20% to -30%', '-30% to -40%',
+                          '-40% to -50%', '-50% to -60%', '-60% to -70%', '-70% to -80%', '< -80%']
+
+            # Determine default selection based on current drawdown depth
+            bins = [0, -10, -20, -30, -40, -50, -60, -70, -80, -float('inf')]
+            current_range_idx = 0
+            for i in range(len(bins) - 1):
+                if bins[i] >= current_dd_pct > bins[i+1]:
+                    current_range_idx = i
+                    break
+
+            selected_range = st.selectbox(
+                "Select Drawdown Depth Range",
+                depth_ranges,
+                index=current_range_idx
+            )
+
+            # Get drawdowns in selected range
+            with st.spinner(f"Loading historical drawdowns for {selected_range}..."):
+                range_drawdowns = get_drawdowns_in_depth_range(selected_range)
+
+            if len(range_drawdowns) > 0:
+                # Calculate recovery probability for this range
+                total_events = len(range_drawdowns)
+                recovered_events = range_drawdowns['recovered'].sum()
+                recovery_probability = recovered_events / total_events if total_events > 0 else 0
+
+                # Display recovery probability stats
+                st.markdown(f"""
+                **{selected_range} Recovery Statistics:**
+                - Total Events: {total_events}
+                - Recovered Events: {recovered_events}
+                - **Recovery Probability: {recovery_probability * 100:.1f}%**
+                """)
+
+                ""  # Space
+
+                # Display detailed table
+                st.markdown(f"**All Historical Drawdowns in {selected_range}:**")
+
+                # Format the dataframe for display
+                display_range_dd = range_drawdowns.copy()
+                display_range_dd['Peak Date'] = display_range_dd['peak_date'].dt.strftime('%Y-%m-%d')
+                display_range_dd['Trough Date'] = display_range_dd['trough_date'].dt.strftime('%Y-%m-%d')
+                display_range_dd['Recovery Date'] = display_range_dd['recovery_date'].apply(
+                    lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else 'Not Recovered'
+                )
+                display_range_dd['Depth %'] = display_range_dd['depth_pct'].apply(lambda x: f'{x:.2f}%')
+                display_range_dd['Peak Price'] = display_range_dd['peak_price'].apply(lambda x: f'${x:.2f}')
+                display_range_dd['Trough Price'] = display_range_dd['trough_price'].apply(lambda x: f'${x:.2f}')
+                display_range_dd['Recovery Rate'] = display_range_dd['recovery_rate'].apply(lambda x: f'{x * 100:.1f}%')
+                display_range_dd['Recovered'] = display_range_dd['recovered'].apply(lambda x: 'Yes' if x else 'No')
+                display_range_dd['Days to Recover'] = display_range_dd['days_to_recover'].apply(
+                    lambda x: f'{int(x)}' if pd.notna(x) else 'N/A'
+                )
+
+                # Select and rename columns
+                display_cols = ['ticker', 'etf', 'Peak Date', 'Trough Date', 'duration_days',
+                              'Depth %', 'Peak Price', 'Trough Price',
+                              'Recovered', 'Recovery Date', 'Days to Recover', 'Recovery Rate']
+
+                display_range_dd = display_range_dd[display_cols]
+                display_range_dd = display_range_dd.rename(columns={
+                    'ticker': 'Ticker',
+                    'etf': 'ETF',
+                    'duration_days': 'Duration (Days)'
+                })
+
+                st.dataframe(
+                    display_range_dd,
+                    hide_index=True,
+                    use_container_width=True,
+                    height=400
+                )
+            else:
+                st.info(f"No historical drawdowns found in {selected_range} range.")
 
     ""  # Space
 

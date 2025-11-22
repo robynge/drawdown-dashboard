@@ -64,8 +64,10 @@ def calculate_all_stock_drawdowns():
 
                 for _, dd in historical_dd.iterrows():
                     # Check if this drawdown recovered (price returned to peak)
+                    peak_date = dd['peak_date']
                     trough_date = dd['trough_date']
                     peak_price = dd['peak_price']
+                    trough_price = dd['trough_price']
 
                     # Get all prices after trough
                     future_prices = price_df[price_df['Date'] > trough_date]
@@ -85,8 +87,10 @@ def calculate_all_stock_drawdowns():
                     all_drawdowns.append({
                         'ticker': ticker,
                         'etf': etf,
-                        'peak_date': dd['peak_date'],
+                        'peak_date': peak_date,
                         'trough_date': trough_date,
+                        'peak_price': peak_price,
+                        'trough_price': trough_price,
                         'depth_pct': dd['depth_pct'],
                         'recovery_date': recovery_date,
                         'recovered': recovered,
@@ -200,3 +204,101 @@ def get_recovery_probability_for_depth(depth_pct):
         return matching_rows.iloc[0]['recovery_probability']
     else:
         return None
+
+
+def get_drawdowns_in_depth_range(depth_range_label):
+    """Get all historical drawdowns within a specific depth range
+
+    Args:
+        depth_range_label: String like '0% to -10%', '-10% to -20%', etc.
+
+    Returns:
+        DataFrame with columns: ticker, etf, peak_date, trough_date, depth_pct, duration_days,
+                                peak_price, trough_price, recovery_date, recovered,
+                                days_to_recover, recovery_rate
+        Or empty DataFrame if no data
+    """
+    all_dd = calculate_all_stock_drawdowns()
+
+    if len(all_dd) == 0:
+        return pd.DataFrame()
+
+    # Define depth ranges
+    bins = [0, -10, -20, -30, -40, -50, -60, -70, -80, -float('inf')]
+    labels = ['0% to -10%', '-10% to -20%', '-20% to -30%', '-30% to -40%',
+              '-40% to -50%', '-50% to -60%', '-60% to -70%', '-70% to -80%', '< -80%']
+
+    # Assign each drawdown to a depth range
+    all_dd['depth_range'] = pd.cut(all_dd['depth_pct'], bins=bins, labels=labels, right=False, ordered=False)
+
+    # Filter to requested range
+    range_dd = all_dd[all_dd['depth_range'] == depth_range_label].copy()
+
+    if len(range_dd) == 0:
+        return pd.DataFrame()
+
+    # Calculate duration (peak to trough)
+    range_dd['duration_days'] = (range_dd['trough_date'] - range_dd['peak_date']).dt.days
+
+    # Calculate recovery rate for each drawdown
+    # For drawdowns that haven't recovered, we need to get the latest price after trough
+    detailed_dd = []
+
+    for _, dd in range_dd.iterrows():
+        ticker = dd['ticker']
+        etf = dd['etf']
+        peak_date = dd['peak_date']
+        trough_date = dd['trough_date']
+        peak_price = dd['peak_price']
+        trough_price = dd['trough_price']
+
+        try:
+            # If already recovered, recovery_rate = 100%
+            if dd['recovered']:
+                recovery_rate = 1.0
+            else:
+                # Need to get latest price after trough to calculate current recovery rate
+                holdings = load_ark_holdings(etf)
+                holdings = holdings[(holdings['Date'] >= START_DATE) & (holdings['Date'] <= END_DATE)]
+                stock_data = holdings[holdings['Ticker'] == ticker].copy()
+
+                if len(stock_data) == 0:
+                    recovery_rate = 0.0
+                else:
+                    # Determine price column
+                    if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
+                        price_col = 'YFinance Close Price'
+                    else:
+                        price_col = 'Stock_Price'
+
+                    # Get latest price after trough
+                    after_trough = stock_data[stock_data['Date'] > trough_date]
+                    if len(after_trough) > 0:
+                        latest_price = after_trough[price_col].iloc[-1]
+                        if peak_price != trough_price:
+                            recovery_rate = (latest_price - trough_price) / (peak_price - trough_price)
+                        else:
+                            recovery_rate = 0.0
+                    else:
+                        recovery_rate = 0.0
+
+            detailed_dd.append({
+                'ticker': ticker,
+                'etf': etf,
+                'peak_date': peak_date,
+                'trough_date': trough_date,
+                'depth_pct': dd['depth_pct'],
+                'duration_days': dd['duration_days'],
+                'peak_price': peak_price,
+                'trough_price': trough_price,
+                'recovery_date': dd['recovery_date'],
+                'recovered': dd['recovered'],
+                'days_to_recover': dd['days_to_recover'],
+                'recovery_rate': recovery_rate
+            })
+
+        except Exception as e:
+            print(f"Error processing {ticker} from {etf}: {e}")
+            continue
+
+    return pd.DataFrame(detailed_dd)
