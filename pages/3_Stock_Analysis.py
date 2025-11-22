@@ -609,7 +609,7 @@ if True:
             st.markdown("#### Historical Drawdown Analysis for This Stock")
 
             st.markdown(f"""
-            <small>查看 <b>{selected_ticker}</b> 在不同跌幅区间的历史drawdown记录，了解该股票在各个深度的历史表现和恢复情况。</small>
+            <small>View historical drawdown records for <b>{selected_ticker}</b> across different depth ranges to understand its performance and recovery patterns at various levels.</small>
             """, unsafe_allow_html=True)
 
             ""  # Space
