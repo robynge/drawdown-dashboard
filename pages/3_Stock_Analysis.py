@@ -23,9 +23,25 @@ st.set_page_config(
 
 st.title("Individual Stock vs Peer Group")
 
+# Helper to get ARK holdings files modification times for cache invalidation
+def get_ark_files_hash():
+    """Get hash of ARK holdings files for cache invalidation"""
+    from config import INPUT_DIR
+    mtimes = []
+
+    for etf in ARK_ETFS:
+        holdings_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
+        if holdings_file.exists():
+            mtimes.append(holdings_file.stat().st_mtime)
+
+    return max(mtimes) if mtimes else 0
+
 @st.cache_data
-def get_stock_etf_mapping():
-    """Get mapping of stocks to their ETFs"""
+def get_stock_etf_mapping(_files_hash):
+    """Get mapping of stocks to their ETFs
+
+    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
+    """
     from data_loader import load_ark_holdings
     stock_map = {}
     for etf in ARK_ETFS:
@@ -48,11 +64,14 @@ def get_stock_etf_mapping():
     return stock_map
 
 @st.cache_data
-def load_all_stocks():
-    """Load all unique stocks across ARK ETFs that have data in analysis period"""
+def load_all_stocks(_files_hash):
+    """Load all unique stocks across ARK ETFs that have data in analysis period
+
+    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
+    """
     from data_loader import load_ark_holdings
 
-    stock_map = get_stock_etf_mapping()
+    stock_map = get_stock_etf_mapping(_files_hash)
     valid_tickers = set()
 
     # Filter stocks that have data in analysis period
@@ -96,7 +115,7 @@ if True:
             st.markdown("##### Select Stock")
             # Get stocks that have data in the selected ETF during analysis period
             @st.cache_data
-            def get_stocks_for_etf(etf):
+            def get_stocks_for_etf(etf, _files_hash):
                 from data_loader import load_ark_holdings
                 holdings = load_ark_holdings(etf)
 
@@ -139,7 +158,8 @@ if True:
 
                 return valid_stocks, stock_ticker_map
 
-            stock_list, stock_ticker_map = get_stocks_for_etf(selected_etf)
+            files_hash = get_ark_files_hash()
+            stock_list, stock_ticker_map = get_stocks_for_etf(selected_etf, files_hash)
             selected_display_ticker = st.selectbox("Select Stock", stock_list, label_visibility="collapsed")
 
             # Get the actual ticker from display name
@@ -156,8 +176,11 @@ if True:
             version_param = "mv" if version == "Market Value" else "weighted"
 
         @st.cache_data
-        def load_stock_data(ticker, etf):
-            """Load stock data from ARK holdings"""
+        def load_stock_data(ticker, etf, _files_hash):
+            """Load stock data from ARK holdings
+
+            _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
+            """
             from data_loader import load_ark_holdings
 
             holdings = load_ark_holdings(etf)
@@ -182,7 +205,8 @@ if True:
 
             return stock_data, full_ticker, bloomberg_name, is_current
 
-        stock_data, full_ticker, bloomberg_name, is_current = load_stock_data(selected_ticker, selected_etf)
+        files_hash = get_ark_files_hash()
+        stock_data, full_ticker, bloomberg_name, is_current = load_stock_data(selected_ticker, selected_etf, files_hash)
 
         if stock_data is None or len(stock_data) == 0:
             st.error(f"No data available for {selected_ticker} in {selected_etf}")

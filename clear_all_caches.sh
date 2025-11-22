@@ -1,21 +1,14 @@
 #!/bin/bash
 echo "=========================================="
-echo "Clearing All Dashboard Caches"
+echo "Regenerating Precomputed Data"
 echo "=========================================="
 echo ""
-
-# Clear application caches
-echo "Step 1: Clearing application-level cache (data/cache/)..."
-rm -f data/cache/*.pkl
-if [ $? -eq 0 ]; then
-    echo "✓ Cleared data/cache/*.pkl"
-else
-    echo "⚠ No cache files found in data/cache/"
-fi
+echo "Note: Application-level caching has been removed."
+echo "All caching is now handled automatically by Streamlit."
 echo ""
 
 # Clear precomputed data
-echo "Step 2: Clearing precomputed data (data/precomputed/)..."
+echo "Step 1: Clearing precomputed data (data/precomputed/)..."
 rm -f data/precomputed/*.pkl data/precomputed/*.csv
 if [ $? -eq 0 ]; then
     echo "✓ Cleared data/precomputed/*"
@@ -25,7 +18,7 @@ fi
 echo ""
 
 # Regenerate precomputed data
-echo "Step 3: Regenerating precomputed data..."
+echo "Step 2: Regenerating precomputed data..."
 echo "----------------------------------------"
 PYTHONPATH=. python precompute_data.py
 if [ $? -eq 0 ]; then
@@ -38,7 +31,7 @@ fi
 echo ""
 
 # Verify regenerated data
-echo "Step 4: Verifying regenerated data..."
+echo "Step 3: Verifying regenerated data..."
 python3 << 'EOF'
 import pickle
 from pathlib import Path
@@ -59,18 +52,19 @@ EOF
 echo ""
 
 echo "=========================================="
-echo "✓ All caches cleared and regenerated!"
+echo "✓ Precomputed data regenerated!"
 echo "=========================================="
 echo ""
 echo "NEXT STEP:"
 echo "Just refresh your browser (F5 or Cmd+R)"
 echo ""
-echo "The dashboard will automatically detect the updated"
-echo "precomputed data and reload it."
+echo "The dashboard automatically detects when input files"
+echo "have changed and invalidates its cache. No manual"
+echo "cache clearing needed!"
 echo ""
-echo "If data still looks old after refresh:"
-echo "  1. Click the ☰ menu (top-right)"
-echo "  2. Click 'Clear cache'"
-echo "  3. Click 'Rerun'"
+echo "Note: Precomputed data is optional - the dashboard"
+echo "will calculate on-the-fly if precomputed data is"
+echo "missing or stale. You only need to regenerate"
+echo "precomputed data for faster initial page loads."
 echo ""
 echo "=========================================="

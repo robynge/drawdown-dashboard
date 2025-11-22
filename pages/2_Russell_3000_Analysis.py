@@ -23,10 +23,32 @@ st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DAT
 
 ""  # Add space
 
+# Helper to get input file modification times for cache invalidation
+def get_r3000_files_hash():
+    """Get hash of R3000 input files for cache invalidation"""
+    mtimes = []
+
+    price_file = OUTPUT_DIR / 'IWV_prices.csv'
+    if price_file.exists():
+        mtimes.append(price_file.stat().st_mtime)
+
+    dd_file = OUTPUT_DIR / 'IWV_drawdown_2024-2025.xlsx'
+    if dd_file.exists():
+        mtimes.append(dd_file.stat().st_mtime)
+
+    peer_file = OUTPUT_DIR / 'R3000_peer_groups_drawdown_2024-2025.xlsx'
+    if peer_file.exists():
+        mtimes.append(peer_file.stat().st_mtime)
+
+    return max(mtimes) if mtimes else 0
+
 # Load IWV index data
 @st.cache_data
-def load_iwv_data():
-    """Load Russell 3000 Index (IWV) price and drawdown data"""
+def load_iwv_data(_files_hash):
+    """Load Russell 3000 Index (IWV) price and drawdown data
+
+    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
+    """
     price_file = OUTPUT_DIR / 'IWV_prices.csv'
     dd_file = OUTPUT_DIR / 'IWV_drawdown_2024-2025.xlsx'
 
@@ -48,8 +70,11 @@ def load_iwv_data():
 
 # Load peer group data
 @st.cache_data
-def load_peer_groups():
-    """Load GICS industry peer group drawdowns"""
+def load_peer_groups(_files_hash):
+    """Load GICS industry peer group drawdowns
+
+    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
+    """
     peer_file = OUTPUT_DIR / 'R3000_peer_groups_drawdown_2024-2025.xlsx'
 
     if not peer_file.exists():
@@ -61,8 +86,9 @@ def load_peer_groups():
 # Main Analysis Section
 st.subheader("Drawdown Analysis")
 
-iwv_prices, iwv_dd = load_iwv_data()
-peer_groups = load_peer_groups()
+files_hash = get_r3000_files_hash()
+iwv_prices, iwv_dd = load_iwv_data(files_hash)
+peer_groups = load_peer_groups(files_hash)
 
 if iwv_prices is not None and iwv_dd is not None:
     # Layout: left controls and metrics, right chart

@@ -7,7 +7,6 @@ PROJECT_ROOT = Path(__file__).parent
 INPUT_DIR = PROJECT_ROOT / 'input'
 DATA_DIR = PROJECT_ROOT / 'data'
 OUTPUT_DIR = PROJECT_ROOT / 'output'
-CACHE_DIR = DATA_DIR / 'cache'
 PROCESSED_DIR = DATA_DIR / 'processed'
 
 # Analysis settings
@@ -17,5 +16,4 @@ END_DATE = pd.to_datetime('2025-11-21')
 # ETFs
 ARK_ETFS = ['ARKK', 'ARKQ', 'ARKW', 'ARKG', 'ARKF', 'ARKX']
 
-# Cache settings
-CACHE_ENABLED = True
+# Note: Manual caching removed - all caching now handled by Streamlit's @st.cache_data
