@@ -122,18 +122,35 @@ def get_peer_group_prices(industry, version='mv'):
     """Get price data for a specific industry peer group
 
     Args:
-        industry: GICS industry name
+        industry: GICS industry name (may be truncated Excel sheet name)
         version: 'mv' for Market Value or 'weighted' for Weighted Price
 
     Returns:
         DataFrame with columns: Date, Value
     """
+    # Map truncated Excel sheet names to full GICS names
+    # Excel sheet names are limited to 31 characters
+    name_mapping = {
+        'Commercial & Professional Serv': 'Commercial & Professional Services',
+        'Consumer Discretionary Distrib': 'Consumer Discretionary Distribution & Retail',
+        'Consumer Staples Distribution': 'Consumer Staples Distribution & Retail',
+        'Equity Real Estate Investment': 'Equity Real Estate Investment Trusts (REITs)',
+        'Health Care Equipment & Servic': 'Health Care Equipment & Services',
+        'Pharmaceuticals, Biotechnology': 'Pharmaceuticals, Biotechnology & Life Sciences',
+        'Real Estate Management & Devel': 'Real Estate Management & Development',
+        'Semiconductors & Semiconductor': 'Semiconductors & Semiconductor Equipment',
+        'Technology Hardware & Equipmen': 'Technology Hardware & Equipment',
+    }
+
+    # Use mapped name if available, otherwise use original
+    full_industry_name = name_mapping.get(industry, industry)
+
     if version == 'mv':
         all_prices = calculate_peer_group_prices_mv()
     else:
         all_prices = calculate_peer_group_prices_weighted()
 
-    industry_prices = all_prices[all_prices['GICS'] == industry].copy()
+    industry_prices = all_prices[all_prices['GICS'] == full_industry_name].copy()
     industry_prices = industry_prices[['Date', 'Value']].sort_values('Date')
 
     return industry_prices
