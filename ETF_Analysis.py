@@ -177,11 +177,6 @@ with left_panel:
 
         ""  # Space
 
-        # Drawdown count
-        st.markdown("### Drawdown Statistics")
-        total_dd = len(etf_dd_data[etf_dd_data['rank'] != 'Current'])
-        st.metric("Total Drawdowns", total_dd)
-
 with right_panel:
     if selected_etf in etf_prices:
         price_df = etf_prices[selected_etf]
@@ -316,8 +311,6 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
 
     # Check if there is a current drawdown
     if len(etf_dd_data[etf_dd_data['rank'] == 'Current']) > 0:
-        st.subheader("Current Drawdown Analysis")
-
         current_dd_container = st.container(border=True)
         with current_dd_container:
             st.markdown("#### Current Drawdown Information")
@@ -453,8 +446,8 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
 
 ""  # Add space
 
-# Section 4: Drawdown Details
-st.subheader("Drawdown Details")
+# Section 4: ETF Top 10 Drawdown
+st.subheader("ETF Top 10 Drawdown")
 
 # Add CSS for left alignment
 st.markdown("""
@@ -471,8 +464,8 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
     with details_container:
         etf_dd_data = etf_dd[etf_dd['ETF'] == selected_etf]
 
-        # Filter out Current drawdown (shown in separate section above)
-        display_df = etf_dd_data[etf_dd_data['rank'] != 'Current'].copy()
+        # Filter out Current drawdown (shown in separate section above) and show only top 10
+        display_df = etf_dd_data[etf_dd_data['rank'] != 'Current'].head(10).copy()
 
         # Convert rank to string to avoid mixed type issues
         display_df['rank'] = display_df['rank'].astype(str)
@@ -494,30 +487,3 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
             hide_index=True
         )
 
-""  # Add space
-
-# Section 4: ETF Comparison
-st.subheader("ETF Drawdown Comparison")
-
-if len(etf_dd) > 0:
-    comparison_container = st.container(border=True)
-
-    with comparison_container:
-        # Show only max drawdown per ETF
-        etf_summary = etf_dd[etf_dd['rank'] == '1'][['ETF', 'depth_pct', 'peak_date', 'trough_date']].copy()
-
-        # Format columns as strings
-        etf_summary['Max Drawdown %'] = etf_summary['depth_pct'].apply(lambda x: f"{x:.2f}%")
-        etf_summary['Peak Date'] = etf_summary['peak_date'].dt.strftime('%Y-%m-%d')
-        etf_summary['Trough Date'] = etf_summary['trough_date'].dt.strftime('%Y-%m-%d')
-
-        # Select final columns
-        etf_summary = etf_summary[['ETF', 'Max Drawdown %', 'Peak Date', 'Trough Date']]
-
-        st.dataframe(
-            etf_summary,
-            width='stretch',
-            hide_index=True
-        )
-else:
-    st.info("No ETF drawdown data available")
