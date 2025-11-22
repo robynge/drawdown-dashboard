@@ -19,10 +19,10 @@ def calculate_peer_group_prices_mv():
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
 
-    # Filter out dates where more than 50% of stocks have no price (Price = 0)
+    # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
     # This removes US holidays where only a few Canadian stocks have prices
-    daily_zero_pct = holdings.groupby('Date')['Price'].apply(lambda x: (x == 0).sum() / len(x))
-    valid_dates = daily_zero_pct[daily_zero_pct <= 0.5].index
+    daily_valid_pct = holdings.groupby('Date')['Price'].apply(lambda x: (x > 0).sum() / len(x))
+    valid_dates = daily_valid_pct[daily_valid_pct > 0.5].index
     holdings = holdings[holdings['Date'].isin(valid_dates)].copy()
 
     # Calculate Market Value if not present
@@ -71,10 +71,10 @@ def calculate_peer_group_prices_weighted():
     holdings = load_r3000_holdings()
     industry_dict = load_industry_info(source='r3000')
 
-    # Filter out dates where more than 50% of stocks have no price (Price = 0)
+    # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
     # This removes US holidays where only a few Canadian stocks have prices
-    daily_zero_pct = holdings.groupby('Date')['Price'].apply(lambda x: (x == 0).sum() / len(x))
-    valid_dates = daily_zero_pct[daily_zero_pct <= 0.5].index
+    daily_valid_pct = holdings.groupby('Date')['Price'].apply(lambda x: (x > 0).sum() / len(x))
+    valid_dates = daily_valid_pct[daily_valid_pct > 0.5].index
     holdings = holdings[holdings['Date'].isin(valid_dates)].copy()
 
     # Calculate Market Value if not present
