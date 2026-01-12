@@ -59,10 +59,13 @@ def get_ark_stock_list(_files_hash, etf):
         if 'Bloomberg Name' in holdings.columns:
             holdings = holdings[~holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
 
+        # Load company name mapping once
+        company_name_dict = load_company_name('ark')
+
         # Get unique tickers with company names
         stock_info = []
         for ticker in holdings['Ticker'].unique():
-            company_name = load_company_name('ark', ticker)
+            company_name = company_name_dict.get(ticker, ticker)
             if company_name and company_name != ticker:
                 display_name = f"{ticker} - {company_name}"
             else:
@@ -83,10 +86,13 @@ def get_r3000_stock_list(_files_hash):
         holdings = load_r3000_holdings()
         holdings = holdings[(holdings['Date'] >= START_DATE) & (holdings['Date'] <= END_DATE)]
 
+        # Load company name mapping once
+        company_name_dict = load_company_name('r3000')
+
         # Get unique tickers with company names
         stock_info = []
         for ticker in holdings['Ticker'].unique():
-            company_name = load_company_name('r3000', ticker)
+            company_name = company_name_dict.get(ticker, ticker)
             if company_name and company_name != ticker:
                 display_name = f"{ticker} - {company_name}"
             else:
@@ -380,7 +386,8 @@ with right_panel:
     if ark_ticker and r3000_ticker:
         if ark_price_df is not None and len(ark_price_df) > 0 and ark_dd is not None and len(ark_dd) > 0:
             # ARK stock chart
-            ark_company_name = load_company_name('ark', ark_ticker)
+            ark_company_name_dict = load_company_name('ark')
+            ark_company_name = ark_company_name_dict.get(ark_ticker, ark_ticker)
             ark_display_name = f"{ark_ticker}" if not ark_company_name or ark_company_name == ark_ticker else f"{ark_ticker} - {ark_company_name}"
 
             fig_ark = create_stock_chart(ark_price_df, ark_dd, f"{selected_etf}: {ark_display_name}")
@@ -392,7 +399,8 @@ with right_panel:
 
         if r3000_price_df is not None and len(r3000_price_df) > 0 and r3000_dd is not None and len(r3000_dd) > 0:
             # Russell 3000 stock chart
-            r3000_company_name = load_company_name('r3000', r3000_ticker)
+            r3000_company_name_dict = load_company_name('r3000')
+            r3000_company_name = r3000_company_name_dict.get(r3000_ticker, r3000_ticker)
             r3000_display_name = f"{r3000_ticker}" if not r3000_company_name or r3000_company_name == r3000_ticker else f"{r3000_ticker} - {r3000_company_name}"
 
             fig_r3000 = create_stock_chart(r3000_price_df, r3000_dd, f"Russell 3000: {r3000_display_name}")
