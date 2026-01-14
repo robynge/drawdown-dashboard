@@ -36,16 +36,20 @@ def get_ark_files_hash():
     return max(mtimes) if mtimes else 0
 
 @st.cache_data
+def get_cached_ark_holdings(_files_hash, etf):
+    """Load and cache ARK ETF holdings (called once per ETF, reused for all stocks)"""
+    return load_ark_holdings(etf)
+
+@st.cache_data
 def get_stock_etf_mapping(_files_hash):
     """Get mapping of stocks to their ETFs
 
     _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
     """
-    from data_loader import load_ark_holdings
     stock_map = {}
     for etf in ARK_ETFS:
         try:
-            holdings = load_ark_holdings(etf)
+            holdings = get_cached_ark_holdings(_files_hash, etf)
             for ticker in holdings['Ticker'].unique():
                 # Skip currency tickers - check Bloomberg Name
                 ticker_holdings = holdings[holdings['Ticker'] == ticker]
@@ -68,8 +72,6 @@ def load_all_stocks(_files_hash):
 
     _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
     """
-    from data_loader import load_ark_holdings
-
     stock_map = get_stock_etf_mapping(_files_hash)
     valid_tickers = set()
 
@@ -77,7 +79,7 @@ def load_all_stocks(_files_hash):
     for ticker, etf_list in stock_map.items():
         for etf, full_ticker in etf_list:
             try:
-                holdings = load_ark_holdings(etf)
+                holdings = get_cached_ark_holdings(_files_hash, etf)
                 stock_data = holdings[holdings['Ticker'] == full_ticker].copy()
                 stock_data = stock_data[(stock_data['Date'] >= START_DATE) & (stock_data['Date'] <= END_DATE)]
 
@@ -115,8 +117,7 @@ if True:
             # Get stocks that have data in the selected ETF during analysis period
             @st.cache_data
             def get_stocks_for_etf(etf, _files_hash):
-                from data_loader import load_ark_holdings
-                holdings = load_ark_holdings(etf)
+                holdings = get_cached_ark_holdings(_files_hash, etf)
 
                 # Get latest date holdings to identify current positions
                 latest_date = holdings['Date'].max()
@@ -180,9 +181,7 @@ if True:
 
             _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
             """
-            from data_loader import load_ark_holdings
-
-            holdings = load_ark_holdings(etf)
+            holdings = get_cached_ark_holdings(_files_hash, etf)
 
             # Find the full ticker (e.g., "PD" or "PD US Equity")
             matching_tickers = holdings[holdings['Ticker'].str.startswith(ticker + ' ', na=False) |
