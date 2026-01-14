@@ -182,3 +182,27 @@ def load_etf_prices(etf):
     df['Date'] = pd.to_datetime(df['Date'])
 
     return df
+
+
+def get_r3000_ticker_list():
+    """Get list of unique R3000 tickers from precomputed file (fast)"""
+    cache_file = INPUT_DIR / 'russell_3000' / 'ticker_list.csv'
+    source_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
+
+    # Check if cache exists and is newer than source
+    if cache_file.exists():
+        if cache_file.stat().st_mtime >= source_file.stat().st_mtime:
+            return pd.read_csv(cache_file)['Ticker'].tolist()
+
+    # Generate ticker list from source (slow, but only once)
+    xl = pd.ExcelFile(source_file)
+    all_tickers = set()
+    for sheet in xl.sheet_names:
+        df = pd.read_excel(xl, sheet_name=sheet, usecols=['Ticker'])
+        all_tickers.update(df['Ticker'].unique())
+
+    # Save to cache
+    ticker_df = pd.DataFrame({'Ticker': sorted(all_tickers)})
+    ticker_df.to_csv(cache_file, index=False)
+
+    return sorted(all_tickers)

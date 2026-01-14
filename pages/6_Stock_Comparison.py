@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, START_DATE, END_DATE, INPUT_DIR
-from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name
+from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 
@@ -81,17 +81,17 @@ def get_ark_stock_list(_files_hash, etf):
 
 @st.cache_data
 def get_r3000_stock_list(_files_hash):
-    """Get list of stocks from Russell 3000"""
+    """Get list of stocks from Russell 3000 (fast - uses precomputed ticker list)"""
     try:
-        holdings = load_r3000_holdings()
-        holdings = holdings[(holdings['Date'] >= START_DATE) & (holdings['Date'] <= END_DATE)]
+        # Use fast ticker list instead of loading full holdings
+        tickers = get_r3000_ticker_list()
 
         # Load company name mapping once
         company_name_dict = load_company_name('r3000')
 
         # Get unique tickers with company names
         stock_info = []
-        for ticker in holdings['Ticker'].unique():
+        for ticker in tickers:
             company_name = company_name_dict.get(ticker, ticker)
             if company_name and company_name != ticker:
                 display_name = f"{ticker} - {company_name}"
