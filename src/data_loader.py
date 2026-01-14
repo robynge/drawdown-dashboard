@@ -21,7 +21,8 @@ def load_r3000_holdings():
     """Load Russell 3000 holdings - no caching, let Streamlit handle it"""
     file_path = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
     all_data = []
-    for sheet in ['2024', '2025']:
+    xl = pd.ExcelFile(file_path)
+    for sheet in xl.sheet_names:
         df_sheet = pd.read_excel(file_path, sheet_name=sheet)
         all_data.append(df_sheet)
 
