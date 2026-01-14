@@ -7,7 +7,7 @@ import pickle
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-from config import ARK_ETFS, OUTPUT_DIR, CACHE_DIR
+from config import ARK_ETFS, OUTPUT_DIR
 from data_loader import load_etf_prices
 from drawdown_calculator import calculate_drawdowns
 
