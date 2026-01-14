@@ -49,6 +49,11 @@ def get_r3000_files_hash():
     return max(mtimes) if mtimes else 0
 
 @st.cache_data
+def get_cached_r3000_holdings(_files_hash):
+    """Load and cache entire R3000 holdings (called once, reused for all tickers)"""
+    return load_r3000_holdings()
+
+@st.cache_data
 def get_ark_stock_list(_files_hash, etf):
     """Get list of stocks from specified ARK ETF"""
     try:
@@ -126,11 +131,9 @@ def load_ark_stock_prices(_files_hash, etf, ticker):
         st.error(f"Error loading ARK stock prices: {e}")
         return pd.DataFrame()
 
-@st.cache_data
-def load_r3000_stock_prices(_files_hash, ticker):
-    """Load price data for Russell 3000 stock from holdings"""
+def load_r3000_stock_prices(holdings, ticker):
+    """Load price data for Russell 3000 stock from cached holdings"""
     try:
-        holdings = load_r3000_holdings()
         stock_data = holdings[holdings['Ticker'] == ticker].copy()
         stock_data = stock_data[(stock_data['Date'] >= START_DATE) & (stock_data['Date'] <= END_DATE)]
 
@@ -333,7 +336,9 @@ with left_panel:
     if ark_ticker and r3000_ticker:
         with st.spinner("Loading stock data..."):
             ark_price_df = load_ark_stock_prices(ark_files_hash, selected_etf, ark_ticker)
-            r3000_price_df = load_r3000_stock_prices(r3000_files_hash, r3000_ticker)
+            # Use cached R3000 holdings for fast ticker lookup
+            r3000_holdings = get_cached_r3000_holdings(r3000_files_hash)
+            r3000_price_df = load_r3000_stock_prices(r3000_holdings, r3000_ticker)
 
             if len(ark_price_df) > 0:
                 ark_dd = calculate_drawdowns(ark_price_df, ticker=ark_ticker)
