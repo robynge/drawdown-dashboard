@@ -137,8 +137,8 @@ def load_r3000_stock_prices(_files_hash, ticker):
         if len(stock_data) == 0:
             return pd.DataFrame()
 
-        # Rename columns to match expected format
-        stock_data = stock_data.rename(columns={'Stock_Price': 'Close'})
+        # Rename columns to match expected format (Russell 3000 uses 'Price', not 'Stock_Price')
+        stock_data = stock_data.rename(columns={'Price': 'Close'})
         stock_data = stock_data[['Date', 'Close']].sort_values('Date')
 
         return stock_data
@@ -272,8 +272,8 @@ st.subheader("Stock Selection")
 # Layout: left column for controls, right column for charts
 cols = st.columns([1, 3])
 
-left_panel = cols[0].container(border=True, height=800)
-right_panel = cols[1].container(border=True, height=800)
+left_panel = cols[0].container(border=True)
+right_panel = cols[1].container(border=True)
 
 ark_ticker = None
 r3000_ticker = None

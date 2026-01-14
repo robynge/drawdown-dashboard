@@ -32,11 +32,11 @@ def get_r3000_files_hash():
     if price_file.exists():
         mtimes.append(price_file.stat().st_mtime)
 
-    dd_file = OUTPUT_DIR / 'IWV_drawdown_2024-2025.xlsx'
+    dd_file = OUTPUT_DIR / 'IWV_drawdown_2024-2026.xlsx'
     if dd_file.exists():
         mtimes.append(dd_file.stat().st_mtime)
 
-    peer_file = OUTPUT_DIR / 'R3000_peer_groups_drawdown_2024-2025.xlsx'
+    peer_file = OUTPUT_DIR / 'R3000_peer_groups_drawdown_2024-2026.xlsx'
     if peer_file.exists():
         mtimes.append(peer_file.stat().st_mtime)
 
@@ -50,7 +50,7 @@ def load_iwv_data(_files_hash):
     _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
     """
     price_file = OUTPUT_DIR / 'IWV_prices.csv'
-    dd_file = OUTPUT_DIR / 'IWV_drawdown_2024-2025.xlsx'
+    dd_file = OUTPUT_DIR / 'IWV_drawdown_2024-2026.xlsx'
 
     if not price_file.exists() or not dd_file.exists():
         return None, None
@@ -75,7 +75,7 @@ def load_peer_groups(_files_hash):
 
     _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
     """
-    peer_file = OUTPUT_DIR / 'R3000_peer_groups_drawdown_2024-2025.xlsx'
+    peer_file = OUTPUT_DIR / 'R3000_peer_groups_drawdown_2024-2026.xlsx'
 
     if not peer_file.exists():
         return []
