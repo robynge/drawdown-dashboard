@@ -206,3 +206,29 @@ def get_r3000_ticker_list():
     ticker_df.to_csv(cache_file, index=False)
 
     return sorted(all_tickers)
+
+
+def get_ark_ticker_list(etf):
+    """Get list of unique ARK ETF tickers from precomputed file (fast)"""
+    cache_file = INPUT_DIR / 'ark_etfs' / f'{etf}_ticker_list.csv'
+    source_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
+
+    # Check if cache exists and is newer than source
+    if cache_file.exists():
+        if cache_file.stat().st_mtime >= source_file.stat().st_mtime:
+            return pd.read_csv(cache_file)['Ticker'].tolist()
+
+    # Generate ticker list from source
+    df = pd.read_excel(source_file, usecols=['Ticker', 'Bloomberg Name'])
+
+    # Filter out currency tickers
+    if 'Bloomberg Name' in df.columns:
+        df = df[~df['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
+
+    all_tickers = sorted(df['Ticker'].unique().tolist())
+
+    # Save to cache
+    ticker_df = pd.DataFrame({'Ticker': all_tickers})
+    ticker_df.to_csv(cache_file, index=False)
+
+    return all_tickers

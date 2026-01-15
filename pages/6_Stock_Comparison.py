@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, START_DATE, END_DATE, INPUT_DIR
-from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list
+from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list, get_ark_ticker_list
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 
@@ -60,21 +60,17 @@ def get_cached_ark_holdings(_files_hash, etf):
 
 @st.cache_data
 def get_ark_stock_list(_files_hash, etf):
-    """Get list of stocks from specified ARK ETF"""
+    """Get list of stocks from specified ARK ETF (fast - uses precomputed ticker list)"""
     try:
-        holdings = get_cached_ark_holdings(_files_hash, etf)
-        holdings = holdings[(holdings['Date'] >= START_DATE) & (holdings['Date'] <= END_DATE)]
-
-        # Filter out currency tickers
-        if 'Bloomberg Name' in holdings.columns:
-            holdings = holdings[~holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
+        # Use fast ticker list instead of loading full holdings
+        tickers = get_ark_ticker_list(etf)
 
         # Load company name mapping once
         company_name_dict = load_company_name('ark')
 
         # Get unique tickers with company names
         stock_info = []
-        for ticker in holdings['Ticker'].unique():
+        for ticker in tickers:
             company_name = company_name_dict.get(ticker, ticker)
             if company_name and company_name != ticker:
                 display_name = f"{ticker} - {company_name}"
