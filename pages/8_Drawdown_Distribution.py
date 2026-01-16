@@ -496,7 +496,7 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
 
     with table_cols[1]:
         st.markdown(f"##### {selected_benchmark} (Top 50 Worst)")
-        r3000_display = r3000_dd.nsmallest(50, 'max_drawdown').copy()
+        r3000_display = r3000_dd.nsmallest(50, 'max_drawdown')[['ticker', 'max_drawdown', 'num_drawdowns']].copy()
         r3000_display['max_drawdown'] = r3000_display['max_drawdown'].apply(lambda x: f"{x:.1f}%")
         r3000_display.columns = ['Ticker', 'Max Drawdown', '# Valid DDs']
         st.dataframe(r3000_display, hide_index=True, use_container_width=True, height=400)
