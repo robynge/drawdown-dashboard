@@ -159,9 +159,10 @@ with cols[0]:
     controls_card = st.container(border=True)
     with controls_card:
         st.markdown("##### Select ETF")
-        selected_etf = st.selectbox(
+        selected_etf = st.pills(
             "ETF",
-            ARK_ETFS,
+            options=ARK_ETFS,
+            default=ARK_ETFS[0],
             label_visibility="collapsed"
         )
 
