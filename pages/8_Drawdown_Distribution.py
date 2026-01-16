@@ -60,9 +60,12 @@ def get_r3000_peer_groups(_files_hash):
         return []
 
 @st.cache_data
-def calculate_ark_holdings_drawdowns(_files_hash, etf, min_depth_pct, min_duration_days):
-    """Calculate max drawdown for each current holding in ARK ETF"""
-    holdings = get_cached_ark_holdings(_files_hash, etf)
+def calculate_ark_holdings_drawdowns(_files_hash, etf, min_depth_pct, min_duration_days, _holdings):
+    """Calculate max drawdown for each current holding in ARK ETF
+
+    _holdings: Pre-loaded holdings data (underscore prefix excludes from hashing)
+    """
+    holdings = _holdings
 
     # Get current holdings
     latest_date = holdings['Date'].max()
@@ -106,9 +109,12 @@ def calculate_ark_holdings_drawdowns(_files_hash, etf, min_depth_pct, min_durati
     return pd.DataFrame(results)
 
 @st.cache_data
-def calculate_r3000_drawdowns(_files_hash, min_depth_pct, min_duration_days, peer_group=None):
-    """Calculate max drawdown for each stock in R3000 or a peer group"""
-    holdings = get_cached_r3000_holdings(_files_hash)
+def calculate_r3000_drawdowns(_files_hash, min_depth_pct, min_duration_days, peer_group, _holdings):
+    """Calculate max drawdown for each stock in R3000 or a peer group
+
+    _holdings: Pre-loaded holdings data (underscore prefix excludes from hashing)
+    """
+    holdings = _holdings.copy()
 
     # Filter to peer group if specified
     if peer_group and peer_group != "Russell 3000 (All)":
@@ -218,12 +224,16 @@ ark_hash = get_ark_files_hash()
 r3000_hash = get_r3000_files_hash()
 
 with st.spinner("Calculating drawdown distributions..."):
+    # Load holdings once (cached)
+    ark_holdings = get_cached_ark_holdings(ark_hash, selected_etf)
+    r3000_holdings = get_cached_r3000_holdings(r3000_hash)
+
     # ARK holdings drawdowns
-    ark_dd = calculate_ark_holdings_drawdowns(ark_hash, selected_etf, min_depth_pct=10, min_duration_days=7)
+    ark_dd = calculate_ark_holdings_drawdowns(ark_hash, selected_etf, min_depth_pct=10, min_duration_days=7, _holdings=ark_holdings)
 
     # R3000/Peer group drawdowns
     peer_group = None if selected_benchmark == "Russell 3000 (All)" else selected_benchmark
-    r3000_dd = calculate_r3000_drawdowns(r3000_hash, min_depth_pct=10, min_duration_days=7, peer_group=peer_group)
+    r3000_dd = calculate_r3000_drawdowns(r3000_hash, min_depth_pct=10, min_duration_days=7, peer_group=peer_group, _holdings=r3000_holdings)
 
     # ETF's own drawdown
     etf_drawdown = calculate_etf_drawdown(ark_hash, selected_etf)
