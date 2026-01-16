@@ -404,12 +404,14 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
             ), row=2, col=1)
 
             # Add dummy traces for reference lines legend (actual line graphics)
+            # Use legend2 to place them separately on the right
             fig.add_trace(go.Scatter(
                 x=[None], y=[None],
                 mode='lines',
                 name=f'{selected_benchmark} Mean: {r3000_stats["mean"]:.1f}%',
                 line=dict(color='steelblue', width=2, dash='dot'),
-                showlegend=True
+                showlegend=True,
+                legend='legend2'
             ), row=1, col=1)
 
             fig.add_trace(go.Scatter(
@@ -417,7 +419,8 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                 mode='lines',
                 name=f'{selected_etf} Holdings Mean: {ark_stats["mean"]:.1f}%',
                 line=dict(color='crimson', width=2, dash='dot'),
-                showlegend=True
+                showlegend=True,
+                legend='legend2'
             ), row=1, col=1)
 
             if etf_drawdown is not None:
@@ -426,7 +429,8 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                     mode='lines',
                     name=f'{selected_etf} MDD: {etf_drawdown:.1f}%',
                     line=dict(color='darkred', width=2, dash='dash'),
-                    showlegend=True
+                    showlegend=True,
+                    legend='legend2'
                 ), row=1, col=1)
 
             # Add vertical lines for both subplots
@@ -463,6 +467,7 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                 barmode='overlay',
                 height=700,
                 legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+                legend2=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
                 plot_bgcolor='white',
                 paper_bgcolor='white'
             )
