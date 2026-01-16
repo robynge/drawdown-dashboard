@@ -54,7 +54,11 @@ def get_r3000_peer_groups(_files_hash):
     """Get list of GICS Industry Groups from R3000"""
     try:
         industry_dict = load_industry_info(source='r3000')
-        peer_groups = sorted(set(industry_dict.values()))
+        # Filter out invalid entries (Bloomberg error messages)
+        peer_groups = sorted([
+            pg for pg in set(industry_dict.values())
+            if pg and not pg.startswith('#N/A') and 'Unable to retrieve' not in pg
+        ])
         return peer_groups
     except:
         return []
