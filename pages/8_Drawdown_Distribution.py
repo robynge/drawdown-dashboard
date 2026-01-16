@@ -287,43 +287,6 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
     else:
         etf_percentile = None
 
-    # Display statistics in left panel
-    with cols[0]:
-        ""  # Space
-
-        stats_card = st.container(border=True)
-        with stats_card:
-            st.markdown("##### Summary Statistics")
-
-            # Table format
-            stats_df = pd.DataFrame({
-                'Metric': ['Holdings Count', 'Mean Drawdown', 'Median Drawdown', 'Worst Drawdown', 'Best Drawdown'],
-                f'{selected_etf}': [
-                    f"{ark_stats['count']}",
-                    f"{ark_stats['mean']:.1f}%",
-                    f"{ark_stats['median']:.1f}%",
-                    f"{ark_stats['worst']:.1f}%",
-                    f"{ark_stats['best']:.1f}%"
-                ],
-                selected_benchmark: [
-                    f"{r3000_stats['count']}",
-                    f"{r3000_stats['mean']:.1f}%",
-                    f"{r3000_stats['median']:.1f}%",
-                    f"{r3000_stats['worst']:.1f}%",
-                    f"{r3000_stats['best']:.1f}%"
-                ]
-            })
-
-            st.dataframe(stats_df, hide_index=True, use_container_width=True)
-
-            ""  # Space
-
-            if etf_drawdown is not None and etf_percentile is not None:
-                st.markdown("##### ETF Overall Drawdown")
-                st.markdown(f"**{selected_etf} Max Drawdown:** {etf_drawdown:.1f}%")
-                st.markdown(f"**Percentile in {selected_benchmark}:** {etf_percentile:.0f}th")
-                st.markdown(f"<small>(Deeper than {100-etf_percentile:.0f}% of stocks)</small>", unsafe_allow_html=True)
-
     # Right panel: Distribution charts
     with cols[1]:
         chart_card = st.container(border=True)
@@ -478,6 +441,43 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
             fig.update_yaxes(title_text="Number of Stocks", gridcolor='lightgray', row=2, col=1)
 
             st.plotly_chart(fig, use_container_width=True)
+
+    ""  # Space
+
+    # Summary Statistics section
+    st.subheader("Summary Statistics")
+
+    stats_cols = st.columns(2)
+
+    with stats_cols[0]:
+        stats_card = st.container(border=True)
+        with stats_card:
+            stats_df = pd.DataFrame({
+                'Metric': ['Holdings Count', 'Mean Drawdown', 'Median Drawdown', 'Worst Drawdown', 'Best Drawdown'],
+                f'{selected_etf}': [
+                    f"{ark_stats['count']}",
+                    f"{ark_stats['mean']:.1f}%",
+                    f"{ark_stats['median']:.1f}%",
+                    f"{ark_stats['worst']:.1f}%",
+                    f"{ark_stats['best']:.1f}%"
+                ],
+                selected_benchmark: [
+                    f"{r3000_stats['count']}",
+                    f"{r3000_stats['mean']:.1f}%",
+                    f"{r3000_stats['median']:.1f}%",
+                    f"{r3000_stats['worst']:.1f}%",
+                    f"{r3000_stats['best']:.1f}%"
+                ]
+            })
+            st.dataframe(stats_df, hide_index=True, use_container_width=True)
+
+    with stats_cols[1]:
+        if etf_drawdown is not None and etf_percentile is not None:
+            etf_card = st.container(border=True)
+            with etf_card:
+                st.markdown(f"**{selected_etf} MDD:** {etf_drawdown:.1f}%")
+                st.markdown(f"**Percentile in {selected_benchmark}:** {etf_percentile:.0f}th")
+                st.markdown(f"<small>(Deeper than {100-etf_percentile:.0f}% of stocks)</small>", unsafe_allow_html=True)
 
     ""  # Space
 
