@@ -328,18 +328,10 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
     with cols[1]:
         chart_card = st.container(border=True)
         with chart_card:
-            # Build reference lines subtitle (using Unicode characters to match line styles)
-            # ······ for dotted lines (middle dot U+00B7), ─ ─ ─ for dashed lines
-            ref_parts = [f"<span style='color:steelblue'>· · · · · {selected_benchmark} Mean: {r3000_stats['mean']:.1f}%</span>"]
-            ref_parts.append(f"<span style='color:crimson'>· · · · · {selected_etf} Holdings Mean: {ark_stats['mean']:.1f}%</span>")
-            if etf_drawdown is not None:
-                ref_parts.append(f"<span style='color:darkred'>─ ─ ─ {selected_etf} Fund Max Drawdown: {etf_drawdown:.1f}%</span>")
-            ref_line_text = "<b>Reference Lines:</b> " + "    ".join(ref_parts)
-
             # Create subplots: percentage on top, count on bottom
             fig = make_subplots(
                 rows=2, cols=1,
-                subplot_titles=(f"Percentage Distribution<br><sup>{ref_line_text}</sup>", "Count Distribution"),
+                subplot_titles=("Percentage Distribution", "Count Distribution"),
                 vertical_spacing=0.15
             )
 
@@ -410,6 +402,32 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                 legendgroup='ark',
                 showlegend=False
             ), row=2, col=1)
+
+            # Add dummy traces for reference lines legend (actual line graphics)
+            fig.add_trace(go.Scatter(
+                x=[None], y=[None],
+                mode='lines',
+                name=f'{selected_benchmark} Mean: {r3000_stats["mean"]:.1f}%',
+                line=dict(color='steelblue', width=2, dash='dot'),
+                showlegend=True
+            ), row=1, col=1)
+
+            fig.add_trace(go.Scatter(
+                x=[None], y=[None],
+                mode='lines',
+                name=f'{selected_etf} Holdings Mean: {ark_stats["mean"]:.1f}%',
+                line=dict(color='crimson', width=2, dash='dot'),
+                showlegend=True
+            ), row=1, col=1)
+
+            if etf_drawdown is not None:
+                fig.add_trace(go.Scatter(
+                    x=[None], y=[None],
+                    mode='lines',
+                    name=f'{selected_etf} MDD: {etf_drawdown:.1f}%',
+                    line=dict(color='darkred', width=2, dash='dash'),
+                    showlegend=True
+                ), row=1, col=1)
 
             # Add vertical lines for both subplots
             for row in [1, 2]:
