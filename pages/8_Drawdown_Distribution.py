@@ -331,63 +331,95 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
             # Create histogram
             fig = go.Figure()
 
-            # R3000 distribution
+            # R3000 distribution with clear hover
             fig.add_trace(go.Histogram(
                 x=r3000_dd['max_drawdown'],
                 name=selected_benchmark,
                 marker_color='steelblue',
                 opacity=0.6,
-                nbinsx=40
+                nbinsx=40,
+                hovertemplate=(
+                    f"<b>{selected_benchmark}</b><br>"
+                    "Drawdown Range: %{x}%<br>"
+                    "Stock Count: %{y}<extra></extra>"
+                )
             ))
 
-            # ARK distribution
+            # ARK distribution with clear hover
             fig.add_trace(go.Histogram(
                 x=ark_dd['max_drawdown'],
                 name=f'{selected_etf} Holdings',
                 marker_color='crimson',
                 opacity=0.6,
-                nbinsx=40
+                nbinsx=40,
+                hovertemplate=(
+                    f"<b>{selected_etf} Holdings</b><br>"
+                    "Drawdown Range: %{x}%<br>"
+                    "Stock Count: %{y}<extra></extra>"
+                )
             ))
 
-            # Add vertical line for ETF drawdown
+            # Add vertical line for ETF drawdown (using shape for cleaner look)
             if etf_drawdown is not None:
                 fig.add_vline(
                     x=etf_drawdown,
                     line_dash="dash",
-                    line_color="red",
-                    line_width=2,
-                    annotation_text=f"{selected_etf} ETF: {etf_drawdown:.1f}%",
-                    annotation_position="top"
+                    line_color="darkred",
+                    line_width=2
                 )
 
-            # Add vertical lines for means
+            # Add vertical lines for means (without inline annotations)
             fig.add_vline(
                 x=r3000_stats['mean'],
                 line_dash="dot",
                 line_color="steelblue",
-                annotation_text=f"R3000 Mean: {r3000_stats['mean']:.1f}%",
-                annotation_position="bottom left"
+                line_width=2
             )
 
             fig.add_vline(
                 x=ark_stats['mean'],
                 line_dash="dot",
                 line_color="crimson",
-                annotation_text=f"ARK Mean: {ark_stats['mean']:.1f}%",
-                annotation_position="bottom right"
+                line_width=2
             )
+
+            # Build legend text for annotations on the right side
+            annotation_lines = []
+            annotation_lines.append(f"<b>Mean Drawdowns:</b>")
+            annotation_lines.append(f"<span style='color:steelblue'>● {selected_benchmark}: {r3000_stats['mean']:.1f}%</span>")
+            annotation_lines.append(f"<span style='color:crimson'>● {selected_etf}: {ark_stats['mean']:.1f}%</span>")
+            if etf_drawdown is not None:
+                annotation_lines.append(f"<span style='color:darkred'>--- {selected_etf} ETF: {etf_drawdown:.1f}%</span>")
 
             fig.update_layout(
                 title=f"Max Drawdown Distribution: {selected_etf} Holdings vs {selected_benchmark}",
                 xaxis_title="Max Drawdown (%)",
-                yaxis_title="Count",
+                yaxis_title="Number of Stocks",
                 barmode='overlay',
                 height=500,
                 legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                 plot_bgcolor='white',
                 paper_bgcolor='white',
                 xaxis=dict(gridcolor='lightgray'),
-                yaxis=dict(gridcolor='lightgray')
+                yaxis=dict(gridcolor='lightgray'),
+                # Add annotation box on the right side
+                annotations=[
+                    dict(
+                        x=1.02,
+                        y=0.95,
+                        xref='paper',
+                        yref='paper',
+                        text='<br>'.join(annotation_lines),
+                        showarrow=False,
+                        font=dict(size=11),
+                        align='left',
+                        bgcolor='rgba(255,255,255,0.8)',
+                        bordercolor='lightgray',
+                        borderwidth=1,
+                        borderpad=6
+                    )
+                ],
+                margin=dict(r=180)  # Make room for annotation on right
             )
 
             st.plotly_chart(fig, use_container_width=True)
