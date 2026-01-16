@@ -434,11 +434,11 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
 
             # Build legend text for annotations on the right side
             annotation_lines = []
-            annotation_lines.append(f"<b>Mean Drawdowns:</b>")
-            annotation_lines.append(f"<span style='color:steelblue'>● {selected_benchmark}: {r3000_stats['mean']:.1f}%</span>")
-            annotation_lines.append(f"<span style='color:crimson'>● {selected_etf}: {ark_stats['mean']:.1f}%</span>")
+            annotation_lines.append(f"<b>Reference Lines:</b>")
+            annotation_lines.append(f"<span style='color:steelblue'>...... {selected_benchmark} Mean: {r3000_stats['mean']:.1f}%</span>")
+            annotation_lines.append(f"<span style='color:crimson'>...... {selected_etf} Holdings Mean: {ark_stats['mean']:.1f}%</span>")
             if etf_drawdown is not None:
-                annotation_lines.append(f"<span style='color:darkred'>--- {selected_etf} ETF: {etf_drawdown:.1f}%</span>")
+                annotation_lines.append(f"<span style='color:darkred'>---- {selected_etf} Fund Max Drawdown: {etf_drawdown:.1f}%</span>")
 
             fig.update_layout(
                 title=f"Max Drawdown Distribution: {selected_etf} Holdings vs {selected_benchmark}",
@@ -451,7 +451,7 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                 annotations=list(fig.layout.annotations) + [
                     dict(
                         x=1.02,
-                        y=0.5,
+                        y=0.95,
                         xref='paper',
                         yref='paper',
                         text='<br>'.join(annotation_lines),
