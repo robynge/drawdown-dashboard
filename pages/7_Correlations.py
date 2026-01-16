@@ -75,7 +75,7 @@ def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
         current_tickers = [t for t in current_tickers if t not in currency_tickers]
 
     # Filter out specific tickers (e.g., money market funds)
-    excluded_tickers = ['FTOXX']
+    excluded_tickers = ['FTOXX', 'FIRXX']
     current_tickers = [t for t in current_tickers if t.split()[0] not in excluded_tickers]
 
     # Calculate start date for lookback period
