@@ -69,10 +69,14 @@ def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
     latest_date = holdings['Date'].max()
     current_tickers = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
 
-    # Filter out currency tickers
+    # Filter out currency tickers and money market funds
     if 'Bloomberg Name' in holdings.columns:
         currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
         current_tickers = [t for t in current_tickers if t not in currency_tickers]
+
+    # Filter out specific tickers (e.g., money market funds)
+    excluded_tickers = ['FTOXX']
+    current_tickers = [t for t in current_tickers if t.split()[0] not in excluded_tickers]
 
     # Calculate start date for lookback period
     lookback_start = latest_date - pd.Timedelta(days=lookback_days)
