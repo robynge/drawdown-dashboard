@@ -328,10 +328,50 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
     with cols[1]:
         chart_card = st.container(border=True)
         with chart_card:
-            # Create histogram
-            fig = go.Figure()
+            # Create subplots: percentage on top, count on bottom
+            fig = make_subplots(
+                rows=2, cols=1,
+                subplot_titles=("Percentage Distribution", "Count Distribution"),
+                vertical_spacing=0.12
+            )
 
-            # R3000 distribution with clear hover
+            # === Top chart: Percentage distribution ===
+            # R3000 percentage distribution
+            fig.add_trace(go.Histogram(
+                x=r3000_dd['max_drawdown'],
+                name=selected_benchmark,
+                marker_color='steelblue',
+                opacity=0.6,
+                nbinsx=40,
+                histnorm='percent',
+                hovertemplate=(
+                    f"<b>{selected_benchmark}</b><br>"
+                    "Drawdown Range: %{x}%<br>"
+                    "Percentage: %{y:.1f}%<extra></extra>"
+                ),
+                legendgroup='benchmark',
+                showlegend=True
+            ), row=1, col=1)
+
+            # ARK percentage distribution
+            fig.add_trace(go.Histogram(
+                x=ark_dd['max_drawdown'],
+                name=f'{selected_etf} Holdings',
+                marker_color='crimson',
+                opacity=0.6,
+                nbinsx=40,
+                histnorm='percent',
+                hovertemplate=(
+                    f"<b>{selected_etf} Holdings</b><br>"
+                    "Drawdown Range: %{x}%<br>"
+                    "Percentage: %{y:.1f}%<extra></extra>"
+                ),
+                legendgroup='ark',
+                showlegend=True
+            ), row=1, col=1)
+
+            # === Bottom chart: Count distribution ===
+            # R3000 count distribution
             fig.add_trace(go.Histogram(
                 x=r3000_dd['max_drawdown'],
                 name=selected_benchmark,
@@ -342,10 +382,12 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                     f"<b>{selected_benchmark}</b><br>"
                     "Drawdown Range: %{x}%<br>"
                     "Stock Count: %{y}<extra></extra>"
-                )
-            ))
+                ),
+                legendgroup='benchmark',
+                showlegend=False
+            ), row=2, col=1)
 
-            # ARK distribution with clear hover
+            # ARK count distribution
             fig.add_trace(go.Histogram(
                 x=ark_dd['max_drawdown'],
                 name=f'{selected_etf} Holdings',
@@ -356,32 +398,39 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                     f"<b>{selected_etf} Holdings</b><br>"
                     "Drawdown Range: %{x}%<br>"
                     "Stock Count: %{y}<extra></extra>"
-                )
-            ))
+                ),
+                legendgroup='ark',
+                showlegend=False
+            ), row=2, col=1)
 
-            # Add vertical line for ETF drawdown (using shape for cleaner look)
-            if etf_drawdown is not None:
+            # Add vertical lines for both subplots
+            for row in [1, 2]:
+                # ETF drawdown line
+                if etf_drawdown is not None:
+                    fig.add_vline(
+                        x=etf_drawdown,
+                        line_dash="dash",
+                        line_color="darkred",
+                        line_width=2,
+                        row=row, col=1
+                    )
+
+                # Mean lines
                 fig.add_vline(
-                    x=etf_drawdown,
-                    line_dash="dash",
-                    line_color="darkred",
-                    line_width=2
+                    x=r3000_stats['mean'],
+                    line_dash="dot",
+                    line_color="steelblue",
+                    line_width=2,
+                    row=row, col=1
                 )
 
-            # Add vertical lines for means (without inline annotations)
-            fig.add_vline(
-                x=r3000_stats['mean'],
-                line_dash="dot",
-                line_color="steelblue",
-                line_width=2
-            )
-
-            fig.add_vline(
-                x=ark_stats['mean'],
-                line_dash="dot",
-                line_color="crimson",
-                line_width=2
-            )
+                fig.add_vline(
+                    x=ark_stats['mean'],
+                    line_dash="dot",
+                    line_color="crimson",
+                    line_width=2,
+                    row=row, col=1
+                )
 
             # Build legend text for annotations on the right side
             annotation_lines = []
@@ -393,20 +442,16 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
 
             fig.update_layout(
                 title=f"Max Drawdown Distribution: {selected_etf} Holdings vs {selected_benchmark}",
-                xaxis_title="Max Drawdown (%)",
-                yaxis_title="Number of Stocks",
                 barmode='overlay',
-                height=500,
+                height=700,
                 legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                 plot_bgcolor='white',
                 paper_bgcolor='white',
-                xaxis=dict(gridcolor='lightgray'),
-                yaxis=dict(gridcolor='lightgray'),
                 # Add annotation box on the right side
-                annotations=[
+                annotations=list(fig.layout.annotations) + [
                     dict(
                         x=1.02,
-                        y=0.95,
+                        y=0.5,
                         xref='paper',
                         yref='paper',
                         text='<br>'.join(annotation_lines),
@@ -421,6 +466,11 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                 ],
                 margin=dict(r=180)  # Make room for annotation on right
             )
+
+            # Update axes
+            fig.update_xaxes(title_text="Max Drawdown (%)", gridcolor='lightgray', row=2, col=1)
+            fig.update_yaxes(title_text="% of Stocks", gridcolor='lightgray', row=1, col=1)
+            fig.update_yaxes(title_text="Number of Stocks", gridcolor='lightgray', row=2, col=1)
 
             st.plotly_chart(fig, use_container_width=True)
 
