@@ -138,6 +138,127 @@ def calculate_drawdowns(prices_df, ticker=None):
 
     return df
 
+def find_all_valid_drawdowns(df, value_col='Close', min_depth_pct=10, min_duration_days=7):
+    """Find all drawdowns that meet criteria: depth >= min_depth_pct OR duration >= min_duration_days
+
+    Args:
+        df: DataFrame with DatetimeIndex and value_col
+        value_col: Column name for price values
+        min_depth_pct: Minimum depth percentage (positive number, e.g., 10 for -10%)
+        min_duration_days: Minimum duration in trading days
+
+    Returns:
+        List of drawdown dictionaries
+    """
+    drawdowns = []
+    remaining_periods = [(df.index[0], df.index[-1])]
+    rank = 0
+
+    while remaining_periods:
+        best_dd = None
+        best_dd_value = 0
+        best_period_idx = -1
+        best_split = None
+
+        # Find the deepest drawdown across ALL remaining periods
+        for i, (start, end) in enumerate(remaining_periods):
+            period_df = df.loc[start:end]
+            dd = find_max_drawdown_in_period(period_df, value_col)
+
+            if dd and dd['depth_pct'] < best_dd_value:
+                best_dd = dd
+                best_dd_value = dd['depth_pct']
+                best_period_idx = i
+                best_split = (start, end)
+
+        if best_dd is None:
+            break
+
+        # Calculate duration in trading days
+        peak_date = best_dd['peak_date']
+        trough_date = best_dd['trough_date']
+        duration_days = len(df.loc[peak_date:trough_date])
+
+        # Check if this drawdown meets our criteria
+        depth_qualifies = abs(best_dd['depth_pct']) >= min_depth_pct
+        duration_qualifies = duration_days >= min_duration_days
+
+        if depth_qualifies or duration_qualifies:
+            rank += 1
+            best_dd['rank'] = rank
+            best_dd['duration_days'] = duration_days
+            drawdowns.append(best_dd)
+
+            # Remove the used period and add split periods
+            start, end = best_split
+            remaining_periods.pop(best_period_idx)
+
+            # Add period before peak
+            if start < peak_date and (peak_date - start).days > 1:
+                day_before_peak = peak_date - pd.Timedelta(days=1)
+                if day_before_peak >= start:
+                    remaining_periods.append((start, day_before_peak))
+
+            # Add period after trough
+            if trough_date < end and (end - trough_date).days > 1:
+                day_after_trough = trough_date + pd.Timedelta(days=1)
+                if day_after_trough <= end:
+                    remaining_periods.append((day_after_trough, end))
+        else:
+            # This drawdown doesn't qualify, stop searching
+            break
+
+    return drawdowns
+
+
+def calculate_drawdowns_with_filter(prices_df, min_depth_pct=10, min_duration_days=7):
+    """Calculate all valid drawdowns meeting criteria for distribution analysis
+
+    Args:
+        prices_df: DataFrame with 'Date' and 'Close' columns
+        min_depth_pct: Minimum depth percentage (positive number, e.g., 10 for -10%)
+        min_duration_days: Minimum duration in trading days
+
+    Returns:
+        DataFrame with all valid drawdowns
+    """
+    prices = prices_df.copy()
+    prices = prices[(prices['Date'] >= START_DATE) & (prices['Date'] <= END_DATE)].copy()
+
+    if len(prices) == 0 or prices['Close'].isna().all():
+        return pd.DataFrame()
+
+    prices_indexed = prices.set_index('Date')
+
+    # Find all valid drawdowns
+    all_dds = find_all_valid_drawdowns(
+        prices_indexed,
+        value_col='Close',
+        min_depth_pct=min_depth_pct,
+        min_duration_days=min_duration_days
+    )
+
+    if not all_dds:
+        return pd.DataFrame()
+
+    results = []
+    for dd in all_dds:
+        results.append({
+            'rank': dd['rank'],
+            'peak_date': dd['peak_date'],
+            'trough_date': dd['trough_date'],
+            'peak_price': round(dd['peak_price'], 2),
+            'trough_price': round(dd['trough_price'], 2),
+            'depth_pct': round(dd['depth_pct'], 2),
+            'duration_days': dd['duration_days']
+        })
+
+    df = pd.DataFrame(results)
+    df['rank'] = df['rank'].astype(str)
+
+    return df
+
+
 def calculate_stock_drawdowns_by_etf(holdings_df, prices_df, ticker):
     """Calculate drawdowns for a stock grouped by ETF holdings"""
     results = {}
