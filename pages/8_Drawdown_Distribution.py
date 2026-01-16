@@ -332,8 +332,8 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
             ref_parts = [f"<span style='color:steelblue'>...... {selected_benchmark} Mean: {r3000_stats['mean']:.1f}%</span>"]
             ref_parts.append(f"<span style='color:crimson'>...... {selected_etf} Holdings Mean: {ark_stats['mean']:.1f}%</span>")
             if etf_drawdown is not None:
-                ref_parts.append(f"<span style='color:darkred'>---- {selected_etf} Fund Max Drawdown: {etf_drawdown:.1f}%</span>")
-            ref_line_text = "Reference Lines: " + " | ".join(ref_parts)
+                ref_parts.append(f"<span style='color:darkred'>----- {selected_etf} Fund Max Drawdown: {etf_drawdown:.1f}%</span>")
+            ref_line_text = "<b>Reference Lines:</b> " + "    ".join(ref_parts)
 
             # Create subplots: percentage on top, count on bottom
             fig = make_subplots(
