@@ -208,6 +208,22 @@ def get_r3000_ticker_list():
     return sorted(all_tickers)
 
 
+def get_r3000_drawdowns_cache():
+    """Get precomputed R3000 drawdowns from cache file (fast)"""
+    cache_file = INPUT_DIR / 'russell_3000' / 'drawdowns_cache.csv'
+
+    if cache_file.exists():
+        return pd.read_csv(cache_file)
+
+    return None
+
+
+def save_r3000_drawdowns_cache(df):
+    """Save R3000 drawdowns to cache file"""
+    cache_file = INPUT_DIR / 'russell_3000' / 'drawdowns_cache.csv'
+    df.to_csv(cache_file, index=False)
+
+
 def get_ark_ticker_list(etf):
     """Get list of unique ARK ETF tickers from precomputed file (fast)"""
     cache_file = INPUT_DIR / 'ark_etfs' / f'{etf}_ticker_list.csv'

@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, START_DATE, END_DATE, INPUT_DIR, OUTPUT_DIR
-from data_loader import load_ark_holdings, load_r3000_holdings, load_industry_info
+from data_loader import load_ark_holdings, load_r3000_holdings, load_industry_info, get_r3000_drawdowns_cache, save_r3000_drawdowns_cache
 from drawdown_calculator import calculate_drawdowns_with_filter, calculate_drawdowns
 
 st.set_page_config(
@@ -109,20 +109,17 @@ def calculate_ark_holdings_drawdowns(_files_hash, etf, min_depth_pct, min_durati
     return pd.DataFrame(results)
 
 @st.cache_data
-def calculate_r3000_drawdowns(_files_hash, min_depth_pct, min_duration_days, peer_group, _holdings):
-    """Calculate max drawdown for each stock in R3000 or a peer group
+def calculate_r3000_drawdowns_full(_files_hash, min_depth_pct, min_duration_days, _holdings):
+    """Calculate max drawdown for ALL stocks in R3000 (cached to file)
 
     _holdings: Pre-loaded holdings data (underscore prefix excludes from hashing)
     """
-    holdings = _holdings.copy()
+    # Check for precomputed cache first
+    cached = get_r3000_drawdowns_cache()
+    if cached is not None:
+        return cached
 
-    # Filter to peer group if specified
-    if peer_group and peer_group != "Russell 3000 (All)":
-        industry_dict = load_industry_info(source='r3000')
-        # Get tickers in this peer group
-        peer_tickers = [ticker for ticker, gics in industry_dict.items() if gics == peer_group]
-        # Filter holdings
-        holdings = holdings[holdings['Ticker'].isin(peer_tickers)]
+    holdings = _holdings.copy()
 
     if len(holdings) == 0:
         return pd.DataFrame()
@@ -130,8 +127,12 @@ def calculate_r3000_drawdowns(_files_hash, min_depth_pct, min_duration_days, pee
     # Get unique tickers
     all_tickers = holdings['Ticker'].unique()
 
+    # Get industry mapping for all tickers
+    industry_dict = load_industry_info(source='r3000')
+
     results = []
-    for ticker in all_tickers:
+    total = len(all_tickers)
+    for i, ticker in enumerate(all_tickers):
         stock_data = holdings[holdings['Ticker'] == ticker].copy()
 
         if len(stock_data) < 10:
@@ -153,13 +154,30 @@ def calculate_r3000_drawdowns(_files_hash, min_depth_pct, min_duration_days, pee
 
         if len(dd_df) > 0:
             max_dd = dd_df['depth_pct'].min()
+            ticker_clean = ticker.split()[0] if isinstance(ticker, str) else ticker
+            # Get industry group for this ticker
+            gics = industry_dict.get(ticker, industry_dict.get(ticker_clean, 'Unknown'))
             results.append({
-                'ticker': ticker.split()[0] if isinstance(ticker, str) else ticker,
+                'ticker': ticker_clean,
                 'max_drawdown': max_dd,
-                'num_drawdowns': len(dd_df)
+                'num_drawdowns': len(dd_df),
+                'gics_industry_group': gics
             })
 
-    return pd.DataFrame(results)
+    result_df = pd.DataFrame(results)
+
+    # Save to cache file for future use
+    if len(result_df) > 0:
+        save_r3000_drawdowns_cache(result_df)
+
+    return result_df
+
+
+def get_r3000_drawdowns_filtered(full_drawdowns, peer_group):
+    """Filter precomputed R3000 drawdowns by peer group"""
+    if peer_group and peer_group != "Russell 3000 (All)":
+        return full_drawdowns[full_drawdowns['gics_industry_group'] == peer_group].copy()
+    return full_drawdowns.copy()
 
 @st.cache_data
 def calculate_etf_drawdown(_files_hash, etf):
@@ -231,9 +249,12 @@ with st.spinner("Calculating drawdown distributions..."):
     # ARK holdings drawdowns
     ark_dd = calculate_ark_holdings_drawdowns(ark_hash, selected_etf, min_depth_pct=10, min_duration_days=7, _holdings=ark_holdings)
 
-    # R3000/Peer group drawdowns
+    # R3000 drawdowns (from cache or compute once)
+    r3000_dd_full = calculate_r3000_drawdowns_full(r3000_hash, min_depth_pct=10, min_duration_days=7, _holdings=r3000_holdings)
+
+    # Filter by peer group
     peer_group = None if selected_benchmark == "Russell 3000 (All)" else selected_benchmark
-    r3000_dd = calculate_r3000_drawdowns(r3000_hash, min_depth_pct=10, min_duration_days=7, peer_group=peer_group, _holdings=r3000_holdings)
+    r3000_dd = get_r3000_drawdowns_filtered(r3000_dd_full, peer_group)
 
     # ETF's own drawdown
     etf_drawdown = calculate_etf_drawdown(ark_hash, selected_etf)
