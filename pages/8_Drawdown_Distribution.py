@@ -328,11 +328,18 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
     with cols[1]:
         chart_card = st.container(border=True)
         with chart_card:
+            # Build reference lines subtitle
+            ref_parts = [f"<span style='color:steelblue'>...... {selected_benchmark} Mean: {r3000_stats['mean']:.1f}%</span>"]
+            ref_parts.append(f"<span style='color:crimson'>...... {selected_etf} Holdings Mean: {ark_stats['mean']:.1f}%</span>")
+            if etf_drawdown is not None:
+                ref_parts.append(f"<span style='color:darkred'>---- {selected_etf} Fund Max Drawdown: {etf_drawdown:.1f}%</span>")
+            ref_line_text = "Reference Lines: " + " | ".join(ref_parts)
+
             # Create subplots: percentage on top, count on bottom
             fig = make_subplots(
                 rows=2, cols=1,
-                subplot_titles=("Percentage Distribution", "Count Distribution"),
-                vertical_spacing=0.12
+                subplot_titles=(f"Percentage Distribution<br><sup>{ref_line_text}</sup>", "Count Distribution"),
+                vertical_spacing=0.15
             )
 
             # === Top chart: Percentage distribution ===
@@ -432,39 +439,13 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                     row=row, col=1
                 )
 
-            # Build legend text for annotations on the right side
-            annotation_lines = []
-            annotation_lines.append(f"<b>Reference Lines:</b>")
-            annotation_lines.append(f"<span style='color:steelblue'>...... {selected_benchmark} Mean: {r3000_stats['mean']:.1f}%</span>")
-            annotation_lines.append(f"<span style='color:crimson'>...... {selected_etf} Holdings Mean: {ark_stats['mean']:.1f}%</span>")
-            if etf_drawdown is not None:
-                annotation_lines.append(f"<span style='color:darkred'>---- {selected_etf} Fund Max Drawdown: {etf_drawdown:.1f}%</span>")
-
             fig.update_layout(
                 title=f"Max Drawdown Distribution: {selected_etf} Holdings vs {selected_benchmark}",
                 barmode='overlay',
                 height=700,
                 legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                 plot_bgcolor='white',
-                paper_bgcolor='white',
-                # Add annotation box on the right side
-                annotations=list(fig.layout.annotations) + [
-                    dict(
-                        x=1.02,
-                        y=0.95,
-                        xref='paper',
-                        yref='paper',
-                        text='<br>'.join(annotation_lines),
-                        showarrow=False,
-                        font=dict(size=11),
-                        align='left',
-                        bgcolor='rgba(255,255,255,0.8)',
-                        bordercolor='lightgray',
-                        borderwidth=1,
-                        borderpad=6
-                    )
-                ],
-                margin=dict(r=180)  # Make room for annotation on right
+                paper_bgcolor='white'
             )
 
             # Update axes
