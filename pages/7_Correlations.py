@@ -58,9 +58,12 @@ def get_current_holdings(_files_hash, etf):
     return current['Ticker'].unique().tolist()
 
 @st.cache_data
-def calculate_correlation_matrix(_files_hash, etf, lookback_days):
-    """Calculate correlation matrix for current holdings"""
-    holdings = get_cached_ark_holdings(_files_hash, etf)
+def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
+    """Calculate correlation matrix for current holdings
+
+    _holdings: Pre-loaded holdings data (underscore prefix excludes from hashing)
+    """
+    holdings = _holdings
 
     # Get current holdings
     latest_date = holdings['Date'].max()
@@ -178,7 +181,9 @@ with cols[0]:
 files_hash = get_ark_files_hash()
 
 with st.spinner("Calculating correlations..."):
-    corr_matrix, returns = calculate_correlation_matrix(files_hash, selected_etf, lookback_days)
+    # Load holdings once (cached)
+    holdings = get_cached_ark_holdings(files_hash, selected_etf)
+    corr_matrix, returns = calculate_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
 
 if corr_matrix is not None and len(corr_matrix) > 0:
     # Get statistics
