@@ -259,6 +259,8 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             st.plotly_chart(fig, use_container_width=True)
 
+            st.markdown("<small>*Holdings with less than 50% price data in the lookback period are excluded from the matrix.</small>", unsafe_allow_html=True)
+
     ""  # Space
 
     # Correlation distribution histogram
