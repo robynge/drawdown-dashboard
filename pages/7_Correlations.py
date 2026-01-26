@@ -284,17 +284,32 @@ if corr_matrix is not None and len(corr_matrix) > 0:
         ))
 
         # Add vertical lines for mean and median
-        fig_hist.add_vline(x=stats['mean'], line_dash="dash", line_color="red",
-                          annotation_text=f"Mean: {stats['mean']:.3f}")
-        fig_hist.add_vline(x=stats['median'], line_dash="dash", line_color="green",
-                          annotation_text=f"Median: {stats['median']:.3f}")
+        fig_hist.add_vline(x=stats['mean'], line_dash="dash", line_color="red", line_width=2)
+        fig_hist.add_vline(x=stats['median'], line_dash="dash", line_color="green", line_width=2)
+
+        # Add dummy traces for legend
+        fig_hist.add_trace(go.Scatter(
+            x=[None], y=[None],
+            mode='lines',
+            name=f"Mean: {stats['mean']:.3f}",
+            line=dict(color='red', width=2, dash='dash'),
+            showlegend=True
+        ))
+        fig_hist.add_trace(go.Scatter(
+            x=[None], y=[None],
+            mode='lines',
+            name=f"Median: {stats['median']:.3f}",
+            line=dict(color='green', width=2, dash='dash'),
+            showlegend=True
+        ))
 
         fig_hist.update_layout(
             title=f"Distribution of Pairwise Correlations ({len(correlations)} pairs)",
             xaxis_title="Correlation",
             yaxis_title="Count",
             height=400,
-            showlegend=False,
+            showlegend=True,
+            legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
             plot_bgcolor='white',
             paper_bgcolor='white',
             xaxis=dict(gridcolor='lightgray', range=[-1, 1]),
