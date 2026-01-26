@@ -95,12 +95,8 @@ def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
         aggfunc='first'
     )
 
-    # Drop tickers with too many missing values (less than 30% data)
-    min_data_points = len(price_matrix) * 0.3
-    excluded_tickers = []
-    for col in price_matrix.columns:
-        if price_matrix[col].notna().sum() < min_data_points:
-            excluded_tickers.append(col.split()[0] if isinstance(col, str) else col)
+    # Drop tickers with too many missing values (less than 50% data)
+    min_data_points = len(price_matrix) * 0.5
     price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
 
     # Calculate daily returns
@@ -109,7 +105,7 @@ def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
     # Calculate correlation matrix
     corr_matrix = returns.corr()
 
-    return corr_matrix, returns, excluded_tickers
+    return corr_matrix, returns
 
 def get_correlation_stats(corr_matrix):
     """Calculate summary statistics for correlation matrix"""
@@ -192,10 +188,7 @@ files_hash = get_ark_files_hash()
 with st.spinner("Calculating correlations..."):
     # Load holdings once (cached)
     holdings = get_cached_ark_holdings(files_hash, selected_etf)
-    corr_matrix, returns, excluded_tickers = calculate_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
-
-if excluded_tickers:
-    st.warning(f"Excluded due to insufficient data (<30% of lookback period): {', '.join(excluded_tickers)}")
+    corr_matrix, returns = calculate_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
 
 if corr_matrix is not None and len(corr_matrix) > 0:
     # Get statistics
