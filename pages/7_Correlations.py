@@ -251,8 +251,8 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 xaxis_title="",
                 yaxis_title="",
                 height=700,
-                xaxis=dict(tickangle=45, side='bottom'),
-                yaxis=dict(autorange='reversed'),
+                xaxis=dict(tickangle=45, side='bottom', dtick=1),
+                yaxis=dict(autorange='reversed', dtick=1),
                 plot_bgcolor='white',
                 paper_bgcolor='white'
             )
