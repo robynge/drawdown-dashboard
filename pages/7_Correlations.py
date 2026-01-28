@@ -349,6 +349,8 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             )
 
             st.plotly_chart(fig_ts, use_container_width=True)
+
+            st.markdown(f"<small>*Each point shows the mean/median of all pairwise correlations among current holdings, calculated using the past {rolling_window} trading days. Rising values indicate increasing portfolio concentration risk.</small>", unsafe_allow_html=True)
         else:
             st.warning(f"Not enough data for {rolling_window}-day rolling correlation.")
 
