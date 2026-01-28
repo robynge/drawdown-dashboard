@@ -143,7 +143,7 @@ files_hash = get_ark_files_hash()
 with st.spinner("Loading data..."):
     holdings = get_cached_ark_holdings(files_hash, selected_etf)
     # Need enough data for two non-overlapping windows
-    lookback_days = window_size * 3  # Buffer for two windows plus some extra
+    lookback_days = 120  # Need enough trading days for two non-overlapping windows
     returns = prepare_returns_data(files_hash, selected_etf, lookback_days, holdings)
 
 if len(returns) >= window_size * 2:
