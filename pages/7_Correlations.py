@@ -149,6 +149,37 @@ def get_correlation_stats(corr_matrix):
 
     return stats
 
+@st.cache_data
+def calculate_rolling_correlations(_files_hash, etf, rolling_window, _returns):
+    """Calculate rolling mean/median pairwise correlation over time
+
+    _returns: Pre-loaded returns data (underscore prefix excludes from hashing)
+    """
+    returns = _returns
+
+    if len(returns) < rolling_window:
+        return pd.DataFrame()
+
+    results = []
+    dates = returns.index
+    for i in range(rolling_window, len(returns) + 1):
+        window_returns = returns.iloc[i - rolling_window:i]
+        corr_matrix = window_returns.corr()
+
+        # Get upper triangle (excluding diagonal)
+        mask = np.triu(np.ones_like(corr_matrix, dtype=bool), k=1)
+        corr_values = corr_matrix.where(mask).values.flatten()
+        corr_values = corr_values[~np.isnan(corr_values)]
+
+        if len(corr_values) > 0:
+            results.append({
+                'Date': dates[i - 1],
+                'mean_corr': np.mean(corr_values),
+                'median_corr': np.median(corr_values)
+            })
+
+    return pd.DataFrame(results)
+
 # Main section
 st.subheader("Correlation Analysis")
 
@@ -181,6 +212,21 @@ with cols[0]:
             label_visibility="collapsed"
         )
         lookback_days = lookback_options[selected_lookback]
+
+        ""  # Space
+
+        st.markdown("##### Rolling Window")
+        rolling_options = {
+            "20 Days": 20,
+            "30 Days": 30
+        }
+        selected_rolling = st.pills(
+            "Rolling",
+            options=list(rolling_options.keys()),
+            default="20 Days",
+            label_visibility="collapsed"
+        )
+        rolling_window = rolling_options[selected_rolling]
 
 # Calculate correlation matrix
 files_hash = get_ark_files_hash()
@@ -260,6 +306,52 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             st.plotly_chart(fig, use_container_width=True)
 
             st.markdown("<small>*Holdings with less than 50% price data in the lookback period are excluded from the matrix.</small>", unsafe_allow_html=True)
+
+    ""  # Space
+
+    # Correlation Time Series
+    st.subheader("Correlation Time Series")
+
+    ts_card = st.container(border=True)
+    with ts_card:
+        rolling_corr = calculate_rolling_correlations(files_hash, selected_etf, rolling_window, returns)
+
+        if len(rolling_corr) > 0:
+            fig_ts = go.Figure()
+
+            fig_ts.add_trace(go.Scatter(
+                x=rolling_corr['Date'],
+                y=rolling_corr['mean_corr'],
+                mode='lines',
+                name='Mean Correlation',
+                line=dict(color='red', width=2),
+                hovertemplate='<b>Mean Correlation</b><br>Date: %{x|%Y-%m-%d}<br>Value: %{y:.3f}<extra></extra>'
+            ))
+
+            fig_ts.add_trace(go.Scatter(
+                x=rolling_corr['Date'],
+                y=rolling_corr['median_corr'],
+                mode='lines',
+                name='Median Correlation',
+                line=dict(color='green', width=2),
+                hovertemplate='<b>Median Correlation</b><br>Date: %{x|%Y-%m-%d}<br>Value: %{y:.3f}<extra></extra>'
+            ))
+
+            fig_ts.update_layout(
+                title=f"{selected_etf} Rolling {rolling_window}-Day Pairwise Correlation",
+                xaxis_title="Date",
+                yaxis_title="Correlation",
+                height=400,
+                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                xaxis=dict(gridcolor='lightgray'),
+                yaxis=dict(gridcolor='lightgray')
+            )
+
+            st.plotly_chart(fig_ts, use_container_width=True)
+        else:
+            st.warning(f"Not enough data for {rolling_window}-day rolling correlation.")
 
     ""  # Space
 
