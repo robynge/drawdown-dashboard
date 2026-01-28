@@ -253,92 +253,88 @@ if len(returns) >= window_size * 2:
 
         ""  # Space
 
-        # Visualization
-        st.subheader("Null Distribution")
+        # Visualization - two charts side by side
+        st.subheader("Visualizations")
 
-        fig = go.Figure()
+        chart_cols = st.columns(2)
 
-        # Histogram of null distribution
-        fig.add_trace(go.Histogram(
-            x=null_distribution,
-            nbinsx=50,
-            marker_color='steelblue',
-            opacity=0.7,
-            name='Null Distribution',
-            hovertemplate='Δ Range: %{x:.4f}<br>Count: %{y}<extra></extra>'
-        ))
+        with chart_cols[0]:
+            fig = go.Figure()
 
-        # Observed delta line
-        fig.add_vline(
-            x=delta_obs,
-            line_dash="dash",
-            line_color="red",
-            line_width=2
-        )
+            fig.add_trace(go.Histogram(
+                x=null_distribution,
+                nbinsx=50,
+                marker_color='steelblue',
+                opacity=0.7,
+                name='Null Distribution',
+                hovertemplate='Δ Range: %{x:.4f}<br>Count: %{y}<extra></extra>'
+            ))
 
-        # Add dummy trace for legend
-        fig.add_trace(go.Scatter(
-            x=[None], y=[None],
-            mode='lines',
-            name=f'Observed Δ = {delta_obs:+.4f}',
-            line=dict(color='red', width=2, dash='dash')
-        ))
+            fig.add_vline(
+                x=delta_obs,
+                line_dash="dash",
+                line_color="red",
+                line_width=2
+            )
 
-        fig.update_layout(
-            title=f"Permutation Test: Null Distribution of Δ (n={n_bootstrap})",
-            xaxis_title="Δ (Mean Correlation Difference)",
-            yaxis_title="Count",
-            height=400,
-            legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            xaxis=dict(gridcolor='lightgray'),
-            yaxis=dict(gridcolor='lightgray')
-        )
+            fig.add_trace(go.Scatter(
+                x=[None], y=[None],
+                mode='lines',
+                name=f'Observed Δ = {delta_obs:+.4f}',
+                line=dict(color='red', width=2, dash='dash')
+            ))
 
-        st.plotly_chart(fig, use_container_width=True)
+            fig.update_layout(
+                title=f"Null Distribution (n={n_bootstrap})",
+                xaxis_title="Δ (Mean Corr Difference)",
+                yaxis_title="Count",
+                height=400,
+                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                xaxis=dict(gridcolor='lightgray'),
+                yaxis=dict(gridcolor='lightgray')
+            )
 
-        st.markdown(f"<small>*Under H₀, the observed Δ should fall within the bulk of the null distribution. If it falls in the extreme tails (beyond the red line), we reject H₀.</small>", unsafe_allow_html=True)
+            st.plotly_chart(fig, use_container_width=True)
 
-        ""  # Space
+        with chart_cols[1]:
+            fig_dist = go.Figure()
 
-        # Distribution comparison
-        st.subheader("Correlation Distributions")
+            fig_dist.add_trace(go.Histogram(
+                x=rho_a,
+                nbinsx=30,
+                marker_color='steelblue',
+                opacity=0.6,
+                name=f'Window A ({date_a_start})',
+                hovertemplate=f'<b>Window A</b><br>Correlation: %{{x:.3f}}<br>Count: %{{y}}<extra></extra>'
+            ))
 
-        fig_dist = go.Figure()
+            fig_dist.add_trace(go.Histogram(
+                x=rho_b,
+                nbinsx=30,
+                marker_color='crimson',
+                opacity=0.6,
+                name=f'Window B ({date_b_start})',
+                hovertemplate=f'<b>Window B</b><br>Correlation: %{{x:.3f}}<br>Count: %{{y}}<extra></extra>'
+            ))
 
-        fig_dist.add_trace(go.Histogram(
-            x=rho_a,
-            nbinsx=30,
-            marker_color='steelblue',
-            opacity=0.6,
-            name=f'Window A ({date_a_start})',
-            hovertemplate=f'<b>Window A</b><br>Correlation: %{{x:.3f}}<br>Count: %{{y}}<extra></extra>'
-        ))
+            fig_dist.update_layout(
+                title="Correlation Distributions: A vs B",
+                xaxis_title="Pairwise Correlation",
+                yaxis_title="Count",
+                barmode='overlay',
+                height=400,
+                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                xaxis=dict(gridcolor='lightgray', range=[-1, 1]),
+                yaxis=dict(gridcolor='lightgray')
+            )
 
-        fig_dist.add_trace(go.Histogram(
-            x=rho_b,
-            nbinsx=30,
-            marker_color='crimson',
-            opacity=0.6,
-            name=f'Window B ({date_b_start})',
-            hovertemplate=f'<b>Window B</b><br>Correlation: %{{x:.3f}}<br>Count: %{{y}}<extra></extra>'
-        ))
+            st.plotly_chart(fig_dist, use_container_width=True)
 
-        fig_dist.update_layout(
-            title="Pairwise Correlation Distributions: Window A vs Window B",
-            xaxis_title="Pairwise Correlation",
-            yaxis_title="Count",
-            barmode='overlay',
-            height=400,
-            legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            xaxis=dict(gridcolor='lightgray', range=[-1, 1]),
-            yaxis=dict(gridcolor='lightgray')
-        )
-
-        st.plotly_chart(fig_dist, use_container_width=True)
+        st.markdown(f"<small>*Left: Under H₀, the observed Δ should fall within the bulk of the null distribution. Right: Comparison of pairwise correlation distributions between the two windows.</small>", unsafe_allow_html=True)
 
     else:
         st.warning("Not enough historical data for two non-overlapping windows.")
