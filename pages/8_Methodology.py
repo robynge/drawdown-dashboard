@@ -154,8 +154,12 @@ This section provides a step-by-step guide to reproduce the entire analysis from
   1. **ETF Analysis**: ARK ETF overview, individual ETF drawdown analysis, comparison table
   2. **Russell 3000 Analysis**: IWV index analysis, GICS peer group selection and analysis
   3. **Stock Analysis**: Individual stock vs peer group comparison with dual-axis charts
-  4. **Raw Data**: Display all input data files (holdings, mappings, classifications)
-  5. **Methodology**: This documentation page
+  4. **Stock Comparison**: Compare ARK holdings vs Russell 3000 benchmark stocks
+  5. **Drawdown Distribution**: Distribution analysis of drawdowns by GICS industry
+  6. **Correlations**: Portfolio correlation matrix, time series, and distribution
+  7. **Correlation Test**: Bootstrap permutation test for correlation changes
+  8. **Methodology**: This documentation page
+  9. **Raw Data**: Display all input data files (holdings, mappings, classifications)
 - All data loaded via cached functions for performance
 - Interactive controls: selectbox, pills, tabs for navigation
 
@@ -180,4 +184,96 @@ This section provides a step-by-step guide to reproduce the entire analysis from
 - Bloomberg data requires active Bloomberg Terminal subscription
 - Analysis period is configurable in `config.py` (START_DATE, END_DATE)
 - Peer group definitions depend on GICS classifications, which may change over time
+""")
+
+""  # Space
+
+# Section 5: Correlation Analysis
+st.subheader("5. Correlation Analysis Methodology")
+
+st.markdown("""
+**Purpose**: Measure pairwise correlations among all current portfolio holdings to assess diversification and concentration risk.
+
+**Correlation Matrix Calculation**:
+1. **Holdings Selection**: Use stocks held on the latest date (current portfolio)
+2. **Data Filtering**:
+   - Exclude currency tickers and money market funds (e.g., FTOXX, FIRXX)
+   - Remove stocks with less than 50% price data in the lookback period
+3. **Returns Calculation**: Calculate daily returns from price data
+4. **Correlation**: Compute Pearson correlation coefficient for all stock pairs
+
+**Lookback Periods**:
+- 60 Days: Short-term correlation structure
+- 120 Days: Medium-term correlation (default)
+- 250 Days: Long-term correlation (~1 trading year)
+
+**Key Metrics**:
+- **Mean Correlation**: Average of all pairwise correlations (portfolio concentration indicator)
+- **Median Correlation**: Robust central tendency measure
+- **Highest/Lowest Pairs**: Identifies most correlated and most diversified stock pairs
+""")
+
+""  # Space
+
+# Section 6: Correlation Time Series
+st.subheader("6. Correlation Time Series Methodology")
+
+st.markdown("""
+**Purpose**: Track how portfolio correlation evolves over time to identify regime changes and concentration trends.
+
+**Rolling Correlation Calculation**:
+1. For each day t from rolling_window to end of data:
+   - Take the past N days of returns (N = rolling window)
+   - Calculate correlation matrix for those N days
+   - Extract upper triangle (all pairwise correlations, excluding diagonal)
+   - Calculate mean and median of pairwise correlations
+2. Output: Time series of daily mean/median correlation values
+
+**Rolling Window Options**:
+- **20 Days**: Higher sensitivity, more responsive to short-term changes
+- **30 Days**: Smoother signal, better for trend identification
+
+**Interpretation**:
+- **Rising correlation**: Portfolio concentration increasing, diversification decreasing
+- **Falling correlation**: Diversification improving
+- **Spikes**: Market stress events often cause correlation spikes as stocks move together
+""")
+
+""  # Space
+
+# Section 7: Correlation Change Test
+st.subheader("7. Correlation Change Test Methodology")
+
+st.markdown("""
+**Purpose**: Statistically test whether portfolio correlation has significantly changed between two time periods.
+
+**Bootstrap Permutation Test**:
+1. **Define Two Windows**:
+   - Window A (Past): N days before Window B
+   - Window B (Recent): Most recent N days
+   - Windows are non-overlapping to ensure independence
+
+2. **Calculate Observed Statistic**:
+   - Extract all pairwise correlations for each window (ρ_A, ρ_B)
+   - Observed Δ = mean(ρ_B) - mean(ρ_A)
+
+3. **Generate Null Distribution**:
+   - Combine all correlations from both windows
+   - For each of n_iterations:
+     - Randomly shuffle and split into two groups of original sizes
+     - Calculate Δ_null = mean(group_B) - mean(group_A)
+   - Result: Distribution of Δ under H₀ (no difference)
+
+4. **Calculate P-Value**:
+   - Two-tailed test: p = proportion of |Δ_null| ≥ |Δ_observed|
+   - p < 0.05: Significant change in correlation structure
+   - p < 0.01: Highly significant change
+
+**Hypothesis Framework**:
+- **H₀**: ρ_A and ρ_B come from the same distribution (no change)
+- **H₁**: ρ_B is systematically different from ρ_A (correlation structure changed)
+
+**Test Parameters**:
+- Window Size: 20 or 30 days
+- Bootstrap Iterations: 1,000 / 5,000 / 10,000 (more iterations = more precise p-value)
 """)
