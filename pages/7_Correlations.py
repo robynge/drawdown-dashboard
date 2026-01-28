@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+from scipy import stats
 import sys
 from pathlib import Path
 
@@ -353,6 +354,66 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             st.markdown(f"<small>*Each point shows the mean/median of all pairwise correlations among current holdings, calculated using the past {rolling_window} trading days. Rising values indicate increasing portfolio concentration risk.</small>", unsafe_allow_html=True)
         else:
             st.warning(f"Not enough data for {rolling_window}-day rolling correlation.")
+
+    ""  # Space
+
+    # Statistical Test: Compare correlation matrices at two time points
+    st.subheader("Statistical Test: Correlation Change")
+
+    test_card = st.container(border=True)
+    with test_card:
+        if len(rolling_corr) >= 2:
+            # Get correlation matrices at T1 (N days ago) and T2 (today)
+            compare_days = min(rolling_window, len(rolling_corr) - 1)
+
+            # T2: most recent
+            t2_idx = len(returns) - 1
+            t2_returns = returns.iloc[t2_idx - rolling_window + 1:t2_idx + 1]
+            corr_t2 = t2_returns.corr()
+
+            # T1: N days before T2
+            t1_idx = t2_idx - compare_days
+            if t1_idx >= rolling_window - 1:
+                t1_returns = returns.iloc[t1_idx - rolling_window + 1:t1_idx + 1]
+                corr_t1 = t1_returns.corr()
+
+                # Extract upper triangles
+                mask = np.triu(np.ones_like(corr_t1, dtype=bool), k=1)
+                corr_t1_vals = corr_t1.where(mask).values.flatten()
+                corr_t1_vals = corr_t1_vals[~np.isnan(corr_t1_vals)]
+                corr_t2_vals = corr_t2.where(mask).values.flatten()
+                corr_t2_vals = corr_t2_vals[~np.isnan(corr_t2_vals)]
+
+                # Statistics
+                mean_t1 = np.mean(corr_t1_vals)
+                mean_t2 = np.mean(corr_t2_vals)
+                delta_mean = mean_t2 - mean_t1
+
+                # Frobenius norm of difference
+                diff_matrix = corr_t2.values - corr_t1.values
+                frobenius_norm = np.sqrt(np.sum(diff_matrix**2))
+
+                # Paired t-test on correlation values
+                t_stat, p_value = stats.ttest_rel(corr_t2_vals, corr_t1_vals)
+
+                # Display results
+                t1_date = returns.index[t1_idx].strftime('%Y-%m-%d')
+                t2_date = returns.index[t2_idx].strftime('%Y-%m-%d')
+
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(f"Mean Corr ({t1_date})", f"{mean_t1:.3f}")
+                with col2:
+                    st.metric(f"Mean Corr ({t2_date})", f"{mean_t2:.3f}", delta=f"{delta_mean:+.3f}")
+                with col3:
+                    sig_text = "Significant" if p_value < 0.05 else "Not Significant"
+                    st.metric("Change Significance", sig_text, delta=f"p={p_value:.3f}")
+
+                st.markdown(f"<small>*Paired t-test comparing all pairwise correlations between {t1_date} and {t2_date}. Frobenius norm of difference matrix: {frobenius_norm:.3f}</small>", unsafe_allow_html=True)
+            else:
+                st.warning("Not enough historical data for statistical comparison.")
+        else:
+            st.warning("Not enough data for statistical test.")
 
     ""  # Space
 
