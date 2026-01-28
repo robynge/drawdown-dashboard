@@ -373,7 +373,8 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             nbinsx=30,
             marker_color='steelblue',
             opacity=0.7,
-            name='Pairwise Correlations'
+            name='Pairwise Correlations',
+            hovertemplate='<b>Pairwise Correlations</b><br>Correlation (x): %{x:.4f}<br>Count: %{y}<extra></extra>'
         ))
 
         # Add vertical lines for mean and median
