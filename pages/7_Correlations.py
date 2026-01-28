@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-from scipy import stats
+from scipy import stats as scipy_stats
 import sys
 from pathlib import Path
 
@@ -402,7 +402,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                     frobenius_norm = np.sqrt(np.sum(diff_matrix**2))
 
                     # Paired t-test on correlation values
-                    t_stat, p_value = stats.ttest_rel(corr_t2_vals, corr_t1_vals)
+                    t_stat, p_value = scipy_stats.ttest_rel(corr_t2_vals, corr_t1_vals)
 
                     # Display results
                     t1_date = returns.index[t1_idx].strftime('%Y-%m-%d')
