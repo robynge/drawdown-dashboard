@@ -267,7 +267,7 @@ if len(returns) >= window_size * 2:
                 marker_color='steelblue',
                 opacity=0.7,
                 name='Null Distribution',
-                hovertemplate='<b>Null Distribution</b><br>Δ: %{x:.4f}<br>Count: %{y}<extra></extra>'
+                hovertemplate='<b>Null Distribution</b><br>Δ (x): %{x:.4f}<br>Count (y): %{y}<extra></extra>'
             ))
 
             fig.add_vline(
@@ -307,7 +307,7 @@ if len(returns) >= window_size * 2:
                 marker_color='steelblue',
                 opacity=0.6,
                 name=f'Window A ({date_a_start})',
-                hovertemplate='<b>Window A</b><br>Correlation (x): %{x:.4f}<br>Count: %{y}<extra></extra>'
+                hovertemplate='<b>Window A</b><br>Correlation (x): %{x:.4f}<br>Count (y): %{y}<extra></extra>'
             ))
 
             fig_dist.add_trace(go.Histogram(
@@ -316,7 +316,7 @@ if len(returns) >= window_size * 2:
                 marker_color='crimson',
                 opacity=0.6,
                 name=f'Window B ({date_b_start})',
-                hovertemplate='<b>Window B</b><br>Correlation (x): %{x:.4f}<br>Count: %{y}<extra></extra>'
+                hovertemplate='<b>Window B</b><br>Correlation (x): %{x:.4f}<br>Count (y): %{y}<extra></extra>'
             ))
 
             fig_dist.update_layout(

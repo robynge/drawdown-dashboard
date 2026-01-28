@@ -324,7 +324,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 mode='lines',
                 name='Mean Correlation',
                 line=dict(color='red', width=2),
-                hovertemplate='<b>Mean Correlation</b><br>Date: %{x|%Y-%m-%d}<br>Value: %{y:.3f}<extra></extra>'
+                hovertemplate='<b>Mean Correlation</b><br>Date (x): %{x|%Y-%m-%d}<br>Correlation (y): %{y:.4f}<extra></extra>'
             ))
 
             fig_ts.add_trace(go.Scatter(
@@ -333,7 +333,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 mode='lines',
                 name='Median Correlation',
                 line=dict(color='green', width=2),
-                hovertemplate='<b>Median Correlation</b><br>Date: %{x|%Y-%m-%d}<br>Value: %{y:.3f}<extra></extra>'
+                hovertemplate='<b>Median Correlation</b><br>Date (x): %{x|%Y-%m-%d}<br>Correlation (y): %{y:.4f}<extra></extra>'
             ))
 
             fig_ts.update_layout(
@@ -374,7 +374,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             marker_color='steelblue',
             opacity=0.7,
             name='Pairwise Correlations',
-            hovertemplate='<b>Pairwise Correlations</b><br>Correlation (x): %{x:.4f}<br>Count: %{y}<extra></extra>'
+            hovertemplate='<b>Pairwise Correlations</b><br>Correlation (x): %{x:.4f}<br>Count (y): %{y}<extra></extra>'
         ))
 
         # Add vertical lines for mean and median
