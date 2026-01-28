@@ -264,7 +264,8 @@ if len(returns) >= window_size * 2:
             nbinsx=50,
             marker_color='steelblue',
             opacity=0.7,
-            name='Null Distribution'
+            name='Null Distribution',
+            hovertemplate='Δ Range: %{x:.4f}<br>Count: %{y}<extra></extra>'
         ))
 
         # Observed delta line
@@ -311,7 +312,8 @@ if len(returns) >= window_size * 2:
             nbinsx=30,
             marker_color='steelblue',
             opacity=0.6,
-            name=f'Window A ({date_a_start})'
+            name=f'Window A ({date_a_start})',
+            hovertemplate=f'<b>Window A</b><br>Correlation: %{{x:.3f}}<br>Count: %{{y}}<extra></extra>'
         ))
 
         fig_dist.add_trace(go.Histogram(
@@ -319,7 +321,8 @@ if len(returns) >= window_size * 2:
             nbinsx=30,
             marker_color='crimson',
             opacity=0.6,
-            name=f'Window B ({date_b_start})'
+            name=f'Window B ({date_b_start})',
+            hovertemplate=f'<b>Window B</b><br>Correlation: %{{x:.3f}}<br>Count: %{{y}}<extra></extra>'
         ))
 
         fig_dist.update_layout(
