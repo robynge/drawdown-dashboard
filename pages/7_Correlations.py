@@ -213,21 +213,6 @@ with cols[0]:
         )
         lookback_days = lookback_options[selected_lookback]
 
-        ""  # Space
-
-        st.markdown("##### Rolling Window")
-        rolling_options = {
-            "20 Days": 20,
-            "30 Days": 30
-        }
-        selected_rolling = st.pills(
-            "Rolling",
-            options=list(rolling_options.keys()),
-            default="20 Days",
-            label_visibility="collapsed"
-        )
-        rolling_window = rolling_options[selected_rolling]
-
 # Calculate correlation matrix
 files_hash = get_ark_files_hash()
 
@@ -310,7 +295,21 @@ if corr_matrix is not None and len(corr_matrix) > 0:
     ""  # Space
 
     # Correlation Time Series
-    st.subheader("Correlation Time Series")
+    ts_header_cols = st.columns([3, 1])
+    with ts_header_cols[0]:
+        st.subheader("Correlation Time Series")
+    with ts_header_cols[1]:
+        rolling_options = {
+            "20 Days": 20,
+            "30 Days": 30
+        }
+        rolling_window = st.selectbox(
+            "Rolling Window",
+            options=list(rolling_options.keys()),
+            index=0,
+            label_visibility="collapsed"
+        )
+        rolling_window = rolling_options[rolling_window]
 
     ts_card = st.container(border=True)
     with ts_card:
