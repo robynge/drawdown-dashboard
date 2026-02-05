@@ -16,6 +16,9 @@ env/
 # Data cache
 data/cache/
 
+# Parquet files (generated locally for faster loading)
+*.parquet
+
 # IDE
 .vscode/
 .idea/

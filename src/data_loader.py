@@ -5,33 +5,39 @@ from config import INPUT_DIR, OUTPUT_DIR, ARK_ETFS
 
 
 def load_ark_holdings(etf):
-    """Load ARK ETF holdings - no caching, let Streamlit handle it"""
-    file_path = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
-    df = pd.read_excel(file_path)
-    df['Date'] = pd.to_datetime(df['Date'])
+    """Load ARK ETF holdings from Parquet (fast) or Excel (fallback)"""
+    parquet_path = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.parquet'
+    xlsx_path = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
 
-    # Fix CUSIP column type for PyArrow compatibility
-    if 'CUSIP' in df.columns:
-        df['CUSIP'] = df['CUSIP'].astype(str)
+    if parquet_path.exists():
+        df = pd.read_parquet(parquet_path)
+    else:
+        df = pd.read_excel(xlsx_path)
+        df['Date'] = pd.to_datetime(df['Date'])
+        if 'CUSIP' in df.columns:
+            df['CUSIP'] = df['CUSIP'].astype(str)
 
     return df
 
 
 def load_r3000_holdings():
-    """Load Russell 3000 holdings - no caching, let Streamlit handle it"""
-    file_path = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
-    all_data = []
-    xl = pd.ExcelFile(file_path)
-    for sheet in xl.sheet_names:
-        df_sheet = pd.read_excel(file_path, sheet_name=sheet)
-        all_data.append(df_sheet)
+    """Load Russell 3000 holdings from Parquet (fast) or Excel (fallback)"""
+    parquet_path = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.parquet'
+    xlsx_path = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
 
-    df = pd.concat(all_data, ignore_index=True)
-    df['Date'] = pd.to_datetime(df['Date'])
+    if parquet_path.exists():
+        df = pd.read_parquet(parquet_path)
+    else:
+        all_data = []
+        xl = pd.ExcelFile(xlsx_path)
+        for sheet in xl.sheet_names:
+            df_sheet = pd.read_excel(xlsx_path, sheet_name=sheet)
+            all_data.append(df_sheet)
 
-    # Fix CUSIP column type for PyArrow compatibility
-    if 'CUSIP' in df.columns:
-        df['CUSIP'] = df['CUSIP'].astype(str)
+        df = pd.concat(all_data, ignore_index=True)
+        df['Date'] = pd.to_datetime(df['Date'])
+        if 'CUSIP' in df.columns:
+            df['CUSIP'] = df['CUSIP'].astype(str)
 
     return df
 
@@ -187,19 +193,27 @@ def load_etf_prices(etf):
 def get_r3000_ticker_list():
     """Get list of unique R3000 tickers from precomputed file (fast)"""
     cache_file = INPUT_DIR / 'russell_3000' / 'ticker_list.csv'
-    source_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
+    parquet_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.parquet'
+    xlsx_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
+
+    # Use parquet file modification time if available
+    source_file = parquet_file if parquet_file.exists() else xlsx_file
 
     # Check if cache exists and is newer than source
     if cache_file.exists():
         if cache_file.stat().st_mtime >= source_file.stat().st_mtime:
             return pd.read_csv(cache_file)['Ticker'].tolist()
 
-    # Generate ticker list from source (slow, but only once)
-    xl = pd.ExcelFile(source_file)
-    all_tickers = set()
-    for sheet in xl.sheet_names:
-        df = pd.read_excel(xl, sheet_name=sheet, usecols=['Ticker'])
-        all_tickers.update(df['Ticker'].unique())
+    # Generate ticker list from source
+    if parquet_file.exists():
+        df = pd.read_parquet(parquet_file, columns=['Ticker'])
+        all_tickers = set(df['Ticker'].unique())
+    else:
+        xl = pd.ExcelFile(xlsx_file)
+        all_tickers = set()
+        for sheet in xl.sheet_names:
+            df = pd.read_excel(xl, sheet_name=sheet, usecols=['Ticker'])
+            all_tickers.update(df['Ticker'].unique())
 
     # Save to cache
     ticker_df = pd.DataFrame({'Ticker': sorted(all_tickers)})
@@ -227,7 +241,11 @@ def save_r3000_drawdowns_cache(df):
 def get_ark_ticker_list(etf):
     """Get list of unique ARK ETF tickers from precomputed file (fast)"""
     cache_file = INPUT_DIR / 'ark_etfs' / f'{etf}_ticker_list.csv'
-    source_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
+    parquet_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.parquet'
+    xlsx_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
+
+    # Use parquet file modification time if available
+    source_file = parquet_file if parquet_file.exists() else xlsx_file
 
     # Check if cache exists and is newer than source
     if cache_file.exists():
@@ -235,7 +253,10 @@ def get_ark_ticker_list(etf):
             return pd.read_csv(cache_file)['Ticker'].tolist()
 
     # Generate ticker list from source
-    df = pd.read_excel(source_file, usecols=['Ticker', 'Bloomberg Name'])
+    if parquet_file.exists():
+        df = pd.read_parquet(parquet_file, columns=['Ticker', 'Bloomberg Name'])
+    else:
+        df = pd.read_excel(xlsx_file, usecols=['Ticker', 'Bloomberg Name'])
 
     # Filter out currency tickers
     if 'Bloomberg Name' in df.columns:
