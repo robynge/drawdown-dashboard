@@ -119,7 +119,7 @@ This section provides a step-by-step guide to reproduce the entire analysis from
 - For each peer group, calculate:
   - **Market Value (MV) Weighted**: Daily sum of (Shares × Price) across all stocks
   - **Weighted Price**: Daily Σ(Shares × Price) / Σ(Shares)
-- Cache peer group time series data in `data/cache/peer_groups/`
+- Cache peer group time series data via Streamlit's caching system
 
 **Step 5: Drawdown Calculation**
 - For each asset (ETF, peer group, individual stock):
