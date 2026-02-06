@@ -282,7 +282,8 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             hovertemplate=f'<b>{selected_etf}</b><br>Date: %{{x|%Y-%m-%d}}<br>Price: $%{{y:.2f}}<extra></extra>'
         ))
 
-        # QQQ price line (normalized to align first day with ETF price)
+        # QQQ price line (actual prices, Y-axis aligned so first day overlaps)
+        qqq_axis_range = None
         if len(qqq_prices) > 0:
             # Filter QQQ to match ETF date range
             qqq_filtered = qqq_prices[
@@ -291,21 +292,26 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             ].copy()
 
             if len(qqq_filtered) > 0:
-                # Get first day prices
+                # Get first day prices and ETF price range
                 first_etf_price = price_df['Close'].iloc[0]
                 first_qqq_price = qqq_filtered['Close'].iloc[0]
+                etf_min = price_df['Close'].min()
+                etf_max = price_df['Close'].max()
 
-                # Normalize QQQ so first day aligns with ETF price
-                qqq_filtered['Normalized'] = qqq_filtered['Close'] * (first_etf_price / first_qqq_price)
+                # Calculate ETF percentage range from first price
+                etf_min_pct = etf_min / first_etf_price
+                etf_max_pct = etf_max / first_etf_price
+
+                # Apply same percentage range to QQQ
+                qqq_axis_range = [first_qqq_price * etf_min_pct, first_qqq_price * etf_max_pct]
 
                 fig2.add_trace(go.Scatter(
                     x=qqq_filtered['Date'],
-                    y=qqq_filtered['Normalized'],
+                    y=qqq_filtered['Close'],
                     mode='lines',
-                    name='QQQ (Normalized)',
+                    name='QQQ Price',
                     line=dict(color='orange', width=2),
-                    customdata=qqq_filtered['Close'],
-                    hovertemplate='<b>QQQ</b><br>Date: %{x|%Y-%m-%d}<br>Actual Price: $%{customdata:.2f}<br>Normalized: $%{y:.2f}<extra></extra>',
+                    hovertemplate='<b>QQQ</b><br>Date: %{x|%Y-%m-%d}<br>Price: $%{y:.2f}<extra></extra>',
                     yaxis='y3'
                 ))
 
@@ -368,9 +374,9 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             yaxis='y2'
         ))
 
-        chart_title = f"{selected_etf} vs QQQ (Normalized) with HHI"
+        chart_title = f"{selected_etf} vs QQQ with HHI"
         if show_drawdowns:
-            chart_title = f"{selected_etf} vs QQQ (Normalized) with Drawdowns & HHI"
+            chart_title = f"{selected_etf} vs QQQ with Drawdowns & HHI"
 
         fig2.update_layout(
             title=chart_title,
@@ -385,13 +391,13 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             xaxis=dict(gridcolor='lightgray', showgrid=True, domain=[0, 0.86]),
             yaxis=dict(gridcolor='lightgray', showgrid=True),
             yaxis2=dict(title='HHI', overlaying='y', side='right', position=0.97, showgrid=False),
-            yaxis3=dict(title='QQQ ($)', overlaying='y', side='right', position=0.91, showgrid=False),
+            yaxis3=dict(title='QQQ ($)', overlaying='y', side='right', position=0.91, showgrid=False, range=qqq_axis_range),
             margin=dict(l=0, r=70, t=40, b=0)
         )
 
         st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 
-        st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. QQQ price is normalized so first day aligns with ETF price (hover shows actual price).*</small>", unsafe_allow_html=True)
+        st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. QQQ Y-axis scaled so first day aligns with ETF.*</small>", unsafe_allow_html=True)
 
     "" # Space
 
