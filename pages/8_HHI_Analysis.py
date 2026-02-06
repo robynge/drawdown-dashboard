@@ -100,9 +100,19 @@ def calculate_returns_data(_files_hash, etf, _etf_prices, _qqq_prices):
     if len(merged) == 0:
         return pd.DataFrame()
 
+    # Drop rows with NaN prices
+    merged = merged.dropna(subset=['ETF_Price', 'QQQ_Price'])
+
+    if len(merged) == 0:
+        return pd.DataFrame()
+
     # Calculate cumulative returns from start
     first_etf = merged['ETF_Price'].iloc[0]
     first_qqq = merged['QQQ_Price'].iloc[0]
+
+    # Check for valid first prices
+    if pd.isna(first_etf) or pd.isna(first_qqq) or first_etf == 0 or first_qqq == 0:
+        return pd.DataFrame()
 
     merged['ETF_Return'] = (merged['ETF_Price'] / first_etf - 1) * 100
     merged['QQQ_Return'] = (merged['QQQ_Price'] / first_qqq - 1) * 100
