@@ -153,18 +153,29 @@ def add_reconstitution_vlines(fig, price_line_name="Price"):
                 bgcolor='rgba(255,255,255,0.8)'
             )
 
-    # Update layout to show legend
+    # Update layout to show legend above the chart (not inside)
     fig.update_layout(
         showlegend=True,
         legend=dict(
-            yanchor="top",
-            y=0.99,
+            orientation="h",  # Horizontal legend
+            yanchor="bottom",
+            y=1.02,  # Position above chart
             xanchor="left",
-            x=0.01,
-            bgcolor='rgba(255,255,255,0.8)',
+            x=0,
+            bgcolor='white',
             bordercolor='rgba(0,0,0,0.3)',
-            borderwidth=1
+            borderwidth=1,
+            font=dict(size=12)
         )
     )
+
+    # Ensure annotations are clearly visible
+    fig.update_annotations(dict(
+        bgcolor='rgba(255,255,255,0.95)',
+        bordercolor='red',
+        borderwidth=1,
+        borderpad=3,
+        font=dict(size=10, color='red')
+    ))
 
     return fig
