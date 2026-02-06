@@ -325,54 +325,57 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
             chart_data['Weight_trough_pct'] = chart_data['Weight_trough'] * 100
             chart_data['Weight_Change_pct'] = chart_data['Weight_Change'] * 100
 
+            # Build data for chart
+            tickers = chart_data['Ticker_Clean'].tolist()
+            peak_weights = chart_data['Weight_peak_pct'].tolist()
+            trough_weights = chart_data['Weight_trough_pct'].tolist()
+            changes = chart_data['Weight_Change_pct'].tolist()
+
             fig_changes = go.Figure()
 
-            # For each ticker, create stacked bars
-            for _, row in chart_data.iterrows():
-                ticker = row['Ticker_Clean']
-                peak_w = row['Weight_peak_pct']
-                trough_w = row['Weight_trough_pct']
-                change = row['Weight_Change_pct']
+            # For decreased positions: gray from 0 to trough, red from trough to peak
+            # For increased positions: gray from 0 to peak, green from peak to trough
+
+            for i, ticker in enumerate(tickers):
+                peak_w = peak_weights[i]
+                trough_w = trough_weights[i]
+                change = changes[i]
 
                 if change < 0:
-                    # Weight decreased: base is trough, red shows the loss
-                    # Base bar (current weight at trough)
+                    # Decreased: gray=remaining (trough), red=lost portion
+                    # Gray bar (remaining weight)
                     fig_changes.add_trace(go.Bar(
-                        y=[ticker],
-                        x=[trough_w],
-                        orientation='h',
-                        marker=dict(color='lightgray', line=dict(color='black', width=1)),
-                        showlegend=False,
-                        hovertemplate=f'<b>{ticker}</b><br>Trough: {trough_w:.2f}%<extra></extra>'
+                        y=[ticker], x=[trough_w], orientation='h',
+                        marker=dict(color='lightgray', line=dict(width=0)),
+                        showlegend=False, hoverinfo='skip'
                     ))
-                    # Red bar showing reduction (stacked on top)
+                    # Red bar (lost portion, starts at trough)
                     fig_changes.add_trace(go.Bar(
-                        y=[ticker],
-                        x=[abs(change)],
-                        orientation='h',
-                        marker=dict(color='red', line=dict(color='black', width=1)),
-                        showlegend=False,
-                        hovertemplate=f'<b>{ticker}</b><br>Reduced: {change:.2f}%<extra></extra>'
+                        y=[ticker], x=[abs(change)], orientation='h',
+                        marker=dict(color='rgba(220,50,50,0.85)', line=dict(width=0)),
+                        base=trough_w,
+                        showlegend=False, hoverinfo='skip'
+                    ))
+                    # Black border around peak (entire original position)
+                    fig_changes.add_trace(go.Bar(
+                        y=[ticker], x=[peak_w], orientation='h',
+                        marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=2)),
+                        showlegend=False, hoverinfo='skip'
                     ))
                 else:
-                    # Weight increased: base is peak, green shows the gain
-                    # Base bar (original weight at peak)
+                    # Increased: gray=original (peak), green=added portion
+                    # Gray bar with black border (original weight)
                     fig_changes.add_trace(go.Bar(
-                        y=[ticker],
-                        x=[peak_w],
-                        orientation='h',
-                        marker=dict(color='lightgray', line=dict(color='black', width=1)),
-                        showlegend=False,
-                        hovertemplate=f'<b>{ticker}</b><br>Peak: {peak_w:.2f}%<extra></extra>'
+                        y=[ticker], x=[peak_w], orientation='h',
+                        marker=dict(color='lightgray', line=dict(color='black', width=2)),
+                        showlegend=False, hoverinfo='skip'
                     ))
-                    # Green bar showing increase (stacked on top)
+                    # Green bar (added portion, starts at peak, no border)
                     fig_changes.add_trace(go.Bar(
-                        y=[ticker],
-                        x=[change],
-                        orientation='h',
-                        marker=dict(color='green', line=dict(color='black', width=1)),
-                        showlegend=False,
-                        hovertemplate=f'<b>{ticker}</b><br>Added: +{change:.2f}%<extra></extra>'
+                        y=[ticker], x=[change], orientation='h',
+                        marker=dict(color='rgba(50,180,50,0.85)', line=dict(width=0)),
+                        base=peak_w,
+                        showlegend=False, hoverinfo='skip'
                     ))
 
             # Add text annotations for weight change
@@ -398,7 +401,7 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                 xaxis_title="Weight (%)",
                 yaxis_title="",
                 height=500,
-                barmode='stack',
+                barmode='overlay',
                 plot_bgcolor='white',
                 paper_bgcolor='white',
                 margin=dict(l=0, r=50, t=40, b=0)
