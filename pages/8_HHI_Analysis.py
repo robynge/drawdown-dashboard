@@ -372,10 +372,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
 
     # Section 4: Performance & Concentration
     if len(returns_data) > 0:
-        st.subheader("Performance & Concentration")
-
-        # Toggle between Return and Price view
-        view_mode = st.pills("View", options=["Return", "Price"], default="Return", label_visibility="collapsed")
+        st.subheader("Returns & Concentration")
 
         returns_card = st.container(border=True)
         with returns_card:
@@ -388,86 +385,49 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             )
 
             if len(returns_hhi) > 0:
-                fig_perf = make_subplots(specs=[[{"secondary_y": True}]])
+                fig_returns = make_subplots(specs=[[{"secondary_y": True}]])
 
-                if view_mode == "Return":
-                    # Absolute return
-                    fig_perf.add_trace(
-                        go.Scatter(
-                            x=returns_hhi['Date'],
-                            y=returns_hhi['ETF_Return'],
-                            mode='lines',
-                            name=f'{selected_etf} Return',
-                            line=dict(color='black', width=2),
-                            hovertemplate='<b>%s Return</b><br>Date: %%{x|%%Y-%%m-%%d}<br>Return: %%{y:.2f}%%<extra></extra>' % selected_etf
-                        ),
-                        secondary_y=False
-                    )
+                # ETF return
+                fig_returns.add_trace(
+                    go.Scatter(
+                        x=returns_hhi['Date'],
+                        y=returns_hhi['ETF_Return'],
+                        mode='lines',
+                        name=f'{selected_etf} Return',
+                        line=dict(color='black', width=2),
+                        hovertemplate='<b>%s Return</b><br>Date: %%{x|%%Y-%%m-%%d}<br>Return: %%{y:.2f}%%<extra></extra>' % selected_etf
+                    ),
+                    secondary_y=False
+                )
 
-                    # QQQ return
-                    fig_perf.add_trace(
-                        go.Scatter(
-                            x=returns_hhi['Date'],
-                            y=returns_hhi['QQQ_Return'],
-                            mode='lines',
-                            name='QQQ Return',
-                            line=dict(color='orange', width=2),
-                            hovertemplate='<b>QQQ Return</b><br>Date: %{x|%Y-%m-%d}<br>Return: %{y:.2f}%<extra></extra>'
-                        ),
-                        secondary_y=False
-                    )
+                # QQQ return
+                fig_returns.add_trace(
+                    go.Scatter(
+                        x=returns_hhi['Date'],
+                        y=returns_hhi['QQQ_Return'],
+                        mode='lines',
+                        name='QQQ Return',
+                        line=dict(color='orange', width=2),
+                        hovertemplate='<b>QQQ Return</b><br>Date: %{x|%Y-%m-%d}<br>Return: %{y:.2f}%<extra></extra>'
+                    ),
+                    secondary_y=False
+                )
 
-                    # Relative return
-                    fig_perf.add_trace(
-                        go.Scatter(
-                            x=returns_hhi['Date'],
-                            y=returns_hhi['Relative_Return'],
-                            mode='lines',
-                            name='Relative (vs QQQ)',
-                            line=dict(color='green', width=2, dash='dash'),
-                            hovertemplate='<b>Relative Return</b><br>Date: %{x|%Y-%m-%d}<br>Return: %{y:.2f}%<extra></extra>'
-                        ),
-                        secondary_y=False
-                    )
+                # Relative return
+                fig_returns.add_trace(
+                    go.Scatter(
+                        x=returns_hhi['Date'],
+                        y=returns_hhi['Relative_Return'],
+                        mode='lines',
+                        name='Relative (vs QQQ)',
+                        line=dict(color='green', width=2, dash='dash'),
+                        hovertemplate='<b>Relative Return</b><br>Date: %{x|%Y-%m-%d}<br>Return: %{y:.2f}%<extra></extra>'
+                    ),
+                    secondary_y=False
+                )
 
-                    # Add zero line for reference
-                    fig_perf.add_hline(y=0, line_dash="solid", line_color="gray", line_width=1, secondary_y=False)
-
-                    y_axis_title = "Cumulative Return (%)"
-                    chart_title = f"{selected_etf} Cumulative Returns vs QQQ & HHI"
-
-                else:  # Price view
-                    # ETF price
-                    fig_perf.add_trace(
-                        go.Scatter(
-                            x=returns_hhi['Date'],
-                            y=returns_hhi['ETF_Price'],
-                            mode='lines',
-                            name=f'{selected_etf} Price',
-                            line=dict(color='black', width=2),
-                            hovertemplate=f'<b>{selected_etf} Price</b><br>Date: %{{x|%Y-%m-%d}}<br>Price: $%{{y:.2f}}<extra></extra>'
-                        ),
-                        secondary_y=False
-                    )
-
-                    # QQQ price
-                    fig_perf.add_trace(
-                        go.Scatter(
-                            x=returns_hhi['Date'],
-                            y=returns_hhi['QQQ_Price'],
-                            mode='lines',
-                            name='QQQ Price',
-                            line=dict(color='orange', width=2),
-                            hovertemplate='<b>QQQ Price</b><br>Date: %{x|%Y-%m-%d}<br>Price: $%{y:.2f}<extra></extra>'
-                        ),
-                        secondary_y=False
-                    )
-
-                    y_axis_title = "Price ($)"
-                    chart_title = f"{selected_etf} Price vs QQQ & HHI"
-
-                # HHI on secondary axis (both views)
-                fig_perf.add_trace(
+                # HHI on secondary axis
+                fig_returns.add_trace(
                     go.Scatter(
                         x=returns_hhi['Date'],
                         y=returns_hhi['HHI'],
@@ -479,8 +439,11 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                     secondary_y=True
                 )
 
-                fig_perf.update_layout(
-                    title=chart_title,
+                # Add zero line for reference
+                fig_returns.add_hline(y=0, line_dash="solid", line_color="gray", line_width=1, secondary_y=False)
+
+                fig_returns.update_layout(
+                    title=f"{selected_etf} Cumulative Returns vs QQQ & HHI",
                     height=500,
                     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                     plot_bgcolor='white',
@@ -488,11 +451,11 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                     hovermode='x unified'
                 )
 
-                fig_perf.update_xaxes(title_text="Date", gridcolor='lightgray', rangeslider=dict(visible=True))
-                fig_perf.update_yaxes(title_text=y_axis_title, secondary_y=False, gridcolor='lightgray')
-                fig_perf.update_yaxes(title_text="HHI", secondary_y=True)
+                fig_returns.update_xaxes(title_text="Date", gridcolor='lightgray', rangeslider=dict(visible=True))
+                fig_returns.update_yaxes(title_text="Cumulative Return (%)", secondary_y=False, gridcolor='lightgray')
+                fig_returns.update_yaxes(title_text="HHI", secondary_y=True)
 
-                st.plotly_chart(fig_perf, width='stretch', config=CHART_CONFIG)
+                st.plotly_chart(fig_returns, width='stretch', config=CHART_CONFIG)
 
                 # Summary statistics
                 st.markdown("#### Performance Summary")
