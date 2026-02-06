@@ -282,16 +282,32 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             hovertemplate=f'<b>{selected_etf}</b><br>Date: %{{x|%Y-%m-%d}}<br>Price: $%{{y:.2f}}<extra></extra>'
         ))
 
-        # QQQ price line
+        # QQQ price line (normalized to align first day with ETF price)
         if len(qqq_prices) > 0:
-            fig2.add_trace(go.Scatter(
-                x=qqq_prices['Date'],
-                y=qqq_prices['Close'],
-                mode='lines',
-                name='QQQ Price',
-                line=dict(color='orange', width=2),
-                hovertemplate='<b>QQQ</b><br>Date: %{x|%Y-%m-%d}<br>Price: $%{y:.2f}<extra></extra>'
-            ))
+            # Filter QQQ to match ETF date range
+            qqq_filtered = qqq_prices[
+                (qqq_prices['Date'] >= price_df['Date'].min()) &
+                (qqq_prices['Date'] <= price_df['Date'].max())
+            ].copy()
+
+            if len(qqq_filtered) > 0:
+                # Get first day prices
+                first_etf_price = price_df['Close'].iloc[0]
+                first_qqq_price = qqq_filtered['Close'].iloc[0]
+
+                # Normalize QQQ so first day aligns with ETF price
+                qqq_filtered['Normalized'] = qqq_filtered['Close'] * (first_etf_price / first_qqq_price)
+
+                fig2.add_trace(go.Scatter(
+                    x=qqq_filtered['Date'],
+                    y=qqq_filtered['Normalized'],
+                    mode='lines',
+                    name='QQQ (Normalized)',
+                    line=dict(color='orange', width=2),
+                    customdata=qqq_filtered['Close'],
+                    hovertemplate='<b>QQQ</b><br>Date: %{x|%Y-%m-%d}<br>Actual Price: $%{customdata:.2f}<br>Normalized: $%{y:.2f}<extra></extra>',
+                    yaxis='y3'
+                ))
 
         # Add current drawdown line and shaded area (if enabled)
         if show_drawdowns and len(etf_dd_data) > 0:
@@ -352,29 +368,30 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             yaxis='y2'
         ))
 
-        chart_title = f"{selected_etf} & QQQ Price with HHI"
+        chart_title = f"{selected_etf} vs QQQ (Normalized) with HHI"
         if show_drawdowns:
-            chart_title = f"{selected_etf} Price with Drawdowns & HHI"
+            chart_title = f"{selected_etf} vs QQQ (Normalized) with Drawdowns & HHI"
 
         fig2.update_layout(
             title=chart_title,
             xaxis_title="Date",
-            yaxis_title="Price ($)",
+            yaxis_title=f"{selected_etf} Price ($)",
             hovermode='x unified',
             height=650,
             showlegend=True,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
             plot_bgcolor='white',
             paper_bgcolor='white',
-            xaxis=dict(gridcolor='lightgray', showgrid=True),
+            xaxis=dict(gridcolor='lightgray', showgrid=True, domain=[0, 0.88]),
             yaxis=dict(gridcolor='lightgray', showgrid=True),
-            yaxis2=dict(title='HHI', overlaying='y', side='right'),
-            margin=dict(l=0, r=0, t=40, b=0)
+            yaxis2=dict(title='HHI', overlaying='y', side='right', position=0.94),
+            yaxis3=dict(title='QQQ Normalized ($)', overlaying='y', side='right', position=1.0, showgrid=False),
+            margin=dict(l=0, r=80, t=40, b=0)
         )
 
         st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 
-        st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. Dotted blue line shows HHI.*</small>", unsafe_allow_html=True)
+        st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. Dotted blue line shows HHI. QQQ price is normalized so first day aligns with ETF price (hover shows actual price).*</small>", unsafe_allow_html=True)
 
     "" # Space
 
