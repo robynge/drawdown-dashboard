@@ -290,3 +290,41 @@ def get_ark_ticker_list(etf):
     ticker_df.to_csv(cache_file, index=False)
 
     return all_tickers
+
+
+@st.cache_data
+def get_stocks_for_etf(_files_hash, etf):
+    """Get list of valid stocks for an ETF with current/non-current status
+
+    Uses precomputed ticker list for speed, only loads holdings for current status check.
+    Cached centrally so all pages share the same cache.
+    """
+    # Use fast precomputed ticker list (already filters currency tickers)
+    all_tickers = get_ark_ticker_list(etf)
+
+    # Load holdings only to check current status (cached, so fast after first load)
+    holdings = load_ark_holdings(_files_hash, etf)
+    latest_date = holdings['Date'].max()
+    current_holdings = set(holdings[holdings['Date'] == latest_date]['Ticker'].unique())
+
+    # Build the stock list
+    valid_stocks = []
+    stock_ticker_map = {}
+
+    for ticker in all_tickers:
+        ticker_simple = ticker.split()[0] if isinstance(ticker, str) else ticker
+        is_current = ticker in current_holdings
+
+        if is_current:
+            display_name = ticker_simple
+        else:
+            display_name = f"{ticker_simple} (Non-current)"
+
+        valid_stocks.append((ticker_simple, display_name))
+        stock_ticker_map[display_name] = ticker_simple
+
+    # Sort alphabetically
+    valid_stocks.sort(key=lambda x: x[0])
+    valid_stocks = [display_name for _, display_name in valid_stocks]
+
+    return valid_stocks, stock_ticker_map

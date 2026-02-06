@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import START_DATE, END_DATE, OUTPUT_DIR, ARK_ETFS, INPUT_DIR
-from data_loader import load_ark_holdings, load_industry_info, load_company_name, get_ark_files_hash
+from data_loader import load_ark_holdings, load_industry_info, load_company_name, get_ark_files_hash, get_stocks_for_etf
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS
@@ -107,57 +107,8 @@ if True:
             selected_etf = st.selectbox("Select ETF", ARK_ETFS, label_visibility="collapsed")
 
             st.markdown("##### Select Stock")
-            # Get stocks that have data in the selected ETF during analysis period
-            @st.cache_data
-            def get_stocks_for_etf(etf, _files_hash):
-                holdings = load_ark_holdings(_files_hash, etf)
-
-                # Get latest date holdings to identify current positions
-                latest_date = holdings['Date'].max()
-                current_holdings = set(holdings[holdings['Date'] == latest_date]['Ticker'].unique())
-
-                # Filter by date range first (once, not per ticker)
-                holdings_filtered = holdings[
-                    (holdings['Date'] >= START_DATE) &
-                    (holdings['Date'] <= END_DATE)
-                ].copy()
-
-                # Filter out currency tickers (vectorized, not in loop)
-                if 'Bloomberg Name' in holdings_filtered.columns:
-                    holdings_filtered = holdings_filtered[
-                        ~holdings_filtered['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-                    ]
-
-                # Count rows per ticker using groupby (vectorized)
-                ticker_counts = holdings_filtered.groupby('Ticker').size()
-                valid_tickers = ticker_counts[ticker_counts >= 30].index.tolist()
-
-                # Build the stock list (now only loop over valid tickers, much smaller)
-                valid_stocks = []
-                stock_ticker_map = {}
-
-                for ticker in valid_tickers:
-                    ticker_simple = ticker.split()[0] if isinstance(ticker, str) else ticker
-                    is_current = ticker in current_holdings
-
-                    if is_current:
-                        display_name = ticker_simple
-                    else:
-                        display_name = f"{ticker_simple} (Non-current)"
-
-                    valid_stocks.append((ticker_simple, display_name))
-                    stock_ticker_map[display_name] = ticker_simple
-
-                # Sort by ticker_simple (first element) alphabetically
-                valid_stocks.sort(key=lambda x: x[0])
-
-                # Extract just the display names
-                valid_stocks = [display_name for _, display_name in valid_stocks]
-
-                return valid_stocks, stock_ticker_map
-
             files_hash = get_ark_files_hash()
-            stock_list, stock_ticker_map = get_stocks_for_etf(selected_etf, files_hash)
+            stock_list, stock_ticker_map = get_stocks_for_etf(files_hash, selected_etf)
             selected_display_ticker = st.selectbox("Select Stock", stock_list, label_visibility="collapsed")
 
             # Get the actual ticker from display name
