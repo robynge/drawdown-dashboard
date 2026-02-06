@@ -657,14 +657,6 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             )
 
             if len(corr_perf) > 0:
-                # Calculate forward returns (next 5, 10, 20 days)
-                corr_perf['Fwd_5d_Return'] = corr_perf['Close'].shift(-5) / corr_perf['Close'] - 1
-                corr_perf['Fwd_10d_Return'] = corr_perf['Close'].shift(-10) / corr_perf['Close'] - 1
-                corr_perf['Fwd_20d_Return'] = corr_perf['Close'].shift(-20) / corr_perf['Close'] - 1
-
-                # Calculate correlation change
-                corr_perf['Corr_Change'] = corr_perf['weighted_mean_corr'].diff()
-
                 # Create dual-axis chart: Correlation vs Cumulative Return
                 from plotly.subplots import make_subplots
 
@@ -762,69 +754,6 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                         insight = f"📈 **Higher correlation = Better performance**: When correlation is above {median_corr:.3f}, {selected_etf} has higher annualized returns ({high_avg:.1f}% vs {low_avg:.1f}%)."
 
                     st.info(insight)
-
-                ""  # Space
-
-                # Forward return analysis
-                st.markdown("#### Correlation Change vs Forward Returns")
-
-                # Create scatter plot: Correlation Change vs Forward Returns
-                valid_fwd = corr_perf.dropna(subset=['Corr_Change', 'Fwd_20d_Return'])
-
-                if len(valid_fwd) > 20:
-                    fig_scatter = go.Figure()
-
-                    fig_scatter.add_trace(go.Scatter(
-                        x=valid_fwd['Corr_Change'],
-                        y=valid_fwd['Fwd_20d_Return'] * 100,
-                        mode='markers',
-                        marker=dict(
-                            color='steelblue',
-                            size=6,
-                            opacity=0.5
-                        ),
-                        hovertemplate='<b>Correlation Change</b>: %{x:.4f}<br><b>20-Day Forward Return</b>: %{y:.2f}%<extra></extra>'
-                    ))
-
-                    # Add trend line
-                    z = np.polyfit(valid_fwd['Corr_Change'], valid_fwd['Fwd_20d_Return'] * 100, 1)
-                    p = np.poly1d(z)
-                    x_line = np.linspace(valid_fwd['Corr_Change'].min(), valid_fwd['Corr_Change'].max(), 100)
-
-                    fig_scatter.add_trace(go.Scatter(
-                        x=x_line,
-                        y=p(x_line),
-                        mode='lines',
-                        name='Trend',
-                        line=dict(color='red', width=2, dash='dash')
-                    ))
-
-                    # Calculate correlation
-                    corr_coefficient = valid_fwd['Corr_Change'].corr(valid_fwd['Fwd_20d_Return'])
-
-                    fig_scatter.update_layout(
-                        title=f"Correlation Change vs 20-Day Forward Return (r = {corr_coefficient:.3f})",
-                        xaxis_title="Correlation Change (daily)",
-                        yaxis_title="20-Day Forward Return (%)",
-                        height=400,
-                        showlegend=False,
-                        plot_bgcolor='white',
-                        paper_bgcolor='white',
-                        xaxis=dict(gridcolor='lightgray', zeroline=True, zerolinecolor='gray'),
-                        yaxis=dict(gridcolor='lightgray', zeroline=True, zerolinecolor='gray')
-                    )
-
-                    st.plotly_chart(fig_scatter, width='stretch')
-
-                    # Interpretation
-                    if corr_coefficient < -0.1:
-                        st.success(f"**Negative relationship (r = {corr_coefficient:.3f})**: When correlation decreases, forward returns tend to be higher. Lower correlation may indicate better diversification benefits.")
-                    elif corr_coefficient > 0.1:
-                        st.warning(f"**Positive relationship (r = {corr_coefficient:.3f})**: When correlation increases, forward returns tend to be higher. This may indicate momentum effects during rallies.")
-                    else:
-                        st.info(f"**Weak relationship (r = {corr_coefficient:.3f})**: Correlation changes have little predictive power for forward returns.")
-                else:
-                    st.warning("Not enough data for forward return analysis.")
             else:
                 st.warning("Could not merge correlation and price data.")
         else:
