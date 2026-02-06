@@ -497,7 +497,7 @@ if True:
                 )
 
                 # Add Russell reconstitution date lines with legend
-                add_reconstitution_vlines(fig2, price_line_name=f"{gics} ({version})")
+                add_reconstitution_vlines(fig2, price_line_name=version)
 
                 st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 

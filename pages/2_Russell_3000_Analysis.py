@@ -342,7 +342,7 @@ if iwv_prices is not None and iwv_dd is not None:
 
         # Add Russell reconstitution date lines with legend
         if is_peer_group:
-            add_reconstitution_vlines(fig, price_line_name=f"{selected_target} ({version})")
+            add_reconstitution_vlines(fig, price_line_name=version)
         else:
             add_reconstitution_vlines(fig, price_line_name="IWV Price")
 
