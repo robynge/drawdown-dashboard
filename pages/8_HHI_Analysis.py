@@ -388,7 +388,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
             plot_bgcolor='white',
             paper_bgcolor='white',
-            xaxis=dict(gridcolor='lightgray', showgrid=True, domain=[0, 0.86]),
+            xaxis=dict(gridcolor='lightgray', showgrid=True, domain=[0, 0.86], rangeslider=dict(visible=True)),
             yaxis=dict(gridcolor='lightgray', showgrid=True),
             yaxis2=dict(title=f'{selected_etf} HHI', overlaying='y', side='right', position=0.97, showgrid=False),
             yaxis3=dict(title='QQQ Price', overlaying='y', side='right', position=0.91, showgrid=False, range=qqq_axis_range),
