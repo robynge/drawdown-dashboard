@@ -231,28 +231,30 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
 
     "" # Space
 
-    # Section 3: Price + Drawdown + HHI (copied from ETF_Analysis.py with HHI added)
-    st.subheader("Price, Drawdowns & Concentration")
+    # Section 3: Price + Drawdown + HHI
+    st.subheader("Price & Concentration")
+
+    # Toggle for showing drawdowns
+    show_drawdowns = st.toggle("Show Drawdowns", value=True)
 
     dd_hhi_card = st.container(border=True)
     with dd_hhi_card:
         price_df = etf_prices
         etf_dd_data = calculate_drawdowns(price_df)
 
-        # Create figure (same as ETF_Analysis.py)
+        # Create figure
         fig2 = go.Figure()
 
-        # Get top 10 drawdowns
-        if len(etf_dd_data) > 0:
+        # Add drawdown shaded regions (if enabled)
+        if show_drawdowns and len(etf_dd_data) > 0:
             top_10_dd = etf_dd_data[etf_dd_data['rank'] != 'Current'].head(10)
 
-            # Color palette for drawdowns (from ETF_Analysis.py)
+            # Color palette for drawdowns
             dd_colors = ['rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
                          'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
                          'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
                          'rgba(255, 228, 181, 0.3)']
 
-            # Add drawdown shaded regions
             for idx, (_, row) in enumerate(top_10_dd.iterrows()):
                 fig2.add_vrect(
                     x0=row['peak_date'],
@@ -262,44 +264,35 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                     line_width=0
                 )
 
-        # Add price line with custom hover template
-        price_df_copy = price_df.copy()
-        price_df_copy['DD_Info'] = ''
-
-        # Add drawdown info for each date
-        if len(etf_dd_data) > 0:
-            top_10_dd = etf_dd_data[etf_dd_data['rank'] != 'Current'].head(10)
-            for _, row in top_10_dd.iterrows():
-                mask = (price_df_copy['Date'] >= row['peak_date']) & (price_df_copy['Date'] <= row['trough_date'])
-                price_df_copy.loc[mask, 'DD_Info'] = (
-                    f"<br><b>Drawdown #{row['rank']}</b><br>" +
-                    f"Depth: {row['depth_pct']:.2f}%<br>" +
-                    f"Peak: {row['peak_date'].strftime('%Y-%m-%d')} ${row['peak_price']:.2f}<br>" +
-                    f"Trough: {row['trough_date'].strftime('%Y-%m-%d')} ${row['trough_price']:.2f}"
-                )
-
+        # ETF price line
         fig2.add_trace(go.Scatter(
-            x=price_df_copy['Date'],
-            y=price_df_copy['Close'],
+            x=price_df['Date'],
+            y=price_df['Close'],
             mode='lines',
-            name='Price',
+            name=f'{selected_etf} Price',
             line=dict(color='black', width=2),
-            customdata=price_df_copy['DD_Info'],
-            hovertemplate='%{x|%Y-%m-%d}<br>' +
-                          'Price: $%{y:.2f}%{customdata}<extra></extra>',
-            hoverlabel=dict(bgcolor='white', bordercolor='lightgray'),
-            marker=dict(color='rgba(0,0,0,0)')
+            hovertemplate=f'<b>{selected_etf}</b><br>Date: %{{x|%Y-%m-%d}}<br>Price: $%{{y:.2f}}<extra></extra>'
         ))
 
-        # Add current drawdown line and shaded area
-        if len(etf_dd_data) > 0:
+        # QQQ price line
+        if len(qqq_prices) > 0:
+            fig2.add_trace(go.Scatter(
+                x=qqq_prices['Date'],
+                y=qqq_prices['Close'],
+                mode='lines',
+                name='QQQ Price',
+                line=dict(color='orange', width=2),
+                hovertemplate='<b>QQQ</b><br>Date: %{x|%Y-%m-%d}<br>Price: $%{y:.2f}<extra></extra>'
+            ))
+
+        # Add current drawdown line and shaded area (if enabled)
+        if show_drawdowns and len(etf_dd_data) > 0:
             current_dd = etf_dd_data[etf_dd_data['rank'] == 'Current'].iloc[0]
             peak_price = current_dd['peak_price']
             peak_date = current_dd['peak_date']
             current_price = current_dd['trough_price']
             current_dd_pct = current_dd['depth_pct']
 
-            # Add horizontal line from peak date to the end of the chart
             fig2.add_shape(
                 type="line",
                 x0=peak_date,
@@ -310,7 +303,6 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                 layer='above'
             )
 
-            # Add shaded rectangle from peak date to current date
             fig2.add_shape(
                 type="rect",
                 x0=peak_date,
@@ -322,7 +314,6 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                 layer='below'
             )
 
-            # Add text annotation on the right side showing current drawdown
             fig2.add_annotation(
                 text=f"<b>Current Drawdown</b><br>" +
                      f"Depth: {current_dd_pct:.2f}%<br>" +
@@ -342,19 +333,23 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                 borderpad=4
             )
 
-        # Add HHI line on secondary y-axis
+        # HHI line on secondary y-axis
         fig2.add_trace(go.Scatter(
             x=hhi_data['Date'],
             y=hhi_data['HHI'],
             mode='lines',
-            name='HHI',
+            name=f'{selected_etf} HHI',
             line=dict(color='steelblue', width=2, dash='dot'),
-            hovertemplate='<b>HHI</b><br>Date: %{x|%Y-%m-%d}<br>HHI: %{y:.4f}<extra></extra>',
+            hovertemplate=f'<b>{selected_etf} HHI</b><br>Date: %{{x|%Y-%m-%d}}<br>HHI: %{{y:.4f}}<extra></extra>',
             yaxis='y2'
         ))
 
+        chart_title = f"{selected_etf} & QQQ Price with HHI"
+        if show_drawdowns:
+            chart_title = f"{selected_etf} Price with Drawdowns & HHI"
+
         fig2.update_layout(
-            title=f"{selected_etf} Price with Top 10 Drawdowns & Current Drawdown",
+            title=chart_title,
             xaxis_title="Date",
             yaxis_title="Price ($)",
             hovermode='x unified',
