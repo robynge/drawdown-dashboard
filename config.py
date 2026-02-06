@@ -11,7 +11,7 @@ PROCESSED_DIR = DATA_DIR / 'processed'
 
 # Analysis settings
 START_DATE = pd.to_datetime('2024-01-02')
-END_DATE = pd.to_datetime('2026-01-14')
+END_DATE = pd.to_datetime('2026-02-06')
 
 # ETFs
 ARK_ETFS = ['ARKK', 'ARKQ', 'ARKW', 'ARKG', 'ARKF', 'ARKX']
