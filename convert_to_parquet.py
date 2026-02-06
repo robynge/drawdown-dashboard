@@ -68,9 +68,12 @@ def precompute_peer_group_cache():
     sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
     from data_loader import get_r3000_files_hash
-    from peer_group import calculate_peer_group_prices_mv, calculate_peer_group_prices_weighted
+    from peer_group import calculate_peer_group_prices_mv, calculate_peer_group_prices_weighted, calculate_iwv_total_market_value
 
     files_hash = get_r3000_files_hash()
+
+    print("Precomputing IWV Total Market Value cache...")
+    calculate_iwv_total_market_value(files_hash)
 
     print("Precomputing Market Value cache...")
     calculate_peer_group_prices_mv(files_hash)

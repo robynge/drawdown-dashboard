@@ -202,11 +202,13 @@ def filter_non_stocks(holdings):
             ~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)
         ]
 
-    # Filter out money market funds
-    excluded_tickers = ['FTOXX', 'FIRXX']
-    result = result[
-        ~result['Ticker'].str.split().str[0].isin(excluded_tickers)
-    ]
+    # Filter out money market funds (match prefix)
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    ticker_symbols = result['Ticker'].str.split().str[0]
+    is_money_market = ticker_symbols.apply(
+        lambda x: any(x.startswith(prefix) for prefix in money_market_prefixes) if pd.notna(x) else False
+    )
+    result = result[~is_money_market]
 
     return result
 

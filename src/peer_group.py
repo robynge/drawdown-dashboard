@@ -20,6 +20,40 @@ def _is_cache_valid(cache_path, source_mtime):
 
 
 @st.cache_data
+def calculate_iwv_total_market_value(_files_hash):
+    """Calculate IWV total market value (sum of all holdings)
+
+    Returns:
+        DataFrame with columns: Date, Value
+    """
+    cache_path = INPUT_DIR / 'russell_3000' / 'iwv_total_mv_cache.parquet'
+    if _is_cache_valid(cache_path, _files_hash):
+        return pd.read_parquet(cache_path)
+
+    holdings = load_r3000_holdings(_files_hash)
+
+    # Filter out dates where less than 50% of stocks have valid prices
+    holdings['_valid_price'] = (holdings['Price'] > 0).astype(int)
+    date_stats = holdings.groupby('Date').agg(
+        valid_count=('_valid_price', 'sum'),
+        total_count=('_valid_price', 'size')
+    )
+    date_stats['valid_pct'] = date_stats['valid_count'] / date_stats['total_count']
+    valid_dates = date_stats[date_stats['valid_pct'] > 0.5].index
+    holdings = holdings[holdings['Date'].isin(valid_dates)].copy()
+
+    # Calculate Market Value
+    holdings['Market_Value'] = holdings['Position'] * holdings['Price']
+
+    # Sum all market values by Date
+    total_mv = holdings.groupby('Date')['Market_Value'].sum().reset_index()
+    total_mv.columns = ['Date', 'Value']
+
+    total_mv.to_parquet(cache_path, index=False)
+    return total_mv
+
+
+@st.cache_data
 def calculate_peer_group_prices_mv(_files_hash):
     """Calculate peer group total market values (sum of market values by GICS)
 

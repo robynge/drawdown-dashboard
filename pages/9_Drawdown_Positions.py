@@ -60,9 +60,11 @@ def get_drawdown_position_changes(_files_hash, etf, _holdings, peak_date, trough
             mask = ~df['Bloomberg Name'].str.contains('curncy', case=False, na=False)
             df.drop(df[~mask].index, inplace=True)
 
-    excluded_tickers = ['FTOXX', 'FIRXX']
-    peak_holdings = peak_holdings[~peak_holdings['Ticker'].str.split().str[0].isin(excluded_tickers)]
-    trough_holdings = trough_holdings[~trough_holdings['Ticker'].str.split().str[0].isin(excluded_tickers)]
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    for df in [peak_holdings, trough_holdings]:
+        ticker_symbols = df['Ticker'].str.split().str[0]
+        is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
+        df.drop(df[is_mm].index, inplace=True)
 
     # Create comparison dataframe
     peak_positions = peak_holdings.set_index('Ticker')[['Weight', 'Position']].add_suffix('_peak')
@@ -110,8 +112,10 @@ def get_hhi_during_drawdown(_files_hash, etf, _holdings, peak_date, trough_date)
     if 'Bloomberg Name' in dd_holdings.columns:
         dd_holdings = dd_holdings[~dd_holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
 
-    excluded_tickers = ['FTOXX', 'FIRXX']
-    dd_holdings = dd_holdings[~dd_holdings['Ticker'].str.split().str[0].isin(excluded_tickers)]
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    ticker_symbols = dd_holdings['Ticker'].str.split().str[0]
+    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
+    dd_holdings = dd_holdings[~is_mm]
 
     # Calculate HHI
     hhi_df = calculate_hhi_time_series(dd_holdings[['Date', 'Ticker', 'Weight']])

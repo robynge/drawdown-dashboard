@@ -8,7 +8,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import START_DATE, END_DATE, OUTPUT_DIR
-from peer_group import get_peer_group_prices
+from peer_group import get_peer_group_prices, calculate_iwv_total_market_value
+from data_loader import get_r3000_files_hash as get_r3000_data_hash
 from chart_config import CHART_CONFIG, add_reconstitution_vlines
 
 st.set_page_config(page_title="Russell 3000 Analysis", page_icon="", layout="wide")
@@ -101,8 +102,8 @@ if iwv_prices is not None and iwv_dd is not None:
         with controls_card:
             st.markdown("<small><b>Select Analysis Target</b></small>", unsafe_allow_html=True)
 
-            # Create options list: IWV + all peer groups
-            analysis_options = ["IWV (Russell 3000)"] + peer_groups
+            # Create options list: IWV Price + IWV Total MV + all peer groups
+            analysis_options = ["IWV (Russell 3000)", "IWV Total Market Value"] + peer_groups
             selected_target = st.selectbox(
                 "Analysis Target",
                 analysis_options,
@@ -110,8 +111,10 @@ if iwv_prices is not None and iwv_dd is not None:
                 label_visibility="collapsed"
             )
 
-            # Show version selector only for peer groups
-            is_peer_group = selected_target != "IWV (Russell 3000)"
+            # Determine selection type
+            is_iwv_price = selected_target == "IWV (Russell 3000)"
+            is_iwv_total_mv = selected_target == "IWV Total Market Value"
+            is_peer_group = not is_iwv_price and not is_iwv_total_mv
 
             if is_peer_group:
                 ""  # Space
@@ -130,7 +133,25 @@ if iwv_prices is not None and iwv_dd is not None:
         ""  # Space
 
         # Load data based on selection
-        if is_peer_group:
+        if is_iwv_total_mv:
+            # Load IWV total market value
+            from drawdown_calculator import calculate_drawdowns
+            data_hash = get_r3000_data_hash()
+            prices = calculate_iwv_total_market_value(data_hash)
+            prices = prices[(prices['Date'] >= START_DATE) & (prices['Date'] <= END_DATE)]
+
+            prices_for_dd = prices.copy()
+            prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
+            dd_data = calculate_drawdowns(prices_for_dd)
+
+            if len(dd_data) > 0:
+                dd_data['peak_date'] = pd.to_datetime(dd_data['peak_date'])
+                dd_data['trough_date'] = pd.to_datetime(dd_data['trough_date'])
+
+            price_column = 'Value'
+            y_axis_title = "Total Market Value ($)"
+
+        elif is_peer_group:
             # Load peer group data
             with st.spinner(f"Loading {selected_target} data..."):
                 prices = get_peer_group_prices(selected_target, version=version_param)
@@ -151,11 +172,11 @@ if iwv_prices is not None and iwv_dd is not None:
             price_column = 'Value'
             y_axis_title = version
         else:
-            # Use IWV data
+            # Use IWV price data
             prices = iwv_prices
             dd_data = iwv_dd
             price_column = 'Close'
-            y_axis_title = "Price ($)"
+            y_axis_title = "IWV Price ($)"
 
         # Card 2: Key Metrics
         metrics_card = st.container(border=True)
@@ -321,7 +342,9 @@ if iwv_prices is not None and iwv_dd is not None:
             )
 
         # Set chart title based on selection
-        if is_peer_group:
+        if is_iwv_total_mv:
+            chart_title = "IWV Total Market Value with Top 10 Drawdowns & Current Drawdown"
+        elif is_peer_group:
             chart_title = f"{selected_target} - {version} with Top 10 Drawdowns & Current Drawdown"
         else:
             chart_title = "Russell 3000 (IWV) Price with Top 10 Drawdowns & Current Drawdown"
@@ -341,7 +364,9 @@ if iwv_prices is not None and iwv_dd is not None:
         )
 
         # Add Russell reconstitution date lines with legend
-        if is_peer_group:
+        if is_iwv_total_mv:
+            add_reconstitution_vlines(fig, price_line_name="IWV Total MV")
+        elif is_peer_group:
             add_reconstitution_vlines(fig, price_line_name=version)
         else:
             add_reconstitution_vlines(fig, price_line_name="IWV Price")
