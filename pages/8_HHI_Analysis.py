@@ -456,7 +456,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                     hovermode='x unified'
                 )
 
-                fig_returns.update_xaxes(title_text="Date", gridcolor='lightgray')
+                fig_returns.update_xaxes(title_text="Date", gridcolor='lightgray', rangeslider=dict(visible=True))
                 fig_returns.update_yaxes(title_text="Cumulative Return (%)", secondary_y=False, gridcolor='lightgray')
                 fig_returns.update_yaxes(title_text="HHI", secondary_y=True)
 
