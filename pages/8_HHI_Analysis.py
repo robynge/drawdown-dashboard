@@ -256,15 +256,33 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                     line_width=0
                 )
 
-        # Add price line
+        # Add price line with drawdown info on hover
+        price_df_copy = etf_prices.copy()
+        price_df_copy['DD_Info'] = ''
+
+        # Add drawdown info for each date
+        if len(dd_df) > 0:
+            top_10_dd = dd_df[dd_df['rank'] != 'Current'].head(10)
+            for _, row in top_10_dd.iterrows():
+                mask = (price_df_copy['Date'] >= row['peak_date']) & (price_df_copy['Date'] <= row['trough_date'])
+                price_df_copy.loc[mask, 'DD_Info'] = (
+                    f"<br><b>Drawdown #{row['rank']}</b><br>" +
+                    f"Depth: {row['depth_pct']:.2f}%<br>" +
+                    f"Peak: {row['peak_date'].strftime('%Y-%m-%d')} ${row['peak_price']:.2f}<br>" +
+                    f"Trough: {row['trough_date'].strftime('%Y-%m-%d')} ${row['trough_price']:.2f}"
+                )
+
         fig_main.add_trace(
             go.Scatter(
-                x=etf_prices['Date'],
-                y=etf_prices['Close'],
+                x=price_df_copy['Date'],
+                y=price_df_copy['Close'],
                 mode='lines',
                 name=f'{selected_etf} Price',
                 line=dict(color='black', width=2),
-                hovertemplate='<b>Price</b><br>Date: %{x|%Y-%m-%d}<br>Price: $%{y:.2f}<extra></extra>'
+                customdata=price_df_copy['DD_Info'],
+                hovertemplate='%{x|%Y-%m-%d}<br>' +
+                              'Price: $%{y:.2f}%{customdata}<extra></extra>',
+                hoverlabel=dict(bgcolor='white', bordercolor='lightgray')
             ),
             secondary_y=False
         )
@@ -300,10 +318,14 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                 layer='below'
             )
 
-            # Add annotation
+            # Add annotation with full details
+            current_date = etf_prices['Date'].max()
             fig_main.add_annotation(
-                text=f"<b>Current Drawdown</b><br>Depth: {current_dd_pct:.2f}%",
-                x=etf_prices['Date'].max(),
+                text=f"<b>Current Drawdown</b><br>" +
+                     f"Depth: {current_dd_pct:.2f}%<br>" +
+                     f"Peak: {peak_date.strftime('%Y-%m-%d')} ${peak_price:.2f}<br>" +
+                     f"Current: {current_date.strftime('%Y-%m-%d')} ${current_price:.2f}",
+                x=current_date,
                 y=(peak_price + current_price) / 2,
                 showarrow=False,
                 xanchor='left',
