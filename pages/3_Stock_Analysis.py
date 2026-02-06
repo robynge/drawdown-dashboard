@@ -10,10 +10,10 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import START_DATE, END_DATE, OUTPUT_DIR, ARK_ETFS, INPUT_DIR
-from data_loader import load_ark_holdings, load_industry_info, load_company_name
+from data_loader import load_ark_holdings, load_industry_info, load_company_name, get_ark_files_hash
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
-from chart_config import CHART_CONFIG
+from chart_config import CHART_CONFIG, DD_COLORS
 from recovery_probability import get_stock_drawdowns_in_depth_range
 
 st.set_page_config(
@@ -23,22 +23,15 @@ st.set_page_config(
 
 st.title("Individual Stock vs Peer Group")
 
-# Helper to get ARK holdings files modification times for cache invalidation
-def get_ark_files_hash():
-    """Get hash of ARK holdings files for cache invalidation"""
-    mtimes = []
 
-    for etf in ARK_ETFS:
-        holdings_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
-        if holdings_file.exists():
-            mtimes.append(holdings_file.stat().st_mtime)
+def get_price_column(stock_data):
+    """Detect which price column has actual data
 
-    return max(mtimes) if mtimes else 0
-
-@st.cache_data
-def get_cached_ark_holdings(_files_hash, etf):
-    """Load and cache ARK ETF holdings (called once per ETF, reused for all stocks)"""
-    return load_ark_holdings(etf)
+    Returns 'YFinance Close Price' if available, otherwise 'Stock_Price'.
+    """
+    if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
+        return 'YFinance Close Price'
+    return 'Stock_Price'
 
 @st.cache_data
 def get_stock_etf_mapping(_files_hash):
@@ -49,7 +42,7 @@ def get_stock_etf_mapping(_files_hash):
     stock_map = {}
     for etf in ARK_ETFS:
         try:
-            holdings = get_cached_ark_holdings(_files_hash, etf)
+            holdings = load_ark_holdings(_files_hash, etf)
 
             # Filter out currency tickers (vectorized, not in loop)
             if 'Bloomberg Name' in holdings.columns:
@@ -79,7 +72,7 @@ def load_all_stocks(_files_hash):
     for ticker, etf_list in stock_map.items():
         for etf, full_ticker in etf_list:
             try:
-                holdings = get_cached_ark_holdings(_files_hash, etf)
+                holdings = load_ark_holdings(_files_hash, etf)
                 stock_data = holdings[holdings['Ticker'] == full_ticker].copy()
                 stock_data = stock_data[(stock_data['Date'] >= START_DATE) & (stock_data['Date'] <= END_DATE)]
 
@@ -117,7 +110,7 @@ if True:
             # Get stocks that have data in the selected ETF during analysis period
             @st.cache_data
             def get_stocks_for_etf(etf, _files_hash):
-                holdings = get_cached_ark_holdings(_files_hash, etf)
+                holdings = load_ark_holdings(_files_hash, etf)
 
                 # Get latest date holdings to identify current positions
                 latest_date = holdings['Date'].max()
@@ -186,7 +179,7 @@ if True:
 
             _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
             """
-            holdings = get_cached_ark_holdings(_files_hash, etf)
+            holdings = load_ark_holdings(_files_hash, etf)
 
             # Find the full ticker (e.g., "PD" or "PD US Equity")
             matching_tickers = holdings[holdings['Ticker'].str.startswith(ticker + ' ', na=False) |
@@ -215,11 +208,7 @@ if True:
             st.error(f"No data available for {selected_ticker} in {selected_etf}")
         else:
             # Calculate stock drawdowns directly from price data
-            # Determine which price column has actual data
-            if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                price_col = 'YFinance Close Price'
-            else:
-                price_col = 'Stock_Price'
+            price_col = get_price_column(stock_data)
 
             # Prepare price dataframe for drawdown calculation
             price_df = stock_data[['Date', price_col]].copy()
@@ -253,11 +242,7 @@ if True:
                     top_dd = dd_data[dd_data['rank'] == '1'].iloc[0]
 
                     # Calculate RoMaD
-                    # Check which price column has actual data
-                    if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                        price_col = 'YFinance Close Price'
-                    else:
-                        price_col = 'Stock_Price'
+                    price_col = get_price_column(stock_data)
 
                     first_price = stock_data[price_col].iloc[0]
                     last_price = stock_data[price_col].iloc[-1]
@@ -281,20 +266,13 @@ if True:
                     # Max Drawdown
                     st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
 
+                    price_col = get_price_column(stock_data)
                     cols_price = st.columns(2)
                     with cols_price[0]:
-                        # Check which price column has actual data
-                        if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                            current_price = stock_data['YFinance Close Price'].iloc[-1]
-                        else:
-                            current_price = stock_data['Stock_Price'].iloc[-1]
+                        current_price = stock_data[price_col].iloc[-1]
                         st.markdown(f"<small>Current Price</small><br><b>${current_price:.2f}</b>", unsafe_allow_html=True)
                     with cols_price[1]:
-                        # Check which price column has actual data
-                        if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                            peak_price = stock_data['YFinance Close Price'].max()
-                        else:
-                            peak_price = stock_data['Stock_Price'].max()
+                        peak_price = stock_data[price_col].max()
                         st.markdown(f"<small>Peak Price</small><br><b>${peak_price:.2f}</b>", unsafe_allow_html=True)
 
                     # RoMaD
@@ -305,11 +283,7 @@ if True:
         right_panel = cols[1].container(border=True)
 
         with right_panel:
-            # Determine which price column has actual data
-            if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                price_col = 'YFinance Close Price'
-            else:
-                price_col = 'Stock_Price'
+            price_col = get_price_column(stock_data)
 
             # ============ CHART 1: STOCK PRICE ============
             # Create figure with drawdown regions (COPIED FROM RUSSELL 3000)
@@ -319,18 +293,13 @@ if True:
             if len(dd_data) > 0:
                 top_10_dd = dd_data[dd_data['rank'] != 'Current'].head(10)
 
-                # Color palette for drawdowns
-                dd_colors = ['rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
-                             'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
-                             'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
-                             'rgba(255, 228, 181, 0.3)']
 
                 # Add drawdown shaded regions
                 for idx, (_, row) in enumerate(top_10_dd.iterrows()):
                     fig1.add_vrect(
                         x0=row['peak_date'],
                         x1=row['trough_date'],
-                        fillcolor=dd_colors[idx % len(dd_colors)],
+                        fillcolor=DD_COLORS[idx % len(DD_COLORS)],
                         layer="below",
                         line_width=0
                     )
@@ -468,7 +437,7 @@ if True:
                         fig2.add_vrect(
                             x0=row['peak_date'],
                             x1=row['trough_date'],
-                            fillcolor=dd_colors[idx % len(dd_colors)],
+                            fillcolor=DD_COLORS[idx % len(DD_COLORS)],
                             layer="below",
                             line_width=0
                         )
@@ -589,12 +558,7 @@ if True:
             st.markdown("#### Current Drawdown Information")
 
             current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
-
-            # Determine which price column to use
-            if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                price_col = 'YFinance Close Price'
-            else:
-                price_col = 'Stock_Price'
+            price_col = get_price_column(stock_data)
 
             current_price = stock_data[price_col].iloc[-1]
             current_date = stock_data['Date'].iloc[-1]

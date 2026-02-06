@@ -11,10 +11,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, START_DATE, END_DATE, INPUT_DIR, OUTPUT_DIR
-from data_loader import load_ark_holdings, load_etf_prices
+from data_loader import load_ark_holdings, load_etf_prices, get_ark_files_hash
 from hhi_calculator import calculate_hhi_time_series
 from drawdown_calculator import calculate_drawdowns
-from chart_config import CHART_CONFIG
+from chart_config import CHART_CONFIG, DD_COLORS
 
 st.set_page_config(
     page_title="HHI Analysis",
@@ -32,35 +32,22 @@ st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DAT
 
 "" # Space
 
-# Helper functions for caching
-def get_ark_files_hash():
-    """Get hash of ARK holdings files for cache invalidation"""
-    mtimes = []
-    for etf in ARK_ETFS:
-        parquet_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.parquet'
-        xlsx_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
-        if parquet_file.exists():
-            mtimes.append(parquet_file.stat().st_mtime)
-        elif xlsx_file.exists():
-            mtimes.append(xlsx_file.stat().st_mtime)
-    return max(mtimes) if mtimes else 0
-
-@st.cache_data
-def get_cached_ark_holdings(_files_hash, etf):
-    """Load and cache ARK ETF holdings"""
-    return load_ark_holdings(etf)
-
-@st.cache_data
-def get_cached_etf_prices(_files_hash, etf):
-    """Load and cache ETF prices"""
-    return load_etf_prices(etf)
-
 @st.cache_data
 def get_cached_qqq_prices(_files_hash):
     """Load and cache QQQ prices"""
     qqq_file = OUTPUT_DIR / 'QQQ_prices.csv'
     if qqq_file.exists():
         df = pd.read_csv(qqq_file)
+        df['Date'] = pd.to_datetime(df['Date'])
+        return df
+    return pd.DataFrame()
+
+@st.cache_data
+def get_cached_etf_prices(_files_hash, etf):
+    """Load and cache ETF prices"""
+    etf_file = OUTPUT_DIR / f'{etf}_prices.csv'
+    if etf_file.exists():
+        df = pd.read_csv(etf_file)
         df['Date'] = pd.to_datetime(df['Date'])
         return df
     return pd.DataFrame()
@@ -140,7 +127,7 @@ selected_etf = st.pills(
 
 # Load data for selected ETF
 with st.spinner("Loading data..."):
-    holdings = get_cached_ark_holdings(files_hash, selected_etf)
+    holdings = load_ark_holdings(files_hash, selected_etf)
     etf_prices = get_cached_etf_prices(files_hash, selected_etf)
     qqq_prices = get_cached_qqq_prices(files_hash)
     hhi_data = calculate_hhi_data(files_hash, selected_etf, holdings)
@@ -249,20 +236,12 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
         if len(dd_df) > 0:
             top_10_dd = dd_df[dd_df['rank'] != 'Current'].head(10)
 
-            # Color palette for drawdowns
-            dd_colors = [
-                'rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
-                'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
-                'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
-                'rgba(255, 228, 181, 0.3)'
-            ]
-
             # Add drawdown shaded regions
             for idx, (_, row) in enumerate(top_10_dd.iterrows()):
                 fig_main.add_vrect(
                     x0=row['peak_date'],
                     x1=row['trough_date'],
-                    fillcolor=dd_colors[idx % len(dd_colors)],
+                    fillcolor=DD_COLORS[idx % len(DD_COLORS)],
                     layer="below",
                     line_width=0
                 )

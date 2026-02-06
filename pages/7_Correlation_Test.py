@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, INPUT_DIR
-from data_loader import load_ark_holdings
+from data_loader import load_ark_holdings, get_ark_files_hash
 
 st.set_page_config(
     page_title="Correlation Test",
@@ -23,21 +23,6 @@ st.set_page_config(
 
 Bootstrap permutation test to determine if portfolio correlation has significantly changed.
 """
-
-# Helper functions
-def get_ark_files_hash():
-    """Get hash of ARK holdings files for cache invalidation"""
-    mtimes = []
-    for etf in ARK_ETFS:
-        holdings_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
-        if holdings_file.exists():
-            mtimes.append(holdings_file.stat().st_mtime)
-    return max(mtimes) if mtimes else 0
-
-@st.cache_data
-def get_cached_ark_holdings(_files_hash, etf):
-    """Load and cache ARK ETF holdings"""
-    return load_ark_holdings(etf)
 
 @st.cache_data
 def prepare_returns_data(_files_hash, etf, lookback_days, _holdings):
@@ -141,7 +126,7 @@ with config_cols[2]:
 files_hash = get_ark_files_hash()
 
 with st.spinner("Loading data..."):
-    holdings = get_cached_ark_holdings(files_hash, selected_etf)
+    holdings = load_ark_holdings(files_hash, selected_etf)
     # Need enough data for two non-overlapping windows
     lookback_days = 120  # Need enough trading days for two non-overlapping windows
     returns = prepare_returns_data(files_hash, selected_etf, lookback_days, holdings)

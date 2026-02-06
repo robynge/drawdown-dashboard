@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, START_DATE, END_DATE, INPUT_DIR, OUTPUT_DIR
-from data_loader import load_ark_holdings, load_r3000_holdings, load_industry_info, get_r3000_drawdowns_cache, save_r3000_drawdowns_cache
+from data_loader import load_ark_holdings, load_r3000_holdings, load_industry_info, get_r3000_drawdowns_cache, save_r3000_drawdowns_cache, get_ark_files_hash, get_r3000_files_hash
 from drawdown_calculator import calculate_drawdowns_with_filter, calculate_drawdowns
 
 st.set_page_config(
@@ -25,29 +25,6 @@ st.set_page_config(
 
 Compare drawdown distributions between ARK ETF holdings and Russell 3000 constituents.
 """
-
-# Helper functions for cache
-def get_ark_files_hash():
-    mtimes = []
-    for etf in ARK_ETFS:
-        holdings_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
-        if holdings_file.exists():
-            mtimes.append(holdings_file.stat().st_mtime)
-    return max(mtimes) if mtimes else 0
-
-def get_r3000_files_hash():
-    r3000_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
-    if r3000_file.exists():
-        return r3000_file.stat().st_mtime
-    return 0
-
-@st.cache_data
-def get_cached_ark_holdings(_files_hash, etf):
-    return load_ark_holdings(etf)
-
-@st.cache_data
-def get_cached_r3000_holdings(_files_hash):
-    return load_r3000_holdings()
 
 @st.cache_data
 def get_r3000_peer_groups(_files_hash):
@@ -247,8 +224,8 @@ r3000_hash = get_r3000_files_hash()
 
 with st.spinner("Calculating drawdown distributions..."):
     # Load holdings once (cached)
-    ark_holdings = get_cached_ark_holdings(ark_hash, selected_etf)
-    r3000_holdings = get_cached_r3000_holdings(r3000_hash)
+    ark_holdings = load_ark_holdings(ark_hash, selected_etf)
+    r3000_holdings = load_r3000_holdings(r3000_hash)
 
     # ARK holdings drawdowns
     ark_dd = calculate_ark_holdings_drawdowns(ark_hash, selected_etf, min_depth_pct=10, min_duration_days=7, _holdings=ark_holdings)

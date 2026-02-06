@@ -96,7 +96,7 @@ def calculate_hhi_time_series(holdings_df):
 
 def calculate_weighted_correlation(returns_df, weights_df, date):
     """
-    Calculate weighted pairwise correlation for a given date
+    Calculate weighted pairwise correlation for a given date (vectorized)
 
     The weighted correlation gives more weight to pairs involving
     high-conviction (large weight) positions.
@@ -128,41 +128,34 @@ def calculate_weighted_correlation(returns_df, weights_df, date):
     # Calculate correlation matrix
     corr_matrix = returns_subset.corr()
 
-    # Extract upper triangle (pairwise correlations)
+    # Extract upper triangle using vectorized operations
     n = len(common_tickers)
-    unweighted_corrs = []
-    weighted_corrs = []
-    pair_weights = []
+    triu_i, triu_j = np.triu_indices(n, k=1)
 
-    for i in range(n):
-        for j in range(i + 1, n):
-            ticker_i = common_tickers[i]
-            ticker_j = common_tickers[j]
+    # Get correlation values from upper triangle
+    corr_values = corr_matrix.values[triu_i, triu_j]
+    valid_mask = ~np.isnan(corr_values)
 
-            corr_val = corr_matrix.iloc[i, j]
-            if np.isnan(corr_val):
-                continue
-
-            unweighted_corrs.append(corr_val)
-
-            # Weight for this pair = product of individual weights
-            # (pairs with two large positions get highest weight)
-            w_i = weights_subset.iloc[i]
-            w_j = weights_subset.iloc[j]
-            pair_weight = w_i * w_j
-
-            weighted_corrs.append(corr_val)
-            pair_weights.append(pair_weight)
-
-    if len(unweighted_corrs) == 0:
+    if not valid_mask.any():
         return np.nan, np.nan
 
-    unweighted_mean = np.mean(unweighted_corrs)
+    # Unweighted mean (only valid correlations)
+    unweighted_mean = np.mean(corr_values[valid_mask])
 
-    # Weighted mean
-    pair_weights = np.array(pair_weights)
-    weighted_corrs = np.array(weighted_corrs)
-    weighted_mean = np.average(weighted_corrs, weights=pair_weights)
+    # Compute pair weights using outer product (vectorized)
+    weights_arr = weights_subset.values
+    weight_matrix = np.outer(weights_arr, weights_arr)
+    pair_weights = weight_matrix[triu_i, triu_j]
+
+    # Weighted mean (only valid correlations with positive weights)
+    valid_weight_mask = valid_mask & (pair_weights > 0)
+    if valid_weight_mask.any():
+        weighted_mean = np.average(
+            corr_values[valid_weight_mask],
+            weights=pair_weights[valid_weight_mask]
+        )
+    else:
+        weighted_mean = unweighted_mean
 
     return weighted_mean, unweighted_mean
 

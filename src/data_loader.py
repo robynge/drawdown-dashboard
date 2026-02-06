@@ -1,11 +1,41 @@
-"""Data loading without manual caching - caching handled by Streamlit"""
+"""Data loading with centralized Streamlit caching"""
 import pandas as pd
+import streamlit as st
 from pathlib import Path
 from config import INPUT_DIR, OUTPUT_DIR, ARK_ETFS
 
 
-def load_ark_holdings(etf):
-    """Load ARK ETF holdings from Parquet (fast) or Excel (fallback)"""
+def get_ark_files_hash():
+    """Get hash of ARK holdings files for cache invalidation"""
+    mtimes = []
+    for etf in ARK_ETFS:
+        parquet_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.parquet'
+        xlsx_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
+        if parquet_file.exists():
+            mtimes.append(parquet_file.stat().st_mtime)
+        elif xlsx_file.exists():
+            mtimes.append(xlsx_file.stat().st_mtime)
+    return max(mtimes) if mtimes else 0
+
+
+def get_r3000_files_hash():
+    """Get hash of R3000 holdings file for cache invalidation"""
+    parquet_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.parquet'
+    xlsx_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
+    if parquet_file.exists():
+        return parquet_file.stat().st_mtime
+    elif xlsx_file.exists():
+        return xlsx_file.stat().st_mtime
+    return 0
+
+
+@st.cache_data
+def load_ark_holdings(_files_hash, etf):
+    """Load ARK ETF holdings from Parquet (fast) or Excel (fallback)
+
+    Cached centrally so all pages share the same cache.
+    _files_hash: for cache invalidation when files change
+    """
     parquet_path = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.parquet'
     xlsx_path = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
 
@@ -20,7 +50,8 @@ def load_ark_holdings(etf):
     return df
 
 
-def load_r3000_holdings():
+@st.cache_data
+def load_r3000_holdings(_files_hash):
     """Load Russell 3000 holdings from Parquet (fast) or Excel (fallback)"""
     parquet_path = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.parquet'
     xlsx_path = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
@@ -142,47 +173,12 @@ def load_company_name(source='ark'):
     return company_dict
 
 
-def load_all_ark_stock_tickers():
-    """Get list of all unique stocks across ARK ETFs"""
-    all_tickers = set()
-    for etf in ARK_ETFS:
-        holdings = load_ark_holdings(etf)
-
-        # Filter out currency tickers (vectorized)
-        if 'Bloomberg Name' in holdings.columns:
-            holdings = holdings[
-                ~holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-            ]
-
-        all_tickers.update(holdings['Ticker'].unique())
-
-    return sorted(all_tickers)
-
-
-def get_stock_etf_mapping():
-    """Map each stock to the ETFs it appears in"""
-    stock_map = {}
-    for etf in ARK_ETFS:
-        holdings = load_ark_holdings(etf)
-
-        # Filter out currency tickers (vectorized)
-        if 'Bloomberg Name' in holdings.columns:
-            holdings = holdings[
-                ~holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-            ]
-
-        # Get unique tickers and process
-        for ticker in holdings['Ticker'].unique():
-            ticker_clean = str(ticker).split()[0] if pd.notna(ticker) else ticker
-            if ticker_clean not in stock_map:
-                stock_map[ticker_clean] = []
-            stock_map[ticker_clean].append((etf, ticker))
-
-    return stock_map
-
-
 def load_etf_prices(etf):
-    """Load ETF price data from CSV - no caching, let Streamlit handle it"""
+    """Load ETF price data from CSV
+
+    Not cached because CSV files are small and this function is also used
+    by precompute_data.py which runs outside Streamlit.
+    """
     file_path = OUTPUT_DIR / f'{etf}_prices.csv'
     if not file_path.exists():
         return pd.DataFrame()
@@ -191,6 +187,28 @@ def load_etf_prices(etf):
     df['Date'] = pd.to_datetime(df['Date'])
 
     return df
+
+
+def filter_non_stocks(holdings):
+    """Filter out currency tickers and money market funds from holdings DataFrame
+
+    Use this to get only actual stock holdings from ARK ETF data.
+    """
+    result = holdings.copy()
+
+    # Filter out currency tickers
+    if 'Bloomberg Name' in result.columns:
+        result = result[
+            ~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)
+        ]
+
+    # Filter out money market funds
+    excluded_tickers = ['FTOXX', 'FIRXX']
+    result = result[
+        ~result['Ticker'].str.split().str[0].isin(excluded_tickers)
+    ]
+
+    return result
 
 
 def get_r3000_ticker_list():

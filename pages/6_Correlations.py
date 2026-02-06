@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, START_DATE, END_DATE, INPUT_DIR
-from data_loader import load_ark_holdings, load_company_name
+from data_loader import load_ark_holdings, load_company_name, get_ark_files_hash
 
 st.set_page_config(
     page_title="Portfolio Correlations",
@@ -25,28 +25,10 @@ st.set_page_config(
 Analyze pairwise correlations across all current holdings in an ARK ETF.
 """
 
-# Helper to get ARK holdings files modification times for cache invalidation
-def get_ark_files_hash():
-    """Get hash of ARK holdings files for cache invalidation"""
-    mtimes = []
-    for etf in ARK_ETFS:
-        parquet_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.parquet'
-        xlsx_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
-        if parquet_file.exists():
-            mtimes.append(parquet_file.stat().st_mtime)
-        elif xlsx_file.exists():
-            mtimes.append(xlsx_file.stat().st_mtime)
-    return max(mtimes) if mtimes else 0
-
-@st.cache_data
-def get_cached_ark_holdings(_files_hash, etf):
-    """Load and cache ARK ETF holdings"""
-    return load_ark_holdings(etf)
-
 @st.cache_data
 def get_current_holdings(_files_hash, etf):
     """Get list of current holdings (stocks held on the latest date)"""
-    holdings = get_cached_ark_holdings(_files_hash, etf)
+    holdings = load_ark_holdings(_files_hash, etf)
 
     # Get latest date
     latest_date = holdings['Date'].max()
@@ -115,19 +97,23 @@ def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
     return corr_matrix, returns, current_weights
 
 def get_correlation_stats(corr_matrix, weights_df=None):
-    """Calculate summary statistics for correlation matrix
+    """Calculate summary statistics for correlation matrix (vectorized)
 
     Args:
         corr_matrix: correlation matrix DataFrame
         weights_df: optional DataFrame with Ticker and Weight columns for weighted correlation
     """
-    # Get upper triangle (excluding diagonal)
-    mask = np.triu(np.ones_like(corr_matrix, dtype=bool), k=1)
-    upper_triangle = corr_matrix.where(mask)
+    n = len(corr_matrix.columns)
+    if n < 2:
+        return None
 
-    # Flatten and remove NaN
-    correlations = upper_triangle.values.flatten()
-    correlations = correlations[~np.isnan(correlations)]
+    # Get upper triangle indices (vectorized)
+    triu_i, triu_j = np.triu_indices(n, k=1)
+
+    # Extract correlations from upper triangle (vectorized)
+    corr_values = corr_matrix.values[triu_i, triu_j]
+    valid_mask = ~np.isnan(corr_values)
+    correlations = corr_values[valid_mask]
 
     if len(correlations) == 0:
         return None
@@ -141,62 +127,49 @@ def get_correlation_stats(corr_matrix, weights_df=None):
         'max': np.max(correlations)
     }
 
-    # Calculate weighted correlation if weights provided
+    # Calculate weighted correlation if weights provided (vectorized)
     if weights_df is not None and len(weights_df) > 0:
+        # Create weight array aligned with correlation matrix columns
         weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
-        weighted_corrs = []
-        pair_weights = []
+        weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
 
-        for i in range(len(corr_matrix.columns)):
-            for j in range(i + 1, len(corr_matrix.columns)):
-                ticker1 = corr_matrix.columns[i]
-                ticker2 = corr_matrix.columns[j]
-                corr = corr_matrix.iloc[i, j]
+        # Compute pair weights using outer product (vectorized)
+        weight_matrix = np.outer(weights_arr, weights_arr)
+        pair_weights = weight_matrix[triu_i, triu_j]
 
-                if np.isnan(corr):
-                    continue
-
-                w1 = weights_dict.get(ticker1, 0)
-                w2 = weights_dict.get(ticker2, 0)
-
-                if w1 > 0 and w2 > 0:
-                    # Weight = product of individual weights (pairs with large positions get higher weight)
-                    pair_weight = w1 * w2
-                    weighted_corrs.append(corr)
-                    pair_weights.append(pair_weight)
-
-        if len(weighted_corrs) > 0:
-            pair_weights = np.array(pair_weights)
-            weighted_corrs = np.array(weighted_corrs)
-            stats['weighted_mean'] = np.average(weighted_corrs, weights=pair_weights)
+        # Filter to valid correlations and positive weights
+        valid_weight_mask = valid_mask & (pair_weights > 0)
+        if valid_weight_mask.any():
+            valid_corrs = corr_values[valid_weight_mask]
+            valid_weights = pair_weights[valid_weight_mask]
+            stats['weighted_mean'] = np.average(valid_corrs, weights=valid_weights)
         else:
             stats['weighted_mean'] = stats['mean']
     else:
         stats['weighted_mean'] = stats['mean']
 
-    # Find highest and lowest correlation pairs
-    pairs = []
-    for i in range(len(corr_matrix.columns)):
-        for j in range(i + 1, len(corr_matrix.columns)):
-            ticker1 = corr_matrix.columns[i]
-            ticker2 = corr_matrix.columns[j]
-            corr = corr_matrix.iloc[i, j]
-            # Clean ticker names (remove "US Equity" etc.)
-            ticker1_clean = ticker1.split()[0] if isinstance(ticker1, str) else ticker1
-            ticker2_clean = ticker2.split()[0] if isinstance(ticker2, str) else ticker2
-            pairs.append((ticker1_clean, ticker2_clean, corr))
+    # Find highest and lowest correlation pairs (vectorized)
+    tickers = corr_matrix.columns.tolist()
+    # Clean ticker names
+    tickers_clean = [t.split()[0] if isinstance(t, str) else t for t in tickers]
 
-    # Sort by correlation
-    pairs_sorted = sorted(pairs, key=lambda x: x[2], reverse=True)
+    # Get indices for valid correlations, sorted by value
+    valid_indices = np.where(valid_mask)[0]
+    sorted_indices = valid_indices[np.argsort(corr_values[valid_mask])]
 
-    stats['highest_pairs'] = pairs_sorted[:5]  # Top 5 highest
-    stats['lowest_pairs'] = pairs_sorted[-5:][::-1]  # Top 5 lowest (reversed)
+    # Build pairs list for top 5 highest and lowest
+    def get_pair(idx):
+        i, j = triu_i[idx], triu_j[idx]
+        return (tickers_clean[i], tickers_clean[j], corr_values[idx])
+
+    stats['highest_pairs'] = [get_pair(idx) for idx in sorted_indices[-5:][::-1]]
+    stats['lowest_pairs'] = [get_pair(idx) for idx in sorted_indices[:5]]
 
     return stats
 
 @st.cache_data
 def calculate_rolling_correlations(_files_hash, etf, rolling_window, _returns, _holdings):
-    """Calculate rolling mean/median pairwise correlation over time
+    """Calculate rolling mean/median pairwise correlation over time (vectorized)
 
     _returns: Pre-loaded returns data (underscore prefix excludes from hashing)
     _holdings: Pre-loaded holdings data for weight calculation
@@ -209,58 +182,56 @@ def calculate_rolling_correlations(_files_hash, etf, rolling_window, _returns, _
 
     results = []
     dates = returns.index
+    n_tickers = len(returns.columns)
+
+    # Pre-compute upper triangle indices (reused for all windows)
+    triu_i, triu_j = np.triu_indices(n_tickers, k=1)
+
+    # Pre-compute sorted holdings dates for faster lookup
+    holdings_dates = np.sort(holdings['Date'].unique())
 
     for i in range(rolling_window, len(returns) + 1):
         window_returns = returns.iloc[i - rolling_window:i]
         current_date = dates[i - 1]
         corr_matrix = window_returns.corr()
 
-        # Get upper triangle (excluding diagonal)
-        mask = np.triu(np.ones_like(corr_matrix, dtype=bool), k=1)
-        corr_values = corr_matrix.where(mask).values.flatten()
-        corr_values = corr_values[~np.isnan(corr_values)]
+        # Extract upper triangle correlations (vectorized)
+        corr_values = corr_matrix.values[triu_i, triu_j]
+        valid_mask = ~np.isnan(corr_values)
+        valid_corrs = corr_values[valid_mask]
 
-        if len(corr_values) == 0:
+        if len(valid_corrs) == 0:
             continue
 
         # Unweighted correlations
-        mean_corr = np.mean(corr_values)
-        median_corr = np.median(corr_values)
+        mean_corr = np.mean(valid_corrs)
+        median_corr = np.median(valid_corrs)
 
-        # Weighted correlation - find closest holdings date
-        holdings_dates = holdings['Date'].unique()
+        # Weighted correlation - find closest holdings date using binary search
         valid_dates = holdings_dates[holdings_dates <= current_date]
         if len(valid_dates) == 0:
             weighted_mean = mean_corr
         else:
-            closest_date = valid_dates.max()
-            weights_df = holdings[holdings['Date'] == closest_date][['Ticker', 'Weight']].copy()
+            closest_date = valid_dates[-1]  # Already sorted, take last
+            weights_df = holdings[holdings['Date'] == closest_date][['Ticker', 'Weight']]
             weights_df = weights_df[weights_df['Ticker'].isin(corr_matrix.columns)]
 
             if len(weights_df) > 0:
+                # Vectorized weighted correlation calculation
                 weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
-                weighted_corrs = []
-                pair_weights = []
+                weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
 
-                for ii in range(len(corr_matrix.columns)):
-                    for jj in range(ii + 1, len(corr_matrix.columns)):
-                        ticker1 = corr_matrix.columns[ii]
-                        ticker2 = corr_matrix.columns[jj]
-                        corr = corr_matrix.iloc[ii, jj]
+                # Compute pair weights using outer product
+                weight_matrix = np.outer(weights_arr, weights_arr)
+                pair_weights = weight_matrix[triu_i, triu_j]
 
-                        if np.isnan(corr):
-                            continue
-
-                        w1 = weights_dict.get(ticker1, 0)
-                        w2 = weights_dict.get(ticker2, 0)
-
-                        if w1 > 0 and w2 > 0:
-                            pair_weight = w1 * w2
-                            weighted_corrs.append(corr)
-                            pair_weights.append(pair_weight)
-
-                if len(weighted_corrs) > 0:
-                    weighted_mean = np.average(weighted_corrs, weights=pair_weights)
+                # Filter to valid correlations and positive weights
+                valid_weight_mask = valid_mask & (pair_weights > 0)
+                if valid_weight_mask.any():
+                    weighted_mean = np.average(
+                        corr_values[valid_weight_mask],
+                        weights=pair_weights[valid_weight_mask]
+                    )
                 else:
                     weighted_mean = mean_corr
             else:
@@ -313,7 +284,7 @@ files_hash = get_ark_files_hash()
 
 with st.spinner("Calculating correlations..."):
     # Load holdings once (cached)
-    holdings = get_cached_ark_holdings(files_hash, selected_etf)
+    holdings = load_ark_holdings(files_hash, selected_etf)
     corr_matrix, returns, current_weights = calculate_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
 
 if corr_matrix is not None and len(corr_matrix) > 0:

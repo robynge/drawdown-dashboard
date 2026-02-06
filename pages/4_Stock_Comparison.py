@@ -9,9 +9,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, START_DATE, END_DATE, INPUT_DIR
-from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list, get_ark_ticker_list
+from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list, get_ark_ticker_list, get_ark_files_hash, get_r3000_files_hash
 from drawdown_calculator import calculate_drawdowns
-from chart_config import CHART_CONFIG
+from chart_config import CHART_CONFIG, DD_COLORS
 
 st.set_page_config(
     page_title="Stock Comparison",
@@ -29,34 +29,6 @@ Compare drawdown patterns between ARK ETF holdings and Russell 3000 constituents
 st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}")
 
 ""  # Add space
-
-# Helper function for cache invalidation
-def get_ark_files_hash():
-    """Get hash of ARK holdings files for cache invalidation"""
-    mtimes = []
-    for etf in ARK_ETFS:
-        holdings_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
-        if holdings_file.exists():
-            mtimes.append(holdings_file.stat().st_mtime)
-    return max(mtimes) if mtimes else 0
-
-def get_r3000_files_hash():
-    """Get hash of Russell 3000 files for cache invalidation"""
-    mtimes = []
-    r3000_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
-    if r3000_file.exists():
-        mtimes.append(r3000_file.stat().st_mtime)
-    return max(mtimes) if mtimes else 0
-
-@st.cache_data
-def get_cached_r3000_holdings(_files_hash):
-    """Load and cache entire R3000 holdings (called once, reused for all tickers)"""
-    return load_r3000_holdings()
-
-@st.cache_data
-def get_cached_ark_holdings(_files_hash, etf):
-    """Load and cache ARK ETF holdings (called once per ETF, reused for all stocks)"""
-    return load_ark_holdings(etf)
 
 @st.cache_data
 def get_ark_stock_list(_files_hash, etf):
@@ -156,18 +128,12 @@ def create_stock_chart(price_df, dd_data, stock_name):
     if len(dd_data) > 0:
         top_10_dd = dd_data[dd_data['rank'] != 'Current'].head(10)
 
-        # Color palette for drawdowns
-        dd_colors = ['rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
-                     'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
-                     'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
-                     'rgba(255, 228, 181, 0.3)']
-
         # Add drawdown shaded regions
         for idx, (_, row) in enumerate(top_10_dd.iterrows()):
             fig.add_vrect(
                 x0=row['peak_date'],
                 x1=row['trough_date'],
-                fillcolor=dd_colors[idx % len(dd_colors)],
+                fillcolor=DD_COLORS[idx % len(DD_COLORS)],
                 layer="below",
                 line_width=0
             )
@@ -335,10 +301,10 @@ with left_panel:
     if ark_ticker and r3000_ticker:
         with st.spinner("Loading stock data..."):
             # Use cached ARK holdings for fast ticker lookup
-            ark_holdings = get_cached_ark_holdings(ark_files_hash, selected_etf)
+            ark_holdings = load_ark_holdings(ark_files_hash, selected_etf)
             ark_price_df = load_ark_stock_prices(ark_holdings, ark_ticker)
             # Use cached R3000 holdings for fast ticker lookup
-            r3000_holdings = get_cached_r3000_holdings(r3000_files_hash)
+            r3000_holdings = load_r3000_holdings(r3000_files_hash)
             r3000_price_df = load_r3000_stock_prices(r3000_holdings, r3000_ticker)
 
             if len(ark_price_df) > 0:

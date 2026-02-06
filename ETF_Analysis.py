@@ -10,7 +10,7 @@ import pickle
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
 from config import ARK_ETFS, START_DATE, END_DATE, OUTPUT_DIR
-from data_loader import load_etf_prices, get_stock_etf_mapping
+from data_loader import load_etf_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 from recovery_probability import get_etf_drawdowns_in_depth_range
