@@ -26,7 +26,12 @@ Bootstrap permutation test to determine if portfolio correlation has significant
 
 @st.cache_data
 def prepare_returns_data(_files_hash, etf, lookback_days, _holdings):
-    """Prepare returns data for correlation analysis"""
+    """Prepare returns data for correlation analysis
+
+    Returns:
+        returns: DataFrame of daily returns
+        dropped_stocks: list of stocks excluded due to incomplete data
+    """
     holdings = _holdings
 
     # Get current holdings
@@ -58,6 +63,9 @@ def prepare_returns_data(_files_hash, etf, lookback_days, _holdings):
         aggfunc='first'
     )
 
+    # Track stocks before filtering
+    stocks_before = set(price_matrix.columns)
+
     # Drop tickers with too many missing values (less than 50% data)
     min_data_points = len(price_matrix) * 0.5
     price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
@@ -69,7 +77,12 @@ def prepare_returns_data(_files_hash, etf, lookback_days, _holdings):
     returns = returns.iloc[1:]  # Remove first row
     returns = returns.dropna(axis=1)  # Remove columns (stocks) with any NaN
 
-    return returns
+    # Track which stocks were dropped
+    stocks_after = set(returns.columns)
+    dropped_stocks = stocks_before - stocks_after
+    dropped_stocks = [t.split()[0] for t in dropped_stocks]  # Clean ticker names
+
+    return returns, sorted(dropped_stocks)
 
 def extract_pairwise_correlations(corr_matrix):
     """Extract upper triangle of correlation matrix as a flat array"""
@@ -133,7 +146,11 @@ with st.spinner("Loading data..."):
     holdings = load_ark_holdings(files_hash, selected_etf)
     # Need enough data for two non-overlapping windows
     lookback_days = 120  # Need enough trading days for two non-overlapping windows
-    returns = prepare_returns_data(files_hash, selected_etf, lookback_days, holdings)
+    returns, dropped_stocks = prepare_returns_data(files_hash, selected_etf, lookback_days, holdings)
+
+# Show dropped stocks if any
+if dropped_stocks:
+    st.caption(f"⚠️ Excluded due to incomplete data: {', '.join(dropped_stocks)}")
 
 if len(returns) >= window_size * 2:
     # Define two non-overlapping windows
