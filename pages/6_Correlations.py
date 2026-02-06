@@ -378,7 +378,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 paper_bgcolor='white'
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
             st.markdown("<small>*Holdings with less than 50% price data in the lookback period are excluded from the matrix.</small>", unsafe_allow_html=True)
 
@@ -426,7 +426,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 yaxis=dict(gridcolor='lightgray')
             )
 
-            st.plotly_chart(fig_ts, use_container_width=True)
+            st.plotly_chart(fig_ts, width='stretch')
 
             st.markdown(f"<small>*Solid blue = weighted by position size (large positions matter more). Dashed red = unweighted (equal weight to all pairs). Rising values indicate increasing concentration risk.</small>", unsafe_allow_html=True)
         else:
@@ -488,7 +488,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             yaxis=dict(gridcolor='lightgray')
         )
 
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(fig_hist, width='stretch')
 
 else:
     st.warning(f"Not enough data to calculate correlations for {selected_etf}")

@@ -281,7 +281,7 @@ if len(returns) >= window_size * 2:
                 yaxis=dict(gridcolor='lightgray')
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         with chart_cols[1]:
             fig_dist = go.Figure()
@@ -317,7 +317,7 @@ if len(returns) >= window_size * 2:
                 yaxis=dict(gridcolor='lightgray')
             )
 
-            st.plotly_chart(fig_dist, use_container_width=True)
+            st.plotly_chart(fig_dist, width='stretch')
 
         st.markdown(f"<small>*Left: Under H₀, the observed Δ should fall within the bulk of the null distribution. Right: Comparison of pairwise correlation distributions between the two windows.</small>", unsafe_allow_html=True)
 

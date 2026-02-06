@@ -227,7 +227,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
         fig_hhi.update_yaxes(title_text="HHI", secondary_y=False, gridcolor='lightgray')
         fig_hhi.update_yaxes(title_text="Effective Positions", secondary_y=True)
 
-        st.plotly_chart(fig_hhi, use_container_width=True, config=CHART_CONFIG)
+        st.plotly_chart(fig_hhi, width='stretch', config=CHART_CONFIG)
 
     "" # Space
 
@@ -366,7 +366,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
         fig_main.update_yaxes(title_text="Price ($)", secondary_y=False, gridcolor='lightgray')
         fig_main.update_yaxes(title_text="HHI", secondary_y=True)
 
-        st.plotly_chart(fig_main, use_container_width=True, config=CHART_CONFIG)
+        st.plotly_chart(fig_main, width='stretch', config=CHART_CONFIG)
 
         st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. Dotted blue line shows HHI (concentration).*</small>", unsafe_allow_html=True)
 
@@ -457,7 +457,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                 fig_returns.update_yaxes(title_text="Cumulative Return (%)", secondary_y=False, gridcolor='lightgray')
                 fig_returns.update_yaxes(title_text="HHI", secondary_y=True)
 
-                st.plotly_chart(fig_returns, use_container_width=True, config=CHART_CONFIG)
+                st.plotly_chart(fig_returns, width='stretch', config=CHART_CONFIG)
 
                 # Summary statistics
                 st.markdown("#### Performance Summary")
@@ -551,7 +551,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             )
             fig_dd_hhi.update_yaxes(title_text="HHI", secondary_y=True)
 
-            st.plotly_chart(fig_dd_hhi, use_container_width=True, config=CHART_CONFIG)
+            st.plotly_chart(fig_dd_hhi, width='stretch', config=CHART_CONFIG)
 
             st.markdown("<small>*Red area shows drawdown (lower = deeper drawdown). Blue line shows HHI concentration. Look for patterns: does HHI increase during drawdowns?*</small>", unsafe_allow_html=True)
 

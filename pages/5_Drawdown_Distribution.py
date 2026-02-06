@@ -417,7 +417,7 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
             fig.update_yaxes(title_text="% of Stocks", gridcolor='lightgray', row=1, col=1)
             fig.update_yaxes(title_text="Number of Stocks", gridcolor='lightgray', row=2, col=1)
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
     ""  # Space
 
@@ -446,7 +446,7 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                     f"{r3000_stats['best']:.1f}%"
                 ]
             })
-            st.dataframe(stats_df, hide_index=True, use_container_width=True)
+            st.dataframe(stats_df, hide_index=True, width='stretch')
 
     with stats_cols[1]:
         if etf_drawdown is not None and etf_percentile is not None:
@@ -469,14 +469,14 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
         ark_display['max_drawdown'] = ark_display['max_drawdown'].apply(lambda x: f"{x:.1f}%")
         ark_display = ark_display.sort_values('max_drawdown')
         ark_display.columns = ['Ticker', 'Max Drawdown', '# Valid DDs']
-        st.dataframe(ark_display, hide_index=True, use_container_width=True, height=400)
+        st.dataframe(ark_display, hide_index=True, width='stretch', height=400)
 
     with table_cols[1]:
         st.markdown(f"##### {selected_benchmark} (Top 50 Worst)")
         r3000_display = r3000_dd.nsmallest(50, 'max_drawdown')[['ticker', 'max_drawdown', 'num_drawdowns']].copy()
         r3000_display['max_drawdown'] = r3000_display['max_drawdown'].apply(lambda x: f"{x:.1f}%")
         r3000_display.columns = ['Ticker', 'Max Drawdown', '# Valid DDs']
-        st.dataframe(r3000_display, hide_index=True, use_container_width=True, height=400)
+        st.dataframe(r3000_display, hide_index=True, width='stretch', height=400)
 
 else:
     st.warning("Not enough data to calculate distributions. Please check your data files.")

@@ -363,7 +363,7 @@ with right_panel:
             ark_display_name = f"{ark_ticker}" if not ark_company_name or ark_company_name == ark_ticker else f"{ark_ticker} - {ark_company_name}"
 
             fig_ark = create_stock_chart(ark_price_df, ark_dd, f"{selected_etf}: {ark_display_name}")
-            st.plotly_chart(fig_ark, use_container_width=True, config=CHART_CONFIG)
+            st.plotly_chart(fig_ark, width='stretch', config=CHART_CONFIG)
         else:
             st.warning(f"No price data available for {ark_ticker}")
 
@@ -376,7 +376,7 @@ with right_panel:
             r3000_display_name = f"{r3000_ticker}" if not r3000_company_name or r3000_company_name == r3000_ticker else f"{r3000_ticker} - {r3000_company_name}"
 
             fig_r3000 = create_stock_chart(r3000_price_df, r3000_dd, f"Russell 3000: {r3000_display_name}")
-            st.plotly_chart(fig_r3000, use_container_width=True, config=CHART_CONFIG)
+            st.plotly_chart(fig_r3000, width='stretch', config=CHART_CONFIG)
         else:
             st.warning(f"No price data available for {r3000_ticker}")
     else:
@@ -405,7 +405,7 @@ if ark_ticker and r3000_ticker:
                 display_df = display_df[['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
                 display_df = display_df.rename(columns={'rank': 'Rank'})
 
-                st.dataframe(display_df, hide_index=True, use_container_width=True)
+                st.dataframe(display_df, hide_index=True, width='stretch')
 
     ""  # Space
 
@@ -428,4 +428,4 @@ if ark_ticker and r3000_ticker:
                 display_df = display_df[['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
                 display_df = display_df.rename(columns={'rank': 'Rank'})
 
-                st.dataframe(display_df, hide_index=True, use_container_width=True)
+                st.dataframe(display_df, hide_index=True, width='stretch')
