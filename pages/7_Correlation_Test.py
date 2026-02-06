@@ -63,7 +63,11 @@ def prepare_returns_data(_files_hash, etf, lookback_days, _holdings):
     price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
 
     # Calculate daily returns
-    returns = price_matrix.pct_change().dropna()
+    returns = price_matrix.pct_change()
+
+    # Drop first row (NaN from pct_change) and any stocks with missing data
+    returns = returns.iloc[1:]  # Remove first row
+    returns = returns.dropna(axis=1)  # Remove columns (stocks) with any NaN
 
     return returns
 
