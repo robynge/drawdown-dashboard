@@ -94,7 +94,116 @@ def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
     current_weights = holdings_filtered[holdings_filtered['Date'] == latest_date][['Ticker', 'Weight']].copy()
     current_weights = current_weights[current_weights['Ticker'].isin(corr_matrix.columns)]
 
-    return corr_matrix, returns, current_weights
+    return corr_matrix, returns, current_weights, holdings_filtered
+
+
+@st.cache_data
+def calculate_weighted_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
+    """Calculate weighted correlation matrix for current holdings
+
+    Weight for each day = w_A,t × w_B,t (product of both stocks' weights)
+    Then use weighted mean, weighted covariance, weighted variance to compute correlation.
+    """
+    holdings = _holdings
+
+    # Get current holdings
+    latest_date = holdings['Date'].max()
+    current_tickers = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
+
+    # Filter out currency tickers and money market funds
+    if 'Bloomberg Name' in holdings.columns:
+        currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
+        current_tickers = [t for t in current_tickers if t not in currency_tickers]
+
+    excluded_tickers = ['FTOXX', 'FIRXX']
+    current_tickers = [t for t in current_tickers if t.split()[0] not in excluded_tickers]
+
+    # Calculate start date for lookback period
+    lookback_start = latest_date - pd.Timedelta(days=lookback_days)
+
+    # Filter holdings to lookback period
+    holdings_filtered = holdings[
+        (holdings['Date'] >= lookback_start) &
+        (holdings['Ticker'].isin(current_tickers))
+    ].copy()
+
+    # Pivot to get price matrix and weight matrix
+    price_matrix = holdings_filtered.pivot_table(
+        index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
+    )
+    weight_matrix = holdings_filtered.pivot_table(
+        index='Date', columns='Ticker', values='Weight', aggfunc='first'
+    )
+
+    # Drop tickers with too many missing values
+    min_data_points = len(price_matrix) * 0.5
+    valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
+    price_matrix = price_matrix[valid_tickers]
+    weight_matrix = weight_matrix[valid_tickers]
+
+    # Calculate daily returns
+    returns = price_matrix.pct_change().dropna()
+    weight_matrix = weight_matrix.loc[returns.index]  # Align weights with returns
+
+    # Fill missing weights with 0
+    weight_matrix = weight_matrix.fillna(0)
+
+    tickers = returns.columns.tolist()
+    n = len(tickers)
+
+    # Initialize weighted correlation matrix
+    weighted_corr = pd.DataFrame(np.eye(n), index=tickers, columns=tickers)
+
+    # Calculate weighted correlation for each pair
+    for i in range(n):
+        for j in range(i + 1, n):
+            ticker_a, ticker_b = tickers[i], tickers[j]
+
+            R_A = returns[ticker_a].values
+            R_B = returns[ticker_b].values
+            W_A = weight_matrix[ticker_a].values
+            W_B = weight_matrix[ticker_b].values
+
+            # Step 1: Pair weight W_t = w_A,t × w_B,t
+            W_t = W_A * W_B
+
+            # Skip if no valid weights
+            if W_t.sum() == 0:
+                # Fall back to unweighted correlation
+                valid_mask = ~(np.isnan(R_A) | np.isnan(R_B))
+                if valid_mask.sum() > 1:
+                    corr_val = np.corrcoef(R_A[valid_mask], R_B[valid_mask])[0, 1]
+                else:
+                    corr_val = np.nan
+                weighted_corr.iloc[i, j] = corr_val
+                weighted_corr.iloc[j, i] = corr_val
+                continue
+
+            # Step 2: Normalize weights
+            W_norm = W_t / W_t.sum()
+
+            # Step 3: Weighted means
+            mu_A = np.sum(W_norm * R_A)
+            mu_B = np.sum(W_norm * R_B)
+
+            # Step 4: Weighted covariance and variance
+            cov_AB = np.sum(W_norm * (R_A - mu_A) * (R_B - mu_B))
+            var_A = np.sum(W_norm * (R_A - mu_A) ** 2)
+            var_B = np.sum(W_norm * (R_B - mu_B) ** 2)
+
+            # Step 5: Weighted correlation
+            if var_A > 0 and var_B > 0:
+                corr_val = cov_AB / np.sqrt(var_A * var_B)
+                # Clamp to [-1, 1] for numerical stability
+                corr_val = np.clip(corr_val, -1, 1)
+            else:
+                corr_val = np.nan
+
+            weighted_corr.iloc[i, j] = corr_val
+            weighted_corr.iloc[j, i] = corr_val
+
+    return weighted_corr
+
 
 def get_correlation_stats(corr_matrix, weights_df=None):
     """Calculate summary statistics for correlation matrix (vectorized)
@@ -294,13 +403,26 @@ with cols[0]:
         )
         rolling_window = rolling_options[selected_rolling]
 
+        ""  # Space
+
+        st.markdown("##### Correlation Type")
+        use_weighted_corr = st.toggle("Weighted Correlation", value=False)
+        if use_weighted_corr:
+            st.caption("Weight = w_A × w_B per day")
+
 # Calculate correlation matrix
 files_hash = get_ark_files_hash()
 
 with st.spinner("Calculating correlations..."):
     # Load holdings once (cached)
     holdings = load_ark_holdings(files_hash, selected_etf)
-    corr_matrix, returns, current_weights = calculate_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
+    corr_matrix_unweighted, returns, current_weights, holdings_filtered = calculate_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
+
+    # Use weighted or unweighted correlation matrix based on toggle
+    if use_weighted_corr:
+        corr_matrix = calculate_weighted_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
+    else:
+        corr_matrix = corr_matrix_unweighted
 
 if corr_matrix is not None and len(corr_matrix) > 0:
     # Get statistics (including weighted correlation)
@@ -367,8 +489,9 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 )
             ))
 
+            corr_type_label = "Weighted" if use_weighted_corr else "Unweighted"
             fig.update_layout(
-                title=f"{selected_etf} Holdings Correlation Matrix ({selected_lookback})",
+                title=f"{selected_etf} Holdings Correlation Matrix ({selected_lookback}, {corr_type_label})",
                 xaxis_title="",
                 yaxis_title="",
                 height=700,
@@ -380,7 +503,10 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             st.plotly_chart(fig, width='stretch')
 
-            st.markdown("<small>*Holdings with less than 50% price data in the lookback period are excluded from the matrix.</small>", unsafe_allow_html=True)
+            if use_weighted_corr:
+                st.markdown("<small>*Weighted correlation: each day's weight = w_A × w_B (product of both stocks' portfolio weights). Days when positions are larger contribute more to the correlation.*</small>", unsafe_allow_html=True)
+            else:
+                st.markdown("<small>*Holdings with less than 50% price data in the lookback period are excluded from the matrix.*</small>", unsafe_allow_html=True)
 
     ""  # Space
 
