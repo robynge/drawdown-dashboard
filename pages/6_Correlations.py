@@ -259,10 +259,20 @@ def get_correlation_stats(corr_matrix, weights_df=None):
             valid_corrs = corr_values[valid_weight_mask]
             valid_weights = pair_weights[valid_weight_mask]
             stats['weighted_mean'] = np.average(valid_corrs, weights=valid_weights)
+
+            # Weighted median: sort by correlation, find where cumulative weight >= 50%
+            sorted_idx = np.argsort(valid_corrs)
+            sorted_corrs = valid_corrs[sorted_idx]
+            sorted_weights = valid_weights[sorted_idx]
+            cumsum = np.cumsum(sorted_weights) / np.sum(sorted_weights)
+            median_idx = np.searchsorted(cumsum, 0.5)
+            stats['weighted_median'] = sorted_corrs[min(median_idx, len(sorted_corrs) - 1)]
         else:
             stats['weighted_mean'] = stats['mean']
+            stats['weighted_median'] = stats['median']
     else:
         stats['weighted_mean'] = stats['mean']
+        stats['weighted_median'] = stats['median']
 
     # Find highest and lowest correlation pairs (vectorized)
     tickers = corr_matrix.columns.tolist()
@@ -455,6 +465,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             st.markdown("**Correlation (Weighted)**")
             st.markdown(f"Mean: **{stats['weighted_mean']:.3f}**")
+            st.markdown(f"Median: **{stats['weighted_median']:.3f}**")
 
     # Right panel: Heatmap
     with cols[1]:
