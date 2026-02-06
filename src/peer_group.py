@@ -1,22 +1,19 @@
 """Peer group price calculation logic"""
 import pandas as pd
 import numpy as np
+import streamlit as st
 from data_loader import load_r3000_holdings, load_industry_info, get_r3000_files_hash
 from config import START_DATE, END_DATE
 
-_cache = {}
 
-def calculate_peer_group_prices_mv():
+@st.cache_data
+def calculate_peer_group_prices_mv(_files_hash):
     """Calculate peer group total market values (sum of market values by GICS)
 
     Returns:
         DataFrame with columns: Date, GICS, Value
     """
-    cache_key = f'peer_group_prices_mv_{START_DATE}_{END_DATE}'
-    if cache_key in _cache:
-        return _cache[cache_key]
-
-    holdings = load_r3000_holdings(get_r3000_files_hash())
+    holdings = load_r3000_holdings(_files_hash)
     industry_dict = load_industry_info(source='r3000')
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
@@ -49,11 +46,11 @@ def calculate_peer_group_prices_mv():
     peer_prices = holdings_with_gics.groupby(['Date', 'GICS'])['Market_Value'].sum().reset_index()
     peer_prices.columns = ['Date', 'GICS', 'Value']
 
-    _cache[cache_key] = peer_prices
     return peer_prices
 
 
-def calculate_peer_group_prices_weighted():
+@st.cache_data
+def calculate_peer_group_prices_weighted(_files_hash):
     """Calculate peer group weighted prices
 
     For each stock:
@@ -64,11 +61,7 @@ def calculate_peer_group_prices_weighted():
     Returns:
         DataFrame with columns: Date, GICS, Value
     """
-    cache_key = f'peer_group_prices_weighted_{START_DATE}_{END_DATE}'
-    if cache_key in _cache:
-        return _cache[cache_key]
-
-    holdings = load_r3000_holdings(get_r3000_files_hash())
+    holdings = load_r3000_holdings(_files_hash)
     industry_dict = load_industry_info(source='r3000')
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
@@ -114,7 +107,6 @@ def calculate_peer_group_prices_weighted():
     peer_prices = holdings_with_gics.groupby(['Date', 'GICS'])['Weighted_Price'].sum().reset_index()
     peer_prices.columns = ['Date', 'GICS', 'Value']
 
-    _cache[cache_key] = peer_prices
     return peer_prices
 
 
@@ -145,10 +137,11 @@ def get_peer_group_prices(industry, version='mv'):
     # Use mapped name if available, otherwise use original
     full_industry_name = name_mapping.get(industry, industry)
 
+    files_hash = get_r3000_files_hash()
     if version == 'mv':
-        all_prices = calculate_peer_group_prices_mv()
+        all_prices = calculate_peer_group_prices_mv(files_hash)
     else:
-        all_prices = calculate_peer_group_prices_weighted()
+        all_prices = calculate_peer_group_prices_weighted(files_hash)
 
     industry_prices = all_prices[all_prices['GICS'] == full_industry_name].copy()
     industry_prices = industry_prices[['Date', 'Value']].sort_values('Date')

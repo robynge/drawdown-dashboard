@@ -231,37 +231,44 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
 
     "" # Space
 
-    # Section 3: Price + Drawdown + HHI Overlay (Main Chart)
-    # Copied from ETF_Analysis.py with HHI line added
+    # Section 3: Price + Drawdown + HHI (copied from ETF_Analysis.py with HHI added)
     st.subheader("Price, Drawdowns & Concentration")
 
     dd_hhi_card = st.container(border=True)
     with dd_hhi_card:
-        # Calculate drawdowns
-        dd_df = calculate_drawdowns(etf_prices)
+        price_df = etf_prices
+        etf_dd_data = calculate_drawdowns(price_df)
 
         # Create figure with secondary y-axis for HHI
-        fig_main = make_subplots(specs=[[{"secondary_y": True}]])
+        fig2 = make_subplots(specs=[[{"secondary_y": True}]])
 
-        # Get top 10 drawdowns and add shaded regions
-        if len(dd_df) > 0:
-            top_10_dd = dd_df[dd_df['rank'] != 'Current'].head(10)
+        # Get top 10 drawdowns
+        if len(etf_dd_data) > 0:
+            top_10_dd = etf_dd_data[etf_dd_data['rank'] != 'Current'].head(10)
 
+            # Color palette for drawdowns (from ETF_Analysis.py)
+            dd_colors = ['rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
+                         'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
+                         'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
+                         'rgba(255, 228, 181, 0.3)']
+
+            # Add drawdown shaded regions
             for idx, (_, row) in enumerate(top_10_dd.iterrows()):
-                fig_main.add_vrect(
+                fig2.add_vrect(
                     x0=row['peak_date'],
                     x1=row['trough_date'],
-                    fillcolor=DD_COLORS[idx % len(DD_COLORS)],
+                    fillcolor=dd_colors[idx % len(dd_colors)],
                     layer="below",
                     line_width=0
                 )
 
-        # Add price line with custom hover template (from ETF_Analysis.py)
-        price_df_copy = etf_prices.copy()
+        # Add price line with custom hover template
+        price_df_copy = price_df.copy()
         price_df_copy['DD_Info'] = ''
 
-        if len(dd_df) > 0:
-            top_10_dd = dd_df[dd_df['rank'] != 'Current'].head(10)
+        # Add drawdown info for each date
+        if len(etf_dd_data) > 0:
+            top_10_dd = etf_dd_data[etf_dd_data['rank'] != 'Current'].head(10)
             for _, row in top_10_dd.iterrows():
                 mask = (price_df_copy['Date'] >= row['peak_date']) & (price_df_copy['Date'] <= row['trough_date'])
                 price_df_copy.loc[mask, 'DD_Info'] = (
@@ -271,46 +278,43 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                     f"Trough: {row['trough_date'].strftime('%Y-%m-%d')} ${row['trough_price']:.2f}"
                 )
 
-        fig_main.add_trace(
-            go.Scatter(
-                x=price_df_copy['Date'],
-                y=price_df_copy['Close'],
-                mode='lines',
-                line=dict(color='black', width=2),
-                customdata=price_df_copy['DD_Info'],
-                hovertemplate='%{x|%Y-%m-%d}<br>' +
-                              'Price: $%{y:.2f}%{customdata}<extra></extra>',
-                showlegend=False,
-                hoverlabel=dict(bgcolor='white', bordercolor='lightgray'),
-                marker=dict(color='rgba(0,0,0,0)')
-            ),
-            secondary_y=False
-        )
+        fig2.add_trace(go.Scatter(
+            x=price_df_copy['Date'],
+            y=price_df_copy['Close'],
+            mode='lines',
+            line=dict(color='black', width=2),
+            customdata=price_df_copy['DD_Info'],
+            hovertemplate='%{x|%Y-%m-%d}<br>' +
+                          'Price: $%{y:.2f}%{customdata}<extra></extra>',
+            showlegend=False,
+            hoverlabel=dict(bgcolor='white', bordercolor='lightgray'),
+            marker=dict(color='rgba(0,0,0,0)')
+        ), secondary_y=False)
 
-        # Add current drawdown line and shaded area (from ETF_Analysis.py)
-        if len(dd_df) > 0 and len(dd_df[dd_df['rank'] == 'Current']) > 0:
-            current_dd = dd_df[dd_df['rank'] == 'Current'].iloc[0]
+        # Add current drawdown line and shaded area
+        if len(etf_dd_data) > 0:
+            current_dd = etf_dd_data[etf_dd_data['rank'] == 'Current'].iloc[0]
             peak_price = current_dd['peak_price']
             peak_date = current_dd['peak_date']
             current_price = current_dd['trough_price']
             current_dd_pct = current_dd['depth_pct']
 
-            # Horizontal line from peak date to end
-            fig_main.add_shape(
+            # Add horizontal line from peak date to the end of the chart
+            fig2.add_shape(
                 type="line",
                 x0=peak_date,
-                x1=etf_prices['Date'].max(),
+                x1=price_df['Date'].max(),
                 y0=peak_price,
                 y1=peak_price,
                 line=dict(color='red', width=2, dash='dash'),
                 layer='above'
             )
 
-            # Shaded rectangle for current drawdown
-            fig_main.add_shape(
+            # Add shaded rectangle from peak date to current date
+            fig2.add_shape(
                 type="rect",
                 x0=peak_date,
-                x1=etf_prices['Date'].max(),
+                x1=price_df['Date'].max(),
                 y0=current_price,
                 y1=peak_price,
                 fillcolor='rgba(128,128,128,0.25)',
@@ -318,13 +322,13 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                 layer='below'
             )
 
-            # Annotation on right side
-            fig_main.add_annotation(
+            # Add text annotation on the right side showing current drawdown
+            fig2.add_annotation(
                 text=f"<b>Current Drawdown</b><br>" +
                      f"Depth: {current_dd_pct:.2f}%<br>" +
                      f"Peak: {peak_date.strftime('%Y-%m-%d')} ${peak_price:.2f}<br>" +
-                     f"Current: {etf_prices['Date'].max().strftime('%Y-%m-%d')} ${current_price:.2f}",
-                x=etf_prices['Date'].max(),
+                     f"Current: {price_df['Date'].max().strftime('%Y-%m-%d')} ${current_price:.2f}",
+                x=price_df['Date'].max(),
                 y=(peak_price + current_price) / 2,
                 showarrow=False,
                 xanchor='left',
@@ -338,27 +342,23 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                 borderpad=4
             )
 
-        # Add HHI line on secondary axis
-        fig_main.add_trace(
-            go.Scatter(
-                x=hhi_data['Date'],
-                y=hhi_data['HHI'],
-                mode='lines',
-                name='HHI',
-                line=dict(color='steelblue', width=2, dash='dot'),
-                hovertemplate='<b>HHI</b><br>Date: %{x|%Y-%m-%d}<br>HHI: %{y:.4f}<extra></extra>'
-            ),
-            secondary_y=True
-        )
+        # Add HHI line on secondary y-axis
+        fig2.add_trace(go.Scatter(
+            x=hhi_data['Date'],
+            y=hhi_data['HHI'],
+            mode='lines',
+            name='HHI',
+            line=dict(color='steelblue', width=2, dash='dot'),
+            hovertemplate='<b>HHI</b><br>Date: %{x|%Y-%m-%d}<br>HHI: %{y:.4f}<extra></extra>'
+        ), secondary_y=True)
 
-        fig_main.update_layout(
+        fig2.update_layout(
             title=f"{selected_etf} Price with Top 10 Drawdowns & Current Drawdown",
             xaxis_title="Date",
             yaxis_title="Price ($)",
             hovermode='x unified',
             height=650,
-            showlegend=True,
-            legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
+            showlegend=False,
             plot_bgcolor='white',
             paper_bgcolor='white',
             xaxis=dict(gridcolor='lightgray', showgrid=True),
@@ -366,31 +366,32 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             margin=dict(l=0, r=120, t=40, b=0)
         )
 
-        fig_main.update_yaxes(title_text="HHI", secondary_y=True)
+        fig2.update_yaxes(title_text="HHI", secondary_y=True)
 
-        st.plotly_chart(fig_main, width='stretch', config=CHART_CONFIG)
+        st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 
-        st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. Dotted blue line shows HHI (concentration).*</small>", unsafe_allow_html=True)
+        st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. Dotted blue line shows HHI.*</small>", unsafe_allow_html=True)
 
         "" # Space
 
         # Top 10 Drawdown Table
-        if len(dd_df) > 0:
+        if len(etf_dd_data) > 0:
             st.markdown("#### Top 10 Historical Drawdowns")
 
-            display_dd = dd_df[dd_df['rank'] != 'Current'].head(10).copy()
+            display_df = etf_dd_data[etf_dd_data['rank'] != 'Current'].head(10).copy()
 
-            if len(display_dd) > 0:
-                display_dd['Rank'] = display_dd['rank'].astype(str)
-                display_dd['Depth %'] = display_dd['depth_pct'].apply(lambda x: f"{x:.2f}%")
-                display_dd['Peak Date'] = display_dd['peak_date'].dt.strftime('%Y-%m-%d')
-                display_dd['Trough Date'] = display_dd['trough_date'].dt.strftime('%Y-%m-%d')
-                display_dd['Peak Price'] = display_dd['peak_price'].apply(lambda x: f"${x:,.2f}")
-                display_dd['Trough Price'] = display_dd['trough_price'].apply(lambda x: f"${x:,.2f}")
+            if len(display_df) > 0:
+                display_df['rank'] = display_df['rank'].astype(str)
+                display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
+                display_df['Peak Date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
+                display_df['Trough Date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
+                display_df['Peak Price'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
+                display_df['Trough Price'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
 
-                display_dd = display_dd[['Rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
+                display_df = display_df[['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
+                display_df = display_df.rename(columns={'rank': 'Rank'})
 
-                st.dataframe(display_dd, hide_index=True, width='stretch')
+                st.dataframe(display_df, hide_index=True, width='stretch')
 
     "" # Space
 

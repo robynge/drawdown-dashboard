@@ -1,26 +1,19 @@
 """Recovery probability calculator based on historical drawdown data"""
 import pandas as pd
 import numpy as np
+import streamlit as st
 from data_loader import load_ark_holdings, get_ark_files_hash, ARK_ETFS
 from drawdown_calculator import calculate_drawdowns
 from config import START_DATE, END_DATE
-import pickle
-from pathlib import Path
 
-_cache = {}
-CACHE_FILE = Path(__file__).parent.parent / 'data' / 'cache' / 'recovery_probabilities.pkl'
-
-def calculate_all_stock_drawdowns():
+@st.cache_data
+def calculate_all_stock_drawdowns(_files_hash):
     """Calculate all historical drawdowns for all stocks across ARK ETFs
 
     Returns:
         DataFrame with columns: ticker, etf, peak_date, trough_date, depth_pct,
                                 recovery_date, recovered, days_to_recover
     """
-    cache_key = f'all_stock_drawdowns_{START_DATE}_{END_DATE}'
-    if cache_key in _cache:
-        return _cache[cache_key]
-
     all_drawdowns = []
 
     for etf in ARK_ETFS:
@@ -102,33 +95,17 @@ def calculate_all_stock_drawdowns():
             continue
 
     df = pd.DataFrame(all_drawdowns)
-    _cache[cache_key] = df
     return df
 
 
-def calculate_recovery_probabilities():
+@st.cache_data
+def calculate_recovery_probabilities(_files_hash):
     """Calculate recovery probabilities for different drawdown depth ranges
 
     Returns:
         DataFrame with columns: depth_range, total_events, recovered_events, recovery_probability
     """
-    cache_key = f'recovery_probabilities_{START_DATE}_{END_DATE}'
-    if cache_key in _cache:
-        return _cache[cache_key]
-
-    # Try to load from disk cache
-    if CACHE_FILE.exists():
-        try:
-            with open(CACHE_FILE, 'rb') as f:
-                cached_data = pickle.load(f)
-                if cached_data['cache_key'] == cache_key:
-                    _cache[cache_key] = cached_data['data']
-                    return cached_data['data']
-        except:
-            pass
-
-    # Calculate from scratch
-    all_dd = calculate_all_stock_drawdowns()
+    all_dd = calculate_all_stock_drawdowns(_files_hash)
 
     if len(all_dd) == 0:
         return pd.DataFrame(columns=['depth_range', 'total_events', 'recovered_events', 'recovery_probability'])
@@ -164,16 +141,6 @@ def calculate_recovery_probabilities():
         })
 
     df = pd.DataFrame(recovery_stats)
-    _cache[cache_key] = df
-
-    # Save to disk cache
-    try:
-        CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(CACHE_FILE, 'wb') as f:
-            pickle.dump({'cache_key': cache_key, 'data': df}, f)
-    except Exception as e:
-        print(f"Failed to save recovery probability cache: {e}")
-
     return df
 
 
@@ -186,7 +153,7 @@ def get_recovery_probability_for_depth(depth_pct):
     Returns:
         Recovery probability (0-1) or None if no data available
     """
-    recovery_probs = calculate_recovery_probabilities()
+    recovery_probs = calculate_recovery_probabilities(get_ark_files_hash())
 
     if len(recovery_probs) == 0:
         return None
@@ -219,7 +186,7 @@ def get_drawdowns_in_depth_range(depth_range_label):
                                 days_to_recover, recovery_rate
         Or empty DataFrame if no data
     """
-    all_dd = calculate_all_stock_drawdowns()
+    all_dd = calculate_all_stock_drawdowns(get_ark_files_hash())
 
     if len(all_dd) == 0:
         return pd.DataFrame()
