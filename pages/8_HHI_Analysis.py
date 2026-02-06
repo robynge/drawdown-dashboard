@@ -437,9 +437,9 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                         x=returns_hhi['Date'],
                         y=returns_hhi['HHI'],
                         mode='lines',
-                        name='HHI',
+                        name=f'{selected_etf} HHI',
                         line=dict(color='steelblue', width=2, dash='dot'),
-                        hovertemplate='<b>HHI</b><br>Date: %{x|%Y-%m-%d}<br>HHI: %{y:.4f}<extra></extra>'
+                        hovertemplate=f'<b>{selected_etf} HHI</b><br>Date: %{{x|%Y-%m-%d}}<br>HHI: %{{y:.4f}}<extra></extra>'
                     ),
                     secondary_y=True
                 )
