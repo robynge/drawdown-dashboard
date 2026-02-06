@@ -334,6 +334,8 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
             # For decreased positions: gray from 0 to trough, red from trough to peak
             # For increased positions: gray from 0 to peak, green from peak to trough
 
+            bar_width = 0.7  # Consistent width for all bars
+
             for i, ticker in enumerate(tickers):
                 peak_w = peak_weights[i]
                 trough_w = trough_weights[i]
@@ -345,6 +347,7 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                     fig_changes.add_trace(go.Bar(
                         y=[ticker], x=[trough_w], orientation='h',
                         marker=dict(color='lightgray', line=dict(width=0)),
+                        width=bar_width,
                         showlegend=False, hoverinfo='skip'
                     ))
                     # Red bar (lost portion, starts at trough)
@@ -352,12 +355,14 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                         y=[ticker], x=[abs(change)], orientation='h',
                         marker=dict(color='rgba(220,50,50,0.85)', line=dict(width=0)),
                         base=trough_w,
+                        width=bar_width,
                         showlegend=False, hoverinfo='skip'
                     ))
                     # Black border around peak (entire original position)
                     fig_changes.add_trace(go.Bar(
                         y=[ticker], x=[peak_w], orientation='h',
                         marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=2)),
+                        width=bar_width,
                         showlegend=False, hoverinfo='skip'
                     ))
                 else:
@@ -366,6 +371,7 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                     fig_changes.add_trace(go.Bar(
                         y=[ticker], x=[peak_w], orientation='h',
                         marker=dict(color='lightgray', line=dict(width=0)),
+                        width=bar_width,
                         showlegend=False, hoverinfo='skip'
                     ))
                     # Green bar (added portion, starts at peak, no border)
@@ -373,12 +379,14 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                         y=[ticker], x=[change], orientation='h',
                         marker=dict(color='rgba(50,180,50,0.85)', line=dict(width=0)),
                         base=peak_w,
+                        width=bar_width,
                         showlegend=False, hoverinfo='skip'
                     ))
                     # Black border on top (covers green edge)
                     fig_changes.add_trace(go.Bar(
                         y=[ticker], x=[peak_w], orientation='h',
                         marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=2)),
+                        width=bar_width,
                         showlegend=False, hoverinfo='skip'
                     ))
 
