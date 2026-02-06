@@ -455,7 +455,6 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             st.markdown("**Correlation (Weighted)**")
             st.markdown(f"Mean: **{stats['weighted_mean']:.3f}**")
-            st.caption("Weighted by position size")
 
             ""  # Space
 
