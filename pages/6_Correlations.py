@@ -456,18 +456,6 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             st.markdown("**Correlation (Weighted)**")
             st.markdown(f"Mean: **{stats['weighted_mean']:.3f}**")
 
-            ""  # Space
-
-            st.markdown("##### Highest Correlations")
-            for t1, t2, corr in stats['highest_pairs']:
-                st.markdown(f"<small>{t1} - {t2}: **{corr:.3f}**</small>", unsafe_allow_html=True)
-
-            ""  # Space
-
-            st.markdown("##### Lowest Correlations")
-            for t1, t2, corr in stats['lowest_pairs']:
-                st.markdown(f"<small>{t1} - {t2}: **{corr:.3f}**</small>", unsafe_allow_html=True)
-
     # Right panel: Heatmap
     with cols[1]:
         heatmap_card = st.container(border=True)
@@ -513,6 +501,20 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 st.markdown("<small>*Weighted correlation: each day's weight = w_A × w_B (product of both stocks' portfolio weights). Days when positions are larger contribute more to the correlation.*</small>", unsafe_allow_html=True)
             else:
                 st.markdown("<small>*Holdings with less than 50% price data in the lookback period are excluded from the matrix.*</small>", unsafe_allow_html=True)
+
+            ""  # Space
+
+            # Highest and Lowest Correlations
+            corr_cols = st.columns(2)
+            with corr_cols[0]:
+                st.markdown("##### Highest Correlations")
+                for t1, t2, corr in stats['highest_pairs']:
+                    st.markdown(f"{t1} - {t2}: **{corr:.3f}**")
+
+            with corr_cols[1]:
+                st.markdown("##### Lowest Correlations")
+                for t1, t2, corr in stats['lowest_pairs']:
+                    st.markdown(f"{t1} - {t2}: **{corr:.3f}**")
 
     ""  # Space
 
