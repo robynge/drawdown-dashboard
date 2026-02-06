@@ -28,80 +28,8 @@ DD_COLORS = [
 ]
 
 
-def add_reconstitution_lines(fig, price_line_name="Price"):
-    """Add vertical red lines for Russell Index reconstitution dates with legend
-
-    Args:
-        fig: Plotly figure object
-        price_line_name: Name for the main price line in legend (e.g., "IWV Price", "Peer Group Value")
-
-    Returns:
-        The modified figure object
-    """
-    import plotly.graph_objects as go
-
-    # Update existing price trace to show in legend
-    if len(fig.data) > 0:
-        fig.data[0].name = price_line_name
-        fig.data[0].showlegend = True
-
-    # Add reconstitution lines
-    first_recon = True
-    for recon_date in RUSSELL_RECONSTITUTION_DATES:
-        # Only add lines within analysis period
-        if START_DATE <= recon_date <= END_DATE:
-            # Add vertical line using a scatter trace (for legend)
-            fig.add_trace(go.Scatter(
-                x=[recon_date, recon_date],
-                y=[0, 1],
-                yaxis='y',
-                mode='lines',
-                line=dict(color='red', width=1.5, dash='dot'),
-                name='Russell Reconstitution' if first_recon else None,
-                showlegend=first_recon,
-                legendgroup='reconstitution',
-                hoverinfo='skip'
-            ))
-
-            # Add date label near the line
-            fig.add_annotation(
-                x=recon_date,
-                y=0.98,
-                yref='paper',
-                text=recon_date.strftime('%Y-%m-%d'),
-                showarrow=False,
-                font=dict(size=10, color='red'),
-                textangle=-90,
-                xanchor='left',
-                yanchor='top',
-                bgcolor='rgba(255,255,255,0.8)'
-            )
-
-            first_recon = False
-
-    # Update layout to show legend
-    fig.update_layout(
-        showlegend=True,
-        legend=dict(
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=0.01,
-            bgcolor='rgba(255,255,255,0.8)',
-            bordercolor='rgba(0,0,0,0.3)',
-            borderwidth=1
-        )
-    )
-
-    # Fix y-axis range for reconstitution lines (they use relative 0-1)
-    # We need to update them to use the actual y-axis range
-    return fig
-
-
 def add_reconstitution_vlines(fig, price_line_name="Price"):
     """Add vertical red lines for Russell Index reconstitution dates with legend
-
-    Uses vline shapes + dummy traces for clean legend display.
 
     Args:
         fig: Plotly figure object
@@ -131,7 +59,7 @@ def add_reconstitution_vlines(fig, price_line_name="Price"):
             showlegend=True
         ))
 
-        # Add vertical lines using shapes
+        # Add vertical lines
         for recon_date in recon_dates_in_range:
             fig.add_vline(
                 x=recon_date,
@@ -139,43 +67,18 @@ def add_reconstitution_vlines(fig, price_line_name="Price"):
                 layer='above'
             )
 
-            # Add date label
-            fig.add_annotation(
-                x=recon_date,
-                y=0.98,
-                yref='paper',
-                text=recon_date.strftime('%Y-%m-%d'),
-                showarrow=False,
-                font=dict(size=10, color='red'),
-                textangle=-90,
-                xanchor='left',
-                yanchor='top',
-                bgcolor='rgba(255,255,255,0.8)'
-            )
-
-    # Update layout to show legend above the chart (not inside)
+    # Show legend with white background (not transparent, so it's on top)
     fig.update_layout(
         showlegend=True,
         legend=dict(
-            orientation="h",  # Horizontal legend
-            yanchor="bottom",
-            y=1.02,  # Position above chart
+            yanchor="top",
+            y=0.99,
             xanchor="left",
-            x=0,
+            x=0.01,
             bgcolor='white',
             bordercolor='rgba(0,0,0,0.3)',
-            borderwidth=1,
-            font=dict(size=12)
+            borderwidth=1
         )
     )
-
-    # Ensure annotations are clearly visible
-    fig.update_annotations(dict(
-        bgcolor='rgba(255,255,255,0.95)',
-        bordercolor='red',
-        borderwidth=1,
-        borderpad=3,
-        font=dict(size=10, color='red')
-    ))
 
     return fig
