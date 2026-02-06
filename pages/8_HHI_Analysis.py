@@ -382,16 +382,16 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
             plot_bgcolor='white',
             paper_bgcolor='white',
-            xaxis=dict(gridcolor='lightgray', showgrid=True, domain=[0, 0.88]),
+            xaxis=dict(gridcolor='lightgray', showgrid=True, domain=[0, 0.82]),
             yaxis=dict(gridcolor='lightgray', showgrid=True),
-            yaxis2=dict(title='HHI', overlaying='y', side='right', position=0.94),
-            yaxis3=dict(title='QQQ Normalized ($)', overlaying='y', side='right', position=1.0, showgrid=False),
-            margin=dict(l=0, r=80, t=40, b=0)
+            yaxis2=dict(title='HHI', overlaying='y', side='right', position=0.88),
+            yaxis3=dict(title='QQQ ($)', overlaying='y', side='right', position=0.97, showgrid=False),
+            margin=dict(l=0, r=100, t=40, b=0)
         )
 
         st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 
-        st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. Dotted blue line shows HHI. QQQ price is normalized so first day aligns with ETF price (hover shows actual price).*</small>", unsafe_allow_html=True)
+        st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. QQQ price is normalized so first day aligns with ETF price (hover shows actual price).*</small>", unsafe_allow_html=True)
 
     "" # Space
 
@@ -504,79 +504,6 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                         delta="Outperforming" if relative_return >= 0 else "Underperforming",
                         delta_color=delta_color
                     )
-
-    "" # Space
-
-    # Section 5: HHI vs Drawdown Scatter (Optional Analysis)
-    st.subheader("Concentration vs Drawdown Analysis")
-
-    analysis_card = st.container(border=True)
-    with analysis_card:
-        # Merge HHI with price data to calculate daily drawdown
-        price_hhi = pd.merge(
-            etf_prices[['Date', 'Close']],
-            hhi_data[['Date', 'HHI', 'Effective_Positions']],
-            on='Date',
-            how='inner'
-        )
-
-        if len(price_hhi) > 0:
-            # Calculate running max and drawdown
-            price_hhi['Peak'] = price_hhi['Close'].cummax()
-            price_hhi['Drawdown'] = (price_hhi['Close'] / price_hhi['Peak'] - 1) * 100
-
-            # Create dual-axis chart: Drawdown (inverted) vs HHI
-            fig_dd_hhi = make_subplots(specs=[[{"secondary_y": True}]])
-
-            # Drawdown (inverted so more negative is higher on chart)
-            fig_dd_hhi.add_trace(
-                go.Scatter(
-                    x=price_hhi['Date'],
-                    y=price_hhi['Drawdown'],
-                    mode='lines',
-                    name='Drawdown %',
-                    line=dict(color='red', width=2),
-                    fill='tozeroy',
-                    fillcolor='rgba(255, 0, 0, 0.1)',
-                    hovertemplate='<b>Drawdown</b><br>Date: %{x|%Y-%m-%d}<br>Drawdown: %{y:.2f}%<extra></extra>'
-                ),
-                secondary_y=False
-            )
-
-            # HHI
-            fig_dd_hhi.add_trace(
-                go.Scatter(
-                    x=price_hhi['Date'],
-                    y=price_hhi['HHI'],
-                    mode='lines',
-                    name='HHI',
-                    line=dict(color='steelblue', width=2),
-                    hovertemplate='<b>HHI</b><br>Date: %{x|%Y-%m-%d}<br>HHI: %{y:.4f}<extra></extra>'
-                ),
-                secondary_y=True
-            )
-
-            fig_dd_hhi.update_layout(
-                title=f"{selected_etf} Drawdown vs HHI",
-                height=450,
-                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
-                plot_bgcolor='white',
-                paper_bgcolor='white',
-                hovermode='x unified'
-            )
-
-            fig_dd_hhi.update_xaxes(title_text="Date", gridcolor='lightgray')
-            fig_dd_hhi.update_yaxes(
-                title_text="Drawdown (%)",
-                secondary_y=False,
-                gridcolor='lightgray',
-                autorange='reversed'  # Invert so deeper drawdowns are lower
-            )
-            fig_dd_hhi.update_yaxes(title_text="HHI", secondary_y=True)
-
-            st.plotly_chart(fig_dd_hhi, width='stretch', config=CHART_CONFIG)
-
-            st.markdown("<small>*Red area shows drawdown (lower = deeper drawdown). Blue line shows HHI concentration. Look for patterns: does HHI increase during drawdowns?*</small>", unsafe_allow_html=True)
 
 else:
     st.warning(f"Not enough data for {selected_etf}")
