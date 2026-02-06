@@ -141,12 +141,13 @@ def calculate_weighted_correlation_matrix(_files_hash, etf, lookback_days, _hold
     price_matrix = price_matrix[valid_tickers]
     weight_matrix = weight_matrix[valid_tickers]
 
-    # Calculate daily returns
-    returns = price_matrix.pct_change().dropna()
-    weight_matrix = weight_matrix.loc[returns.index]  # Align weights with returns
+    # Calculate daily returns - only drop rows that are ALL NaN
+    returns = price_matrix.pct_change()
+    returns = returns.dropna(how='all')
 
-    # Fill missing weights with 0
-    weight_matrix = weight_matrix.fillna(0)
+    # Forward-fill weights (持仓权重按披露日向前填充)
+    weight_matrix = weight_matrix.ffill()
+    weight_matrix = weight_matrix.loc[returns.index]  # Align weights with returns
 
     tickers = returns.columns.tolist()
     n = len(tickers)
@@ -161,16 +162,18 @@ def calculate_weighted_correlation_matrix(_files_hash, etf, lookback_days, _hold
 
             R_A = returns[ticker_a].values
             R_B = returns[ticker_b].values
-            W_A = weight_matrix[ticker_a].values
-            W_B = weight_matrix[ticker_b].values
+            W_A = weight_matrix[ticker_a].values if ticker_a in weight_matrix.columns else np.zeros(len(R_A))
+            W_B = weight_matrix[ticker_b].values if ticker_b in weight_matrix.columns else np.zeros(len(R_B))
 
             # Step 1: Pair weight W_t = w_A,t × w_B,t
             W_t = W_A * W_B
 
-            # Skip if no valid weights
-            if W_t.sum() == 0:
-                # Fall back to unweighted correlation
-                valid_mask = ~(np.isnan(R_A) | np.isnan(R_B))
+            # Mask: only use days where returns are valid AND W_t > 0
+            mask = (~np.isnan(R_A)) & (~np.isnan(R_B)) & (W_t > 0)
+
+            if mask.sum() < 2:
+                # Not enough valid data, fall back to unweighted
+                valid_mask = (~np.isnan(R_A)) & (~np.isnan(R_B))
                 if valid_mask.sum() > 1:
                     corr_val = np.corrcoef(R_A[valid_mask], R_B[valid_mask])[0, 1]
                 else:
@@ -179,22 +182,26 @@ def calculate_weighted_correlation_matrix(_files_hash, etf, lookback_days, _hold
                 weighted_corr.iloc[j, i] = corr_val
                 continue
 
-            # Step 2: Normalize weights
-            W_norm = W_t / W_t.sum()
+            # Apply mask
+            w = W_t[mask]
+            w = w / w.sum()  # Normalize
+            a = R_A[mask]
+            b = R_B[mask]
 
-            # Step 3: Weighted means
-            mu_A = np.sum(W_norm * R_A)
-            mu_B = np.sum(W_norm * R_B)
+            # Weighted means
+            mu_a = np.sum(w * a)
+            mu_b = np.sum(w * b)
 
-            # Step 4: Weighted covariance and variance
-            cov_AB = np.sum(W_norm * (R_A - mu_A) * (R_B - mu_B))
-            var_A = np.sum(W_norm * (R_A - mu_A) ** 2)
-            var_B = np.sum(W_norm * (R_B - mu_B) ** 2)
+            # Weighted covariance and variance
+            da = a - mu_a
+            db = b - mu_b
+            cov_ab = np.sum(w * da * db)
+            var_a = np.sum(w * da * da)
+            var_b = np.sum(w * db * db)
 
-            # Step 5: Weighted correlation
-            if var_A > 0 and var_B > 0:
-                corr_val = cov_AB / np.sqrt(var_A * var_B)
-                # Clamp to [-1, 1] for numerical stability
+            # Weighted correlation
+            if var_a > 0 and var_b > 0:
+                corr_val = cov_ab / np.sqrt(var_a * var_b)
                 corr_val = np.clip(corr_val, -1, 1)
             else:
                 corr_val = np.nan
