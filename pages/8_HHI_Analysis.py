@@ -382,11 +382,11 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
             plot_bgcolor='white',
             paper_bgcolor='white',
-            xaxis=dict(gridcolor='lightgray', showgrid=True, domain=[0, 0.82]),
+            xaxis=dict(gridcolor='lightgray', showgrid=True, domain=[0, 0.86]),
             yaxis=dict(gridcolor='lightgray', showgrid=True),
-            yaxis2=dict(title='HHI', overlaying='y', side='right', position=0.88),
-            yaxis3=dict(title='QQQ ($)', overlaying='y', side='right', position=0.97, showgrid=False),
-            margin=dict(l=0, r=100, t=40, b=0)
+            yaxis2=dict(title='HHI', overlaying='y', side='right', position=0.97, showgrid=False),
+            yaxis3=dict(title='QQQ ($)', overlaying='y', side='right', position=0.91, showgrid=False),
+            margin=dict(l=0, r=70, t=40, b=0)
         )
 
         st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
