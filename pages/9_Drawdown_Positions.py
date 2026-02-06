@@ -320,25 +320,88 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
             chart_data = pd.concat([top_reduced, top_added]).drop_duplicates()
             chart_data = chart_data.sort_values('Weight_Change')
 
-            colors = ['red' if x < 0 else 'green' for x in chart_data['Weight_Change']]
+            # Prepare data for stacked bar chart
+            chart_data['Weight_peak_pct'] = chart_data['Weight_peak'] * 100
+            chart_data['Weight_trough_pct'] = chart_data['Weight_trough'] * 100
+            chart_data['Weight_Change_pct'] = chart_data['Weight_Change'] * 100
 
             fig_changes = go.Figure()
-            fig_changes.add_trace(go.Bar(
-                y=chart_data['Ticker_Clean'],
-                x=chart_data['Weight_Change'] * 100,
-                orientation='h',
-                marker_color=colors,
-                hovertemplate='<b>%{y}</b><br>Weight Change: %{x:.2f}%<extra></extra>'
-            ))
+
+            # For each ticker, create stacked bars
+            for _, row in chart_data.iterrows():
+                ticker = row['Ticker_Clean']
+                peak_w = row['Weight_peak_pct']
+                trough_w = row['Weight_trough_pct']
+                change = row['Weight_Change_pct']
+
+                if change < 0:
+                    # Weight decreased: base is trough, red shows the loss
+                    # Base bar (current weight at trough)
+                    fig_changes.add_trace(go.Bar(
+                        y=[ticker],
+                        x=[trough_w],
+                        orientation='h',
+                        marker=dict(color='lightgray', line=dict(color='black', width=1)),
+                        showlegend=False,
+                        hovertemplate=f'<b>{ticker}</b><br>Trough: {trough_w:.2f}%<extra></extra>'
+                    ))
+                    # Red bar showing reduction (stacked on top)
+                    fig_changes.add_trace(go.Bar(
+                        y=[ticker],
+                        x=[abs(change)],
+                        orientation='h',
+                        marker=dict(color='red', line=dict(color='black', width=1)),
+                        showlegend=False,
+                        hovertemplate=f'<b>{ticker}</b><br>Reduced: {change:.2f}%<extra></extra>'
+                    ))
+                else:
+                    # Weight increased: base is peak, green shows the gain
+                    # Base bar (original weight at peak)
+                    fig_changes.add_trace(go.Bar(
+                        y=[ticker],
+                        x=[peak_w],
+                        orientation='h',
+                        marker=dict(color='lightgray', line=dict(color='black', width=1)),
+                        showlegend=False,
+                        hovertemplate=f'<b>{ticker}</b><br>Peak: {peak_w:.2f}%<extra></extra>'
+                    ))
+                    # Green bar showing increase (stacked on top)
+                    fig_changes.add_trace(go.Bar(
+                        y=[ticker],
+                        x=[change],
+                        orientation='h',
+                        marker=dict(color='green', line=dict(color='black', width=1)),
+                        showlegend=False,
+                        hovertemplate=f'<b>{ticker}</b><br>Added: +{change:.2f}%<extra></extra>'
+                    ))
+
+            # Add text annotations for weight change
+            for _, row in chart_data.iterrows():
+                ticker = row['Ticker_Clean']
+                peak_w = row['Weight_peak_pct']
+                trough_w = row['Weight_trough_pct']
+                change = row['Weight_Change_pct']
+                max_w = max(peak_w, trough_w)
+
+                change_text = f"{change:+.2f}%" if change != 0 else "0%"
+                fig_changes.add_annotation(
+                    y=ticker,
+                    x=max_w + 0.3,
+                    text=change_text,
+                    showarrow=False,
+                    font=dict(size=10, color='red' if change < 0 else 'green'),
+                    xanchor='left'
+                )
 
             fig_changes.update_layout(
-                title="Top Weight Changes (Peak → Trough)",
-                xaxis_title="Weight Change (%)",
+                title="Weight at Peak vs Trough (Gray=Base, Red=Reduced, Green=Added)",
+                xaxis_title="Weight (%)",
                 yaxis_title="",
                 height=500,
+                barmode='stack',
                 plot_bgcolor='white',
                 paper_bgcolor='white',
-                margin=dict(l=0, r=0, t=40, b=0)
+                margin=dict(l=0, r=50, t=40, b=0)
             )
             fig_changes.update_xaxes(gridcolor='lightgray', zeroline=True, zerolinecolor='gray')
             fig_changes.update_yaxes(gridcolor='lightgray')
