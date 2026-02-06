@@ -224,8 +224,8 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
         )
 
         fig_hhi.update_xaxes(title_text="Date", gridcolor='lightgray')
-        fig_hhi.update_yaxes(title_text="HHI", secondary_y=False, gridcolor='lightgray')
-        fig_hhi.update_yaxes(title_text="Effective Positions", secondary_y=True)
+        fig_hhi.update_yaxes(title_text="HHI", secondary_y=False, gridcolor='lightgray', autorange=True)
+        fig_hhi.update_yaxes(title_text="Effective Positions", secondary_y=True, autorange=True)
 
         st.plotly_chart(fig_hhi, width='stretch', config=CHART_CONFIG)
 
