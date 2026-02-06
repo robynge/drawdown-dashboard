@@ -293,25 +293,39 @@ def get_ark_ticker_list(etf):
 
 
 @st.cache_data
-def get_stocks_for_etf(_files_hash, etf):
+def get_stocks_for_etf(_files_hash, etf, start_date, end_date):
     """Get list of valid stocks for an ETF with current/non-current status
 
-    Uses precomputed ticker list for speed, only loads holdings for current status check.
+    Only includes stocks with at least 30 data points in the analysis period.
     Cached centrally so all pages share the same cache.
     """
-    # Use fast precomputed ticker list (already filters currency tickers)
-    all_tickers = get_ark_ticker_list(etf)
-
-    # Load holdings only to check current status (cached, so fast after first load)
     holdings = load_ark_holdings(_files_hash, etf)
+
+    # Get latest date holdings to identify current positions
     latest_date = holdings['Date'].max()
     current_holdings = set(holdings[holdings['Date'] == latest_date]['Ticker'].unique())
+
+    # Filter by date range first (once, not per ticker)
+    holdings_filtered = holdings[
+        (holdings['Date'] >= start_date) &
+        (holdings['Date'] <= end_date)
+    ].copy()
+
+    # Filter out currency tickers (vectorized)
+    if 'Bloomberg Name' in holdings_filtered.columns:
+        holdings_filtered = holdings_filtered[
+            ~holdings_filtered['Bloomberg Name'].str.contains('curncy', case=False, na=False)
+        ]
+
+    # Count rows per ticker using groupby (vectorized)
+    ticker_counts = holdings_filtered.groupby('Ticker').size()
+    valid_tickers = ticker_counts[ticker_counts >= 30].index.tolist()
 
     # Build the stock list
     valid_stocks = []
     stock_ticker_map = {}
 
-    for ticker in all_tickers:
+    for ticker in valid_tickers:
         ticker_simple = ticker.split()[0] if isinstance(ticker, str) else ticker
         is_current = ticker in current_holdings
 

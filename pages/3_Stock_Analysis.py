@@ -108,7 +108,7 @@ if True:
 
             st.markdown("##### Select Stock")
             files_hash = get_ark_files_hash()
-            stock_list, stock_ticker_map = get_stocks_for_etf(files_hash, selected_etf)
+            stock_list, stock_ticker_map = get_stocks_for_etf(files_hash, selected_etf, START_DATE, END_DATE)
             selected_display_ticker = st.selectbox("Select Stock", stock_list, label_visibility="collapsed")
 
             # Get the actual ticker from display name
