@@ -314,10 +314,8 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
 
         chart_card = st.container(border=True)
         with chart_card:
-            # Sort by weight change and take top/bottom
-            top_reduced = comparison.nsmallest(10, 'Weight_Change')
-            top_added = comparison.nlargest(10, 'Weight_Change')
-            chart_data = pd.concat([top_reduced, top_added]).drop_duplicates()
+            # Show all tickers with weight changes (exclude unchanged)
+            chart_data = comparison[comparison['Weight_Change'] != 0].copy()
             chart_data = chart_data.sort_values('Weight_Change')
 
             # Prepare data for stacked bar chart
@@ -402,11 +400,14 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                     xanchor='left'
                 )
 
+            # Dynamic height based on number of tickers
+            chart_height = max(400, len(chart_data) * 25)
+
             fig_changes.update_layout(
                 title="Weight at Peak vs Trough (Gray=Base, Red=Reduced, Green=Added)",
                 xaxis_title="Weight (%)",
                 yaxis_title="",
-                height=500,
+                height=chart_height,
                 barmode='overlay',
                 plot_bgcolor='white',
                 paper_bgcolor='white',
