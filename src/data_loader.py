@@ -147,14 +147,15 @@ def load_all_ark_stock_tickers():
     all_tickers = set()
     for etf in ARK_ETFS:
         holdings = load_ark_holdings(etf)
-        for ticker in holdings['Ticker'].unique():
-            # Skip currency tickers - check Bloomberg Name
-            ticker_holdings = holdings[holdings['Ticker'] == ticker]
-            if 'Bloomberg Name' in ticker_holdings.columns:
-                bloomberg_name = ticker_holdings['Bloomberg Name'].iloc[0]
-                if isinstance(bloomberg_name, str) and 'curncy' in bloomberg_name.lower():
-                    continue
-            all_tickers.add(ticker)
+
+        # Filter out currency tickers (vectorized)
+        if 'Bloomberg Name' in holdings.columns:
+            holdings = holdings[
+                ~holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)
+            ]
+
+        all_tickers.update(holdings['Ticker'].unique())
+
     return sorted(all_tickers)
 
 
@@ -163,18 +164,20 @@ def get_stock_etf_mapping():
     stock_map = {}
     for etf in ARK_ETFS:
         holdings = load_ark_holdings(etf)
-        for ticker in holdings['Ticker'].unique():
-            # Skip currency tickers - check Bloomberg Name
-            ticker_holdings = holdings[holdings['Ticker'] == ticker]
-            if 'Bloomberg Name' in ticker_holdings.columns:
-                bloomberg_name = ticker_holdings['Bloomberg Name'].iloc[0]
-                if isinstance(bloomberg_name, str) and 'curncy' in bloomberg_name.lower():
-                    continue
 
+        # Filter out currency tickers (vectorized)
+        if 'Bloomberg Name' in holdings.columns:
+            holdings = holdings[
+                ~holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)
+            ]
+
+        # Get unique tickers and process
+        for ticker in holdings['Ticker'].unique():
             ticker_clean = str(ticker).split()[0] if pd.notna(ticker) else ticker
             if ticker_clean not in stock_map:
                 stock_map[ticker_clean] = []
             stock_map[ticker_clean].append((etf, ticker))
+
     return stock_map
 
 

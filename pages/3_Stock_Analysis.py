@@ -50,18 +50,18 @@ def get_stock_etf_mapping(_files_hash):
     for etf in ARK_ETFS:
         try:
             holdings = get_cached_ark_holdings(_files_hash, etf)
-            for ticker in holdings['Ticker'].unique():
-                # Skip currency tickers - check Bloomberg Name
-                ticker_holdings = holdings[holdings['Ticker'] == ticker]
-                if 'Bloomberg Name' in ticker_holdings.columns:
-                    bloomberg_name = ticker_holdings['Bloomberg Name'].iloc[0]
-                    if isinstance(bloomberg_name, str) and 'curncy' in bloomberg_name.lower():
-                        continue
 
+            # Filter out currency tickers (vectorized, not in loop)
+            if 'Bloomberg Name' in holdings.columns:
+                holdings = holdings[
+                    ~holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)
+                ]
+
+            # Now just iterate over unique tickers (no more filtering per ticker)
+            for ticker in holdings['Ticker'].unique():
                 if ticker not in stock_map:
                     stock_map[ticker] = []
-                full_ticker = holdings[holdings['Ticker'] == ticker]['Ticker'].iloc[0]
-                stock_map[ticker].append((etf, full_ticker))
+                stock_map[ticker].append((etf, ticker))
         except:
             continue
     return stock_map
@@ -121,34 +121,39 @@ if True:
 
                 # Get latest date holdings to identify current positions
                 latest_date = holdings['Date'].max()
-                current_holdings = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
+                current_holdings = set(holdings[holdings['Date'] == latest_date]['Ticker'].unique())
 
+                # Filter by date range first (once, not per ticker)
+                holdings_filtered = holdings[
+                    (holdings['Date'] >= START_DATE) &
+                    (holdings['Date'] <= END_DATE)
+                ].copy()
+
+                # Filter out currency tickers (vectorized, not in loop)
+                if 'Bloomberg Name' in holdings_filtered.columns:
+                    holdings_filtered = holdings_filtered[
+                        ~holdings_filtered['Bloomberg Name'].str.contains('curncy', case=False, na=False)
+                    ]
+
+                # Count rows per ticker using groupby (vectorized)
+                ticker_counts = holdings_filtered.groupby('Ticker').size()
+                valid_tickers = ticker_counts[ticker_counts >= 30].index.tolist()
+
+                # Build the stock list (now only loop over valid tickers, much smaller)
                 valid_stocks = []
-                stock_ticker_map = {}  # Maps display name to actual ticker
+                stock_ticker_map = {}
 
-                for ticker in holdings['Ticker'].unique():
-                    # Skip currency tickers - check Bloomberg Name
-                    ticker_holdings = holdings[holdings['Ticker'] == ticker]
-                    if 'Bloomberg Name' in ticker_holdings.columns:
-                        bloomberg_name = ticker_holdings['Bloomberg Name'].iloc[0]
-                        if isinstance(bloomberg_name, str) and 'curncy' in bloomberg_name.lower():
-                            continue
+                for ticker in valid_tickers:
+                    ticker_simple = ticker.split()[0] if isinstance(ticker, str) else ticker
+                    is_current = ticker in current_holdings
 
-                    stock_data = holdings[holdings['Ticker'] == ticker].copy()
-                    stock_data = stock_data[(stock_data['Date'] >= START_DATE) & (stock_data['Date'] <= END_DATE)]
-                    if len(stock_data) >= 30:
-                        ticker_simple = ticker.split()[0] if isinstance(ticker, str) else ticker
+                    if is_current:
+                        display_name = ticker_simple
+                    else:
+                        display_name = f"{ticker_simple} (Non-current)"
 
-                        # Check if in current holdings
-                        is_current = ticker in current_holdings
-
-                        if is_current:
-                            display_name = ticker_simple
-                        else:
-                            display_name = f"{ticker_simple} (Non-current)"
-
-                        valid_stocks.append((ticker_simple, display_name))
-                        stock_ticker_map[display_name] = ticker_simple
+                    valid_stocks.append((ticker_simple, display_name))
+                    stock_ticker_map[display_name] = ticker_simple
 
                 # Sort by ticker_simple (first element) alphabetically
                 valid_stocks.sort(key=lambda x: x[0])
