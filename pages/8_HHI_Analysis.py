@@ -239,8 +239,8 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
         price_df = etf_prices
         etf_dd_data = calculate_drawdowns(price_df)
 
-        # Create figure with secondary y-axis for HHI
-        fig2 = make_subplots(specs=[[{"secondary_y": True}]])
+        # Create figure (same as ETF_Analysis.py)
+        fig2 = go.Figure()
 
         # Get top 10 drawdowns
         if len(etf_dd_data) > 0:
@@ -289,7 +289,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             showlegend=False,
             hoverlabel=dict(bgcolor='white', bordercolor='lightgray'),
             marker=dict(color='rgba(0,0,0,0)')
-        ), secondary_y=False)
+        ))
 
         # Add current drawdown line and shaded area
         if len(etf_dd_data) > 0:
@@ -349,8 +349,9 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             mode='lines',
             name='HHI',
             line=dict(color='steelblue', width=2, dash='dot'),
-            hovertemplate='<b>HHI</b><br>Date: %{x|%Y-%m-%d}<br>HHI: %{y:.4f}<extra></extra>'
-        ), secondary_y=True)
+            hovertemplate='<b>HHI</b><br>Date: %{x|%Y-%m-%d}<br>HHI: %{y:.4f}<extra></extra>',
+            yaxis='y2'
+        ))
 
         fig2.update_layout(
             title=f"{selected_etf} Price with Top 10 Drawdowns & Current Drawdown",
@@ -363,10 +364,9 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             paper_bgcolor='white',
             xaxis=dict(gridcolor='lightgray', showgrid=True),
             yaxis=dict(gridcolor='lightgray', showgrid=True),
-            margin=dict(l=0, r=120, t=40, b=0)
+            yaxis2=dict(title='HHI', overlaying='y', side='right'),
+            margin=dict(l=0, r=0, t=40, b=0)
         )
-
-        fig2.update_yaxes(title_text="HHI", secondary_y=True)
 
         st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 
