@@ -2,25 +2,51 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+from pathlib import Path
 from data_loader import load_r3000_holdings, load_industry_info, get_r3000_files_hash
-from config import START_DATE, END_DATE
+from config import START_DATE, END_DATE, INPUT_DIR
+
+
+def _get_peer_group_cache_path(version='mv'):
+    """Get cache file path for peer group prices"""
+    return INPUT_DIR / 'russell_3000' / f'peer_group_{version}_cache.parquet'
+
+
+def _is_cache_valid(cache_path, source_mtime):
+    """Check if cache file exists and is newer than source"""
+    if not cache_path.exists():
+        return False
+    return cache_path.stat().st_mtime >= source_mtime
 
 
 @st.cache_data
 def calculate_peer_group_prices_mv(_files_hash):
     """Calculate peer group total market values (sum of market values by GICS)
 
+    Uses file-based caching for faster startup after data updates.
+
     Returns:
         DataFrame with columns: Date, GICS, Value
     """
+    # Check file cache first
+    cache_path = _get_peer_group_cache_path('mv')
+    if _is_cache_valid(cache_path, _files_hash):
+        return pd.read_parquet(cache_path)
+
     holdings = load_r3000_holdings(_files_hash)
     industry_dict = load_industry_info(source='r3000')
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
-    # This removes US holidays where only a few Canadian stocks have prices
-    daily_valid_pct = holdings.groupby('Date')['Price'].apply(lambda x: (x > 0).sum() / len(x))
-    valid_dates = daily_valid_pct[daily_valid_pct > 0.5].index
+    # Vectorized: count valid prices and total per date, then filter
+    holdings['_valid_price'] = (holdings['Price'] > 0).astype(int)
+    date_stats = holdings.groupby('Date').agg(
+        valid_count=('_valid_price', 'sum'),
+        total_count=('_valid_price', 'size')
+    )
+    date_stats['valid_pct'] = date_stats['valid_count'] / date_stats['total_count']
+    valid_dates = date_stats[date_stats['valid_pct'] > 0.5].index
     holdings = holdings[holdings['Date'].isin(valid_dates)].copy()
+    holdings.drop(columns=['_valid_price'], inplace=True)
 
     # Calculate Market Value if not present
     if 'Market_Value' not in holdings.columns:
@@ -29,15 +55,15 @@ def calculate_peer_group_prices_mv(_files_hash):
         else:
             raise ValueError("Cannot calculate Market_Value: missing Position or Price columns")
 
-    # Map GICS to tickers
-    # First try exact match on full ticker
-    holdings['GICS'] = holdings['Ticker'].map(industry_dict)
+    # Map GICS to tickers - vectorized approach
+    # Extract symbol (first part before space) for all tickers at once
+    holdings['Symbol'] = holdings['Ticker'].str.split().str[0]
 
-    # For unmatched tickers, try matching by symbol only (first part before space)
-    unmatched_mask = holdings['GICS'].isna()
-    if unmatched_mask.sum() > 0:
-        holdings.loc[unmatched_mask, 'Symbol'] = holdings.loc[unmatched_mask, 'Ticker'].str.split().str[0]
-        holdings.loc[unmatched_mask, 'GICS'] = holdings.loc[unmatched_mask, 'Symbol'].map(industry_dict)
+    # Try mapping by symbol first (most common case), then by full ticker
+    holdings['GICS'] = holdings['Symbol'].map(industry_dict)
+    still_unmatched = holdings['GICS'].isna()
+    if still_unmatched.sum() > 0:
+        holdings.loc[still_unmatched, 'GICS'] = holdings.loc[still_unmatched, 'Ticker'].map(industry_dict)
 
     # Filter holdings with valid GICS info
     holdings_with_gics = holdings[holdings['GICS'].notna()].copy()
@@ -45,6 +71,9 @@ def calculate_peer_group_prices_mv(_files_hash):
     # Sum market values by Date and GICS
     peer_prices = holdings_with_gics.groupby(['Date', 'GICS'])['Market_Value'].sum().reset_index()
     peer_prices.columns = ['Date', 'GICS', 'Value']
+
+    # Save to file cache
+    peer_prices.to_parquet(cache_path, index=False)
 
     return peer_prices
 
@@ -58,17 +87,30 @@ def calculate_peer_group_prices_weighted(_files_hash):
     2. Calculate weighted_price = weight × stock's Price
     3. Sum weighted_prices by GICS group
 
+    Uses file-based caching for faster startup after data updates.
+
     Returns:
         DataFrame with columns: Date, GICS, Value
     """
+    # Check file cache first
+    cache_path = _get_peer_group_cache_path('weighted')
+    if _is_cache_valid(cache_path, _files_hash):
+        return pd.read_parquet(cache_path)
+
     holdings = load_r3000_holdings(_files_hash)
     industry_dict = load_industry_info(source='r3000')
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
-    # This removes US holidays where only a few Canadian stocks have prices
-    daily_valid_pct = holdings.groupby('Date')['Price'].apply(lambda x: (x > 0).sum() / len(x))
-    valid_dates = daily_valid_pct[daily_valid_pct > 0.5].index
+    # Vectorized: count valid prices and total per date, then filter
+    holdings['_valid_price'] = (holdings['Price'] > 0).astype(int)
+    date_stats = holdings.groupby('Date').agg(
+        valid_count=('_valid_price', 'sum'),
+        total_count=('_valid_price', 'size')
+    )
+    date_stats['valid_pct'] = date_stats['valid_count'] / date_stats['total_count']
+    valid_dates = date_stats[date_stats['valid_pct'] > 0.5].index
     holdings = holdings[holdings['Date'].isin(valid_dates)].copy()
+    holdings.drop(columns=['_valid_price'], inplace=True)
 
     # Calculate Market Value if not present
     if 'Market_Value' not in holdings.columns:
@@ -77,25 +119,18 @@ def calculate_peer_group_prices_weighted(_files_hash):
         else:
             raise ValueError("Cannot calculate Market_Value: missing Position or Price columns")
 
-    # Map GICS to tickers
-    # First try exact match on full ticker
-    holdings['GICS'] = holdings['Ticker'].map(industry_dict)
-
-    # For unmatched tickers, try matching by symbol only
-    unmatched_mask = holdings['GICS'].isna()
-    if unmatched_mask.sum() > 0:
-        holdings.loc[unmatched_mask, 'Symbol'] = holdings.loc[unmatched_mask, 'Ticker'].str.split().str[0]
-        holdings.loc[unmatched_mask, 'GICS'] = holdings.loc[unmatched_mask, 'Symbol'].map(industry_dict)
+    # Map GICS to tickers - vectorized approach
+    holdings['Symbol'] = holdings['Ticker'].str.split().str[0]
+    holdings['GICS'] = holdings['Symbol'].map(industry_dict)
+    still_unmatched = holdings['GICS'].isna()
+    if still_unmatched.sum() > 0:
+        holdings.loc[still_unmatched, 'GICS'] = holdings.loc[still_unmatched, 'Ticker'].map(industry_dict)
 
     # Filter holdings with valid GICS info
     holdings_with_gics = holdings[holdings['GICS'].notna()].copy()
 
-    # Calculate total R3000 market value for each date
-    daily_total_mv = holdings_with_gics.groupby('Date')['Market_Value'].sum().reset_index()
-    daily_total_mv.columns = ['Date', 'Total_MV']
-
-    # Merge to get daily total MV for each stock
-    holdings_with_gics = holdings_with_gics.merge(daily_total_mv, on='Date', how='left')
+    # Calculate total R3000 market value for each date using transform (faster than merge)
+    holdings_with_gics['Total_MV'] = holdings_with_gics.groupby('Date')['Market_Value'].transform('sum')
 
     # Calculate weight = stock's MV / total R3000 MV
     holdings_with_gics['Weight'] = holdings_with_gics['Market_Value'] / holdings_with_gics['Total_MV']
@@ -106,6 +141,9 @@ def calculate_peer_group_prices_weighted(_files_hash):
     # Sum weighted prices by Date and GICS
     peer_prices = holdings_with_gics.groupby(['Date', 'GICS'])['Weighted_Price'].sum().reset_index()
     peer_prices.columns = ['Date', 'GICS', 'Value']
+
+    # Save to file cache
+    peer_prices.to_parquet(cache_path, index=False)
 
     return peer_prices
 
