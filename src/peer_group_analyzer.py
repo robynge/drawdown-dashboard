@@ -2,7 +2,7 @@
 import pandas as pd
 import numpy as np
 from config import START_DATE, END_DATE
-from data_loader import load_industry_info, load_r3000_holdings
+from data_loader import load_industry_info, load_r3000_holdings, get_r3000_files_hash
 
 def get_stock_peer_group(stock_ticker, source='ark'):
     """Get peer group for a stock based on GICS industry"""
@@ -95,7 +95,7 @@ def calculate_peer_metrics_weighted(stock_ticker, holdings_df, r3000_df, etf=Non
 def analyze_all_peer_groups(source='ark'):
     """Get summary of all GICS industry groups"""
     industry_map = load_industry_info(source)
-    r3000_df = load_r3000_holdings()
+    r3000_df = load_r3000_holdings(get_r3000_files_hash())
 
     industry_stats = {}
     for ticker, industry in industry_map.items():

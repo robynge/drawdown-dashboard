@@ -1,7 +1,7 @@
 """Peer group price calculation logic"""
 import pandas as pd
 import numpy as np
-from data_loader import load_r3000_holdings, load_industry_info
+from data_loader import load_r3000_holdings, load_industry_info, get_r3000_files_hash
 from config import START_DATE, END_DATE
 
 _cache = {}
@@ -16,7 +16,7 @@ def calculate_peer_group_prices_mv():
     if cache_key in _cache:
         return _cache[cache_key]
 
-    holdings = load_r3000_holdings()
+    holdings = load_r3000_holdings(get_r3000_files_hash())
     industry_dict = load_industry_info(source='r3000')
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
@@ -68,7 +68,7 @@ def calculate_peer_group_prices_weighted():
     if cache_key in _cache:
         return _cache[cache_key]
 
-    holdings = load_r3000_holdings()
+    holdings = load_r3000_holdings(get_r3000_files_hash())
     industry_dict = load_industry_info(source='r3000')
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
