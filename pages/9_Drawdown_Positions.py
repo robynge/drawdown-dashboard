@@ -413,8 +413,8 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                 paper_bgcolor='white',
                 margin=dict(l=0, r=50, t=40, b=0)
             )
-            fig_changes.update_xaxes(gridcolor='lightgray', zeroline=True, zerolinecolor='gray')
-            fig_changes.update_yaxes(gridcolor='lightgray')
+            fig_changes.update_xaxes(showgrid=False, zeroline=True, zerolinecolor='gray')
+            fig_changes.update_yaxes(showgrid=False)
 
             st.plotly_chart(fig_changes, use_container_width=True, config=CHART_CONFIG)
     else:
