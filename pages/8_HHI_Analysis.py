@@ -282,11 +282,11 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             x=price_df_copy['Date'],
             y=price_df_copy['Close'],
             mode='lines',
+            name='Price',
             line=dict(color='black', width=2),
             customdata=price_df_copy['DD_Info'],
             hovertemplate='%{x|%Y-%m-%d}<br>' +
                           'Price: $%{y:.2f}%{customdata}<extra></extra>',
-            showlegend=False,
             hoverlabel=dict(bgcolor='white', bordercolor='lightgray'),
             marker=dict(color='rgba(0,0,0,0)')
         ))
@@ -359,7 +359,8 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
             yaxis_title="Price ($)",
             hovermode='x unified',
             height=650,
-            showlegend=False,
+            showlegend=True,
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
             plot_bgcolor='white',
             paper_bgcolor='white',
             xaxis=dict(gridcolor='lightgray', showgrid=True),
