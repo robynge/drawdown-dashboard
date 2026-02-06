@@ -265,6 +265,21 @@ with cols[0]:
 
         ""  # Space
 
+        st.markdown("##### Correlation Type")
+        corr_type_options = {
+            "Weighted": "weighted",
+            "Unweighted": "unweighted"
+        }
+        selected_corr_type = st.pills(
+            "Correlation Type",
+            options=list(corr_type_options.keys()),
+            default="Weighted",
+            label_visibility="collapsed"
+        )
+        use_weighted = corr_type_options[selected_corr_type] == "weighted"
+
+        ""  # Space
+
         st.markdown("##### Lookback Period")
         lookback_options = {
             "60 Days": 60,
@@ -318,15 +333,14 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             ""  # Space
 
-            st.markdown("**Correlation (Unweighted)**")
-            st.markdown(f"Mean: **{stats['mean']:.3f}**")
-            st.markdown(f"Median: **{stats['median']:.3f}**")
-
-            ""  # Space
-
-            st.markdown("**Correlation (Weighted)**")
-            st.markdown(f"Mean: **{stats['weighted_mean']:.3f}**")
-            st.caption("Weighted by position size")
+            if use_weighted:
+                st.markdown("**Correlation (Weighted)**")
+                st.markdown(f"Mean: **{stats['weighted_mean']:.3f}**")
+                st.caption("Weighted by position size")
+            else:
+                st.markdown("**Correlation (Unweighted)**")
+                st.markdown(f"Mean: **{stats['mean']:.3f}**")
+                st.markdown(f"Median: **{stats['median']:.3f}**")
 
             ""  # Space
 
@@ -394,28 +408,33 @@ if corr_matrix is not None and len(corr_matrix) > 0:
         if len(rolling_corr) > 0:
             fig_ts = go.Figure()
 
-            # Weighted mean correlation (primary)
-            fig_ts.add_trace(go.Scatter(
-                x=rolling_corr['Date'],
-                y=rolling_corr['weighted_mean_corr'],
-                mode='lines',
-                name='Weighted Mean',
-                line=dict(color='steelblue', width=2),
-                hovertemplate='<b>Weighted Mean</b><br>Date (x): %{x|%Y-%m-%d}<br>Correlation (y): %{y:.4f}<extra></extra>'
-            ))
-
-            # Unweighted mean correlation
-            fig_ts.add_trace(go.Scatter(
-                x=rolling_corr['Date'],
-                y=rolling_corr['mean_corr'],
-                mode='lines',
-                name='Unweighted Mean',
-                line=dict(color='red', width=2, dash='dash'),
-                hovertemplate='<b>Unweighted Mean</b><br>Date (x): %{x|%Y-%m-%d}<br>Correlation (y): %{y:.4f}<extra></extra>'
-            ))
+            if use_weighted:
+                # Weighted mean correlation
+                fig_ts.add_trace(go.Scatter(
+                    x=rolling_corr['Date'],
+                    y=rolling_corr['weighted_mean_corr'],
+                    mode='lines',
+                    name='Weighted Mean',
+                    line=dict(color='steelblue', width=2),
+                    hovertemplate='<b>Weighted Mean</b><br>Date: %{x|%Y-%m-%d}<br>Correlation: %{y:.4f}<extra></extra>'
+                ))
+                chart_title = f"{selected_etf} Rolling {rolling_window}-Day Weighted Correlation"
+                chart_note = "Weighted by position size - large positions have more influence on overall correlation."
+            else:
+                # Unweighted mean correlation
+                fig_ts.add_trace(go.Scatter(
+                    x=rolling_corr['Date'],
+                    y=rolling_corr['mean_corr'],
+                    mode='lines',
+                    name='Unweighted Mean',
+                    line=dict(color='steelblue', width=2),
+                    hovertemplate='<b>Unweighted Mean</b><br>Date: %{x|%Y-%m-%d}<br>Correlation: %{y:.4f}<extra></extra>'
+                ))
+                chart_title = f"{selected_etf} Rolling {rolling_window}-Day Unweighted Correlation"
+                chart_note = "Equal weight to all pairs - each stock pair contributes equally to overall correlation."
 
             fig_ts.update_layout(
-                title=f"{selected_etf} Rolling {rolling_window}-Day Pairwise Correlation (Weighted vs Unweighted)",
+                title=chart_title,
                 xaxis_title="Date",
                 yaxis_title="Correlation",
                 height=400,
@@ -428,7 +447,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             st.plotly_chart(fig_ts, width='stretch')
 
-            st.markdown(f"<small>*Solid blue = weighted by position size (large positions matter more). Dashed red = unweighted (equal weight to all pairs). Rising values indicate increasing concentration risk.</small>", unsafe_allow_html=True)
+            st.markdown(f"<small>*{chart_note} Rising values indicate increasing concentration risk.</small>", unsafe_allow_html=True)
         else:
             st.warning(f"Not enough data for {rolling_window}-day rolling correlation.")
 
@@ -514,13 +533,17 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             )
 
             if len(corr_perf) > 0:
+                # Select which correlation to use based on user choice
+                corr_col = 'weighted_mean_corr' if use_weighted else 'mean_corr'
+                corr_label = 'Weighted' if use_weighted else 'Unweighted'
+
                 # Calculate forward returns (next 5, 10, 20 days)
                 corr_perf['Fwd_5d_Return'] = corr_perf['Close'].shift(-5) / corr_perf['Close'] - 1
                 corr_perf['Fwd_10d_Return'] = corr_perf['Close'].shift(-10) / corr_perf['Close'] - 1
                 corr_perf['Fwd_20d_Return'] = corr_perf['Close'].shift(-20) / corr_perf['Close'] - 1
 
                 # Calculate correlation change
-                corr_perf['Corr_Change'] = corr_perf['weighted_mean_corr'].diff()
+                corr_perf['Corr_Change'] = corr_perf[corr_col].diff()
 
                 # Create dual-axis chart: Correlation vs Cumulative Return
                 from plotly.subplots import make_subplots
@@ -542,21 +565,21 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                     secondary_y=False
                 )
 
-                # Weighted correlation
+                # Selected correlation type
                 fig_perf.add_trace(
                     go.Scatter(
                         x=corr_perf['Date'],
-                        y=corr_perf['weighted_mean_corr'],
+                        y=corr_perf[corr_col],
                         mode='lines',
-                        name='Weighted Correlation',
+                        name=f'{corr_label} Correlation',
                         line=dict(color='steelblue', width=2, dash='dot'),
-                        hovertemplate='<b>Weighted Correlation</b><br>Date: %{x|%Y-%m-%d}<br>Correlation: %{y:.4f}<extra></extra>'
+                        hovertemplate=f'<b>{corr_label} Correlation</b><br>Date: %{{x|%Y-%m-%d}}<br>Correlation: %{{y:.4f}}<extra></extra>'
                     ),
                     secondary_y=True
                 )
 
                 fig_perf.update_layout(
-                    title=f"{selected_etf} Cumulative Return vs Weighted Correlation",
+                    title=f"{selected_etf} Cumulative Return vs {corr_label} Correlation",
                     height=450,
                     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                     plot_bgcolor='white',
@@ -566,20 +589,20 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
                 fig_perf.update_xaxes(title_text="Date", gridcolor='lightgray')
                 fig_perf.update_yaxes(title_text="Cumulative Return (%)", secondary_y=False, gridcolor='lightgray')
-                fig_perf.update_yaxes(title_text="Weighted Correlation", secondary_y=True)
+                fig_perf.update_yaxes(title_text=f"{corr_label} Correlation", secondary_y=True)
 
                 st.plotly_chart(fig_perf, width='stretch')
 
                 ""  # Space
 
                 # Correlation regime analysis
-                st.markdown("#### Correlation Regime Analysis")
+                st.markdown(f"#### {corr_label} Correlation Regime Analysis")
 
                 # Split into high/low correlation regimes
-                median_corr = corr_perf['weighted_mean_corr'].median()
+                median_corr = corr_perf[corr_col].median()
 
-                high_corr = corr_perf[corr_perf['weighted_mean_corr'] >= median_corr]
-                low_corr = corr_perf[corr_perf['weighted_mean_corr'] < median_corr]
+                high_corr = corr_perf[corr_perf[corr_col] >= median_corr]
+                low_corr = corr_perf[corr_perf[corr_col] < median_corr]
 
                 # Calculate statistics for each regime
                 regime_cols = st.columns(2)
