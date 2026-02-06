@@ -121,7 +121,7 @@ st.subheader("Industry Mappings (GICS)")
 industry_dir = INPUT_DIR / 'industry_mappings'
 industry_files = {
     'ARK ETFs': 'ARK ETFs industry info.xlsx',
-    'Russell 3000': 'R3000 industry info.xlsx'
+    'Russell 3000': 'IWV_industry group.xlsx'
 }
 
 industry_tabs = st.tabs(list(industry_files.keys()))

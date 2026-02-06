@@ -82,7 +82,7 @@ def load_industry_info(source='ark'):
     if source == 'ark':
         file_path = INPUT_DIR / 'industry_mappings' / 'ARK ETFs industry info.xlsx'
     else:  # r3000
-        file_path = INPUT_DIR / 'industry_mappings' / 'R3000 industry info.xlsx'
+        file_path = INPUT_DIR / 'industry_mappings' / 'IWV_industry group.xlsx'
 
     # Read 'value' sheet
     df = pd.read_excel(file_path, sheet_name='value')
