@@ -30,9 +30,12 @@ def get_ark_files_hash():
     """Get hash of ARK holdings files for cache invalidation"""
     mtimes = []
     for etf in ARK_ETFS:
-        holdings_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
-        if holdings_file.exists():
-            mtimes.append(holdings_file.stat().st_mtime)
+        parquet_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.parquet'
+        xlsx_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
+        if parquet_file.exists():
+            mtimes.append(parquet_file.stat().st_mtime)
+        elif xlsx_file.exists():
+            mtimes.append(xlsx_file.stat().st_mtime)
     return max(mtimes) if mtimes else 0
 
 @st.cache_data
@@ -105,10 +108,19 @@ def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
     # Calculate correlation matrix
     corr_matrix = returns.corr()
 
-    return corr_matrix, returns
+    # Get weights for current holdings
+    current_weights = holdings_filtered[holdings_filtered['Date'] == latest_date][['Ticker', 'Weight']].copy()
+    current_weights = current_weights[current_weights['Ticker'].isin(corr_matrix.columns)]
 
-def get_correlation_stats(corr_matrix):
-    """Calculate summary statistics for correlation matrix"""
+    return corr_matrix, returns, current_weights
+
+def get_correlation_stats(corr_matrix, weights_df=None):
+    """Calculate summary statistics for correlation matrix
+
+    Args:
+        corr_matrix: correlation matrix DataFrame
+        weights_df: optional DataFrame with Ticker and Weight columns for weighted correlation
+    """
     # Get upper triangle (excluding diagonal)
     mask = np.triu(np.ones_like(corr_matrix, dtype=bool), k=1)
     upper_triangle = corr_matrix.where(mask)
@@ -128,6 +140,39 @@ def get_correlation_stats(corr_matrix):
         'min': np.min(correlations),
         'max': np.max(correlations)
     }
+
+    # Calculate weighted correlation if weights provided
+    if weights_df is not None and len(weights_df) > 0:
+        weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
+        weighted_corrs = []
+        pair_weights = []
+
+        for i in range(len(corr_matrix.columns)):
+            for j in range(i + 1, len(corr_matrix.columns)):
+                ticker1 = corr_matrix.columns[i]
+                ticker2 = corr_matrix.columns[j]
+                corr = corr_matrix.iloc[i, j]
+
+                if np.isnan(corr):
+                    continue
+
+                w1 = weights_dict.get(ticker1, 0)
+                w2 = weights_dict.get(ticker2, 0)
+
+                if w1 > 0 and w2 > 0:
+                    # Weight = product of individual weights (pairs with large positions get higher weight)
+                    pair_weight = w1 * w2
+                    weighted_corrs.append(corr)
+                    pair_weights.append(pair_weight)
+
+        if len(weighted_corrs) > 0:
+            pair_weights = np.array(pair_weights)
+            weighted_corrs = np.array(weighted_corrs)
+            stats['weighted_mean'] = np.average(weighted_corrs, weights=pair_weights)
+        else:
+            stats['weighted_mean'] = stats['mean']
+    else:
+        stats['weighted_mean'] = stats['mean']
 
     # Find highest and lowest correlation pairs
     pairs = []
@@ -150,20 +195,24 @@ def get_correlation_stats(corr_matrix):
     return stats
 
 @st.cache_data
-def calculate_rolling_correlations(_files_hash, etf, rolling_window, _returns):
+def calculate_rolling_correlations(_files_hash, etf, rolling_window, _returns, _holdings):
     """Calculate rolling mean/median pairwise correlation over time
 
     _returns: Pre-loaded returns data (underscore prefix excludes from hashing)
+    _holdings: Pre-loaded holdings data for weight calculation
     """
     returns = _returns
+    holdings = _holdings
 
     if len(returns) < rolling_window:
         return pd.DataFrame()
 
     results = []
     dates = returns.index
+
     for i in range(rolling_window, len(returns) + 1):
         window_returns = returns.iloc[i - rolling_window:i]
+        current_date = dates[i - 1]
         corr_matrix = window_returns.corr()
 
         # Get upper triangle (excluding diagonal)
@@ -171,12 +220,58 @@ def calculate_rolling_correlations(_files_hash, etf, rolling_window, _returns):
         corr_values = corr_matrix.where(mask).values.flatten()
         corr_values = corr_values[~np.isnan(corr_values)]
 
-        if len(corr_values) > 0:
-            results.append({
-                'Date': dates[i - 1],
-                'mean_corr': np.mean(corr_values),
-                'median_corr': np.median(corr_values)
-            })
+        if len(corr_values) == 0:
+            continue
+
+        # Unweighted correlations
+        mean_corr = np.mean(corr_values)
+        median_corr = np.median(corr_values)
+
+        # Weighted correlation - find closest holdings date
+        holdings_dates = holdings['Date'].unique()
+        valid_dates = holdings_dates[holdings_dates <= current_date]
+        if len(valid_dates) == 0:
+            weighted_mean = mean_corr
+        else:
+            closest_date = valid_dates.max()
+            weights_df = holdings[holdings['Date'] == closest_date][['Ticker', 'Weight']].copy()
+            weights_df = weights_df[weights_df['Ticker'].isin(corr_matrix.columns)]
+
+            if len(weights_df) > 0:
+                weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
+                weighted_corrs = []
+                pair_weights = []
+
+                for ii in range(len(corr_matrix.columns)):
+                    for jj in range(ii + 1, len(corr_matrix.columns)):
+                        ticker1 = corr_matrix.columns[ii]
+                        ticker2 = corr_matrix.columns[jj]
+                        corr = corr_matrix.iloc[ii, jj]
+
+                        if np.isnan(corr):
+                            continue
+
+                        w1 = weights_dict.get(ticker1, 0)
+                        w2 = weights_dict.get(ticker2, 0)
+
+                        if w1 > 0 and w2 > 0:
+                            pair_weight = w1 * w2
+                            weighted_corrs.append(corr)
+                            pair_weights.append(pair_weight)
+
+                if len(weighted_corrs) > 0:
+                    weighted_mean = np.average(weighted_corrs, weights=pair_weights)
+                else:
+                    weighted_mean = mean_corr
+            else:
+                weighted_mean = mean_corr
+
+        results.append({
+            'Date': current_date,
+            'mean_corr': mean_corr,
+            'median_corr': median_corr,
+            'weighted_mean_corr': weighted_mean
+        })
 
     return pd.DataFrame(results)
 
@@ -219,11 +314,11 @@ files_hash = get_ark_files_hash()
 with st.spinner("Calculating correlations..."):
     # Load holdings once (cached)
     holdings = get_cached_ark_holdings(files_hash, selected_etf)
-    corr_matrix, returns = calculate_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
+    corr_matrix, returns, current_weights = calculate_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
 
 if corr_matrix is not None and len(corr_matrix) > 0:
-    # Get statistics
-    stats = get_correlation_stats(corr_matrix)
+    # Get statistics (including weighted correlation)
+    stats = get_correlation_stats(corr_matrix, current_weights)
 
     # Display statistics in left panel
     with cols[0]:
@@ -234,9 +329,18 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             st.markdown("##### Summary Statistics")
 
             st.markdown(f"**Holdings:** {len(corr_matrix)}")
-            st.markdown(f"**Avg Correlation:** {stats['mean']:.3f}")
-            st.markdown(f"**Median Correlation:** {stats['median']:.3f}")
-            st.markdown(f"**Std Dev:** {stats['std']:.3f}")
+
+            ""  # Space
+
+            st.markdown("**Correlation (Unweighted)**")
+            st.markdown(f"Mean: **{stats['mean']:.3f}**")
+            st.markdown(f"Median: **{stats['median']:.3f}**")
+
+            ""  # Space
+
+            st.markdown("**Correlation (Weighted)**")
+            st.markdown(f"Mean: **{stats['weighted_mean']:.3f}**")
+            st.caption("Weighted by position size")
 
             ""  # Space
 
@@ -313,31 +417,33 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
     ts_card = st.container(border=True)
     with ts_card:
-        rolling_corr = calculate_rolling_correlations(files_hash, selected_etf, rolling_window, returns)
+        rolling_corr = calculate_rolling_correlations(files_hash, selected_etf, rolling_window, returns, holdings)
 
         if len(rolling_corr) > 0:
             fig_ts = go.Figure()
 
+            # Weighted mean correlation (primary)
+            fig_ts.add_trace(go.Scatter(
+                x=rolling_corr['Date'],
+                y=rolling_corr['weighted_mean_corr'],
+                mode='lines',
+                name='Weighted Mean',
+                line=dict(color='steelblue', width=2),
+                hovertemplate='<b>Weighted Mean</b><br>Date (x): %{x|%Y-%m-%d}<br>Correlation (y): %{y:.4f}<extra></extra>'
+            ))
+
+            # Unweighted mean correlation
             fig_ts.add_trace(go.Scatter(
                 x=rolling_corr['Date'],
                 y=rolling_corr['mean_corr'],
                 mode='lines',
-                name='Mean Correlation',
-                line=dict(color='red', width=2),
-                hovertemplate='<b>Mean Correlation</b><br>Date (x): %{x|%Y-%m-%d}<br>Correlation (y): %{y:.4f}<extra></extra>'
-            ))
-
-            fig_ts.add_trace(go.Scatter(
-                x=rolling_corr['Date'],
-                y=rolling_corr['median_corr'],
-                mode='lines',
-                name='Median Correlation',
-                line=dict(color='green', width=2),
-                hovertemplate='<b>Median Correlation</b><br>Date (x): %{x|%Y-%m-%d}<br>Correlation (y): %{y:.4f}<extra></extra>'
+                name='Unweighted Mean',
+                line=dict(color='red', width=2, dash='dash'),
+                hovertemplate='<b>Unweighted Mean</b><br>Date (x): %{x|%Y-%m-%d}<br>Correlation (y): %{y:.4f}<extra></extra>'
             ))
 
             fig_ts.update_layout(
-                title=f"{selected_etf} Rolling {rolling_window}-Day Pairwise Correlation",
+                title=f"{selected_etf} Rolling {rolling_window}-Day Pairwise Correlation (Weighted vs Unweighted)",
                 xaxis_title="Date",
                 yaxis_title="Correlation",
                 height=400,
@@ -350,7 +456,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             st.plotly_chart(fig_ts, use_container_width=True)
 
-            st.markdown(f"<small>*Each point shows the mean/median of all pairwise correlations among current holdings, calculated using the past {rolling_window} trading days. Rising values indicate increasing portfolio concentration risk.</small>", unsafe_allow_html=True)
+            st.markdown(f"<small>*Solid blue = weighted by position size (large positions matter more). Dashed red = unweighted (equal weight to all pairs). Rising values indicate increasing concentration risk.</small>", unsafe_allow_html=True)
         else:
             st.warning(f"Not enough data for {rolling_window}-day rolling correlation.")
 
