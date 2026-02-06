@@ -184,50 +184,58 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
     # Section 2: HHI Time Series
     st.subheader("Concentration Over Time")
 
+    # Toggle between HHI and Effective Positions
+    conc_metric = st.pills("Metric", options=["HHI", "Effective Positions"], default="HHI", label_visibility="collapsed")
+
     hhi_ts_card = st.container(border=True)
     with hhi_ts_card:
-        fig_hhi = make_subplots(specs=[[{"secondary_y": True}]])
+        fig_conc = go.Figure()
 
-        # HHI line (left axis)
-        fig_hhi.add_trace(
-            go.Scatter(
-                x=hhi_data['Date'],
-                y=hhi_data['HHI'],
-                mode='lines',
-                name='HHI',
-                line=dict(color='steelblue', width=2),
-                hovertemplate='<b>HHI</b><br>Date (x): %{x|%Y-%m-%d}<br>HHI (y): %{y:.4f}<extra></extra>'
-            ),
-            secondary_y=False
-        )
+        if conc_metric == "HHI":
+            fig_conc.add_trace(
+                go.Scatter(
+                    x=hhi_data['Date'],
+                    y=hhi_data['HHI'],
+                    mode='lines',
+                    name='HHI',
+                    line=dict(color='steelblue', width=2),
+                    hovertemplate='<b>HHI</b><br>Date: %{x|%Y-%m-%d}<br>HHI: %{y:.4f}<extra></extra>'
+                )
+            )
+            fig_conc.update_layout(
+                title=f"{selected_etf} HHI Over Time",
+                yaxis_title="HHI"
+            )
+        else:
+            fig_conc.add_trace(
+                go.Scatter(
+                    x=hhi_data['Date'],
+                    y=hhi_data['Effective_Positions'],
+                    mode='lines',
+                    name='Effective Positions',
+                    line=dict(color='green', width=2),
+                    hovertemplate='<b>Effective Positions</b><br>Date: %{x|%Y-%m-%d}<br>Positions: %{y:.1f}<extra></extra>'
+                )
+            )
+            fig_conc.update_layout(
+                title=f"{selected_etf} Effective Positions Over Time",
+                yaxis_title="Effective Positions"
+            )
 
-        # Effective Positions line (right axis)
-        fig_hhi.add_trace(
-            go.Scatter(
-                x=hhi_data['Date'],
-                y=hhi_data['Effective_Positions'],
-                mode='lines',
-                name='Effective Positions',
-                line=dict(color='green', width=2),
-                hovertemplate='<b>Effective Positions</b><br>Date (x): %{x|%Y-%m-%d}<br>Positions (y): %{y:.1f}<extra></extra>'
-            ),
-            secondary_y=True
-        )
-
-        fig_hhi.update_layout(
-            title=f"{selected_etf} HHI & Effective Positions",
+        fig_conc.update_layout(
             height=400,
-            legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
             plot_bgcolor='white',
             paper_bgcolor='white',
-            hovermode='x unified'
+            hovermode='x unified',
+            showlegend=False
         )
+        fig_conc.update_xaxes(title_text="Date", gridcolor='lightgray')
+        fig_conc.update_yaxes(gridcolor='lightgray', autorange=True)
 
-        fig_hhi.update_xaxes(title_text="Date", gridcolor='lightgray')
-        fig_hhi.update_yaxes(title_text="HHI", secondary_y=False, gridcolor='lightgray', autorange=True)
-        fig_hhi.update_yaxes(title_text="Effective Positions", secondary_y=True, autorange=True)
+        st.plotly_chart(fig_conc, width='stretch', config=CHART_CONFIG)
 
-        st.plotly_chart(fig_hhi, width='stretch', config=CHART_CONFIG)
+        if conc_metric == "Effective Positions":
+            st.markdown("<small>*Effective Positions = 1/HHI. It represents the equivalent number of equal-weighted positions that would produce the same concentration level. For example, if Effective Positions = 20, the portfolio's concentration is equivalent to holding 20 equally-weighted stocks.*</small>", unsafe_allow_html=True)
 
     "" # Space
 
