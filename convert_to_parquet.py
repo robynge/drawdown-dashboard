@@ -62,6 +62,23 @@ def convert_russell_3000():
     parquet_size = parquet_file.stat().st_size / (1024 * 1024)
     print(f"  {xlsx_size:.1f} MB -> {parquet_size:.1f} MB ({parquet_size/xlsx_size*100:.0f}%)")
 
+def precompute_peer_group_cache():
+    """Precompute peer group cache after data conversion"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from data_loader import get_r3000_files_hash
+    from peer_group import calculate_peer_group_prices_mv, calculate_peer_group_prices_weighted
+
+    files_hash = get_r3000_files_hash()
+
+    print("Precomputing Market Value cache...")
+    calculate_peer_group_prices_mv(files_hash)
+
+    print("Precomputing Weighted Price cache...")
+    calculate_peer_group_prices_weighted(files_hash)
+
+
 if __name__ == '__main__':
     print("=" * 50)
     print("Converting Excel files to Parquet")
@@ -74,6 +91,10 @@ if __name__ == '__main__':
 
     print("Russell 3000:")
     convert_russell_3000()
+    print()
+
+    print("Peer Group Cache:")
+    precompute_peer_group_cache()
     print()
 
     print("=" * 50)
