@@ -4,7 +4,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import sys
 from pathlib import Path
-import pickle
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
@@ -14,10 +13,6 @@ from data_loader import load_etf_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 from recovery_probability import get_etf_drawdowns_in_depth_range
-
-# Precomputed data directory
-PRECOMP_DIR = Path(__file__).parent / 'data' / 'precomputed'
-PRECOMP_FILE = PRECOMP_DIR / 'etf_data.pkl'
 
 st.set_page_config(
     page_title="ETF Analysis",
@@ -36,67 +31,25 @@ st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DAT
 
 ""  # Add space
 
-# Helper function to get modification times of input files
 def get_input_files_hash():
-    """Get a hash of all input file modification times for cache invalidation"""
+    """Get hash of input file modification times for cache invalidation"""
     mtimes = []
-
-    # ETF price files
     for etf in ARK_ETFS:
         price_file = OUTPUT_DIR / f'{etf}_prices.csv'
         if price_file.exists():
             mtimes.append(price_file.stat().st_mtime)
-
-    # If precomputed file exists and is newer than all source files, use it
-    if PRECOMP_FILE.exists():
-        precomp_mtime = PRECOMP_FILE.stat().st_mtime
-        # Only use precomputed if it's newer than all price files
-        if mtimes and precomp_mtime >= max(mtimes):
-            mtimes.append(precomp_mtime)
-
     return max(mtimes) if mtimes else 0
 
-# Load and cache ETF price and drawdown data
 @st.cache_data
 def load_all_etf_data(_files_hash):
-    """Load price and drawdown data for all ETFs
-
-    Note: _files_hash parameter (with underscore prefix) is not hashed by Streamlit,
-    but changing it will invalidate the cache. This allows cache invalidation when
-    input files change.
-    """
-    # Try to load from precomputed data if it exists and is fresh
-    use_precomputed = False
-    if PRECOMP_FILE.exists():
-        precomp_mtime = PRECOMP_FILE.stat().st_mtime
-        # Check if precomputed is newer than all price files
-        price_mtimes = []
-        for etf in ARK_ETFS:
-            price_file = OUTPUT_DIR / f'{etf}_prices.csv'
-            if price_file.exists():
-                price_mtimes.append(price_file.stat().st_mtime)
-
-        if price_mtimes and precomp_mtime >= max(price_mtimes):
-            use_precomputed = True
-
-    if use_precomputed:
-        with open(PRECOMP_FILE, 'rb') as f:
-            all_data = pickle.load(f)
-        price_data = {etf: data['prices'] for etf, data in all_data.items()}
-        dd_data = [data['drawdowns'] for etf, data in all_data.items()]
-        all_dd = pd.concat(dd_data, ignore_index=True) if dd_data else pd.DataFrame()
-        return price_data, all_dd
-
-    # Calculate on the fly (always fresh)
+    """Load price and drawdown data for all ETFs"""
     price_data = {}
     dd_data = []
 
     for etf in ARK_ETFS:
         etf_prices = load_etf_prices(etf)
-
         if len(etf_prices) > 0:
             price_data[etf] = etf_prices
-
             dd_df = calculate_drawdowns(etf_prices)
             if len(dd_df) > 0:
                 dd_df.insert(0, 'ETF', etf)
@@ -105,10 +58,8 @@ def load_all_etf_data(_files_hash):
     all_dd = pd.concat(dd_data, ignore_index=True) if dd_data else pd.DataFrame()
     return price_data, all_dd
 
-# Load data with automatic cache invalidation when input files change
 with st.spinner("Loading ETF drawdown data..."):
-    files_hash = get_input_files_hash()
-    etf_prices, etf_dd = load_all_etf_data(files_hash)
+    etf_prices, etf_dd = load_all_etf_data(get_input_files_hash())
 
 # Section 1: ARK ETF Price Overview
 st.subheader("ARK ETF Price Trends")
