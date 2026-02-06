@@ -370,6 +370,26 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
 
         st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. Dotted blue line shows HHI (concentration).*</small>", unsafe_allow_html=True)
 
+        "" # Space
+
+        # Top 10 Drawdown Table
+        if len(dd_df) > 0:
+            st.markdown("#### Top 10 Historical Drawdowns")
+
+            display_dd = dd_df[dd_df['rank'] != 'Current'].head(10).copy()
+
+            if len(display_dd) > 0:
+                display_dd['Rank'] = display_dd['rank'].astype(str)
+                display_dd['Depth %'] = display_dd['depth_pct'].apply(lambda x: f"{x:.2f}%")
+                display_dd['Peak Date'] = display_dd['peak_date'].dt.strftime('%Y-%m-%d')
+                display_dd['Trough Date'] = display_dd['trough_date'].dt.strftime('%Y-%m-%d')
+                display_dd['Peak Price'] = display_dd['peak_price'].apply(lambda x: f"${x:,.2f}")
+                display_dd['Trough Price'] = display_dd['trough_price'].apply(lambda x: f"${x:,.2f}")
+
+                display_dd = display_dd[['Rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
+
+                st.dataframe(display_dd, hide_index=True, width='stretch')
+
     "" # Space
 
     # Section 4: Returns vs HHI

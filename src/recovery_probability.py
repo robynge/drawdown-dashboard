@@ -1,7 +1,7 @@
 """Recovery probability calculator based on historical drawdown data"""
 import pandas as pd
 import numpy as np
-from data_loader import load_ark_holdings, ARK_ETFS
+from data_loader import load_ark_holdings, get_ark_files_hash, ARK_ETFS
 from drawdown_calculator import calculate_drawdowns
 from config import START_DATE, END_DATE
 import pickle
@@ -25,7 +25,7 @@ def calculate_all_stock_drawdowns():
 
     for etf in ARK_ETFS:
         try:
-            holdings = load_ark_holdings(etf)
+            holdings = load_ark_holdings(get_ark_files_hash(), etf)
 
             # Filter to analysis period
             holdings = holdings[(holdings['Date'] >= START_DATE) & (holdings['Date'] <= END_DATE)]
@@ -259,7 +259,7 @@ def get_drawdowns_in_depth_range(depth_range_label):
                 recovery_rate = 1.0
             else:
                 # Need to get latest price after trough to calculate current recovery rate
-                holdings = load_ark_holdings(etf)
+                holdings = load_ark_holdings(get_ark_files_hash(), etf)
                 holdings = holdings[(holdings['Date'] >= START_DATE) & (holdings['Date'] <= END_DATE)]
                 stock_data = holdings[holdings['Ticker'] == ticker].copy()
 
@@ -321,7 +321,7 @@ def get_stock_drawdowns_in_depth_range(ticker, etf, depth_range_label):
     """
     try:
         # Load stock data
-        holdings = load_ark_holdings(etf)
+        holdings = load_ark_holdings(get_ark_files_hash(), etf)
         holdings = holdings[(holdings['Date'] >= START_DATE) & (holdings['Date'] <= END_DATE)]
 
         # Find matching ticker
@@ -437,7 +437,7 @@ def get_etf_drawdowns_in_depth_range(etf, depth_range_label):
     """
     try:
         # Load ETF holdings
-        holdings = load_ark_holdings(etf)
+        holdings = load_ark_holdings(get_ark_files_hash(), etf)
         holdings = holdings[(holdings['Date'] >= START_DATE) & (holdings['Date'] <= END_DATE)]
 
         # Define depth ranges
