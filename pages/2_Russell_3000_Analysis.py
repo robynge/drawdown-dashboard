@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import START_DATE, END_DATE, OUTPUT_DIR
 from peer_group import get_peer_group_prices
-from chart_config import CHART_CONFIG
+from chart_config import CHART_CONFIG, add_reconstitution_lines
 
 st.set_page_config(page_title="Russell 3000 Analysis", page_icon="", layout="wide")
 
@@ -339,6 +339,9 @@ if iwv_prices is not None and iwv_dd is not None:
             yaxis=dict(gridcolor='lightgray', showgrid=True),
             margin=dict(l=0, r=0, t=40, b=0)
         )
+
+        # Add Russell reconstitution date lines
+        add_reconstitution_lines(fig)
 
         st.plotly_chart(fig, width='stretch', config=CHART_CONFIG)
 

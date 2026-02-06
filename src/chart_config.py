@@ -1,4 +1,5 @@
 """Shared chart configuration for high-quality exports"""
+from config import RUSSELL_RECONSTITUTION_DATES, START_DATE, END_DATE
 
 # High-quality PNG export - Streamlit + Plotly global default
 CHART_CONFIG = {
@@ -25,3 +26,40 @@ DD_COLORS = [
     'rgba(240, 230, 140, 0.3)', # Khaki
     'rgba(255, 228, 181, 0.3)'  # Moccasin
 ]
+
+
+def add_reconstitution_lines(fig, y_min=None, y_max=None):
+    """Add vertical red lines for Russell Index reconstitution dates
+
+    Args:
+        fig: Plotly figure object
+        y_min: Optional minimum y value for the line (defaults to chart min)
+        y_max: Optional maximum y value for the line (defaults to chart max)
+
+    Returns:
+        The modified figure object
+    """
+    for recon_date in RUSSELL_RECONSTITUTION_DATES:
+        # Only add lines within analysis period
+        if START_DATE <= recon_date <= END_DATE:
+            # Add vertical line
+            fig.add_vline(
+                x=recon_date,
+                line=dict(color='red', width=1.5, dash='dot'),
+                layer='above'
+            )
+
+            # Add annotation at the top
+            fig.add_annotation(
+                x=recon_date,
+                y=1.02,  # Position above chart
+                yref='paper',
+                text=f"Recon {recon_date.strftime('%Y-%m')}",
+                showarrow=False,
+                font=dict(size=9, color='red'),
+                textangle=-90,
+                xanchor='left',
+                yanchor='bottom'
+            )
+
+    return fig
