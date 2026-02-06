@@ -424,8 +424,6 @@ with cols[0]:
 
         st.markdown("##### Correlation Type")
         use_weighted_corr = st.toggle("Weighted Correlation", value=False)
-        if use_weighted_corr:
-            st.caption("Weight = w_A × w_B per day")
 
 # Calculate correlation matrix
 files_hash = get_ark_files_hash()
