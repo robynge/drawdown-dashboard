@@ -372,27 +372,6 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
 
         st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. Dotted blue line shows HHI.*</small>", unsafe_allow_html=True)
 
-        "" # Space
-
-        # Top 10 Drawdown Table
-        if len(etf_dd_data) > 0:
-            st.markdown("#### Top 10 Historical Drawdowns")
-
-            display_df = etf_dd_data[etf_dd_data['rank'] != 'Current'].head(10).copy()
-
-            if len(display_df) > 0:
-                display_df['rank'] = display_df['rank'].astype(str)
-                display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
-                display_df['Peak Date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
-                display_df['Trough Date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
-                display_df['Peak Price'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
-                display_df['Trough Price'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
-
-                display_df = display_df[['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
-                display_df = display_df.rename(columns={'rank': 'Rank'})
-
-                st.dataframe(display_df, hide_index=True, width='stretch')
-
     "" # Space
 
     # Section 4: Returns vs HHI
