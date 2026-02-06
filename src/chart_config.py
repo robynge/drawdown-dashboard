@@ -28,38 +28,143 @@ DD_COLORS = [
 ]
 
 
-def add_reconstitution_lines(fig, y_min=None, y_max=None):
-    """Add vertical red lines for Russell Index reconstitution dates
+def add_reconstitution_lines(fig, price_line_name="Price"):
+    """Add vertical red lines for Russell Index reconstitution dates with legend
 
     Args:
         fig: Plotly figure object
-        y_min: Optional minimum y value for the line (defaults to chart min)
-        y_max: Optional maximum y value for the line (defaults to chart max)
+        price_line_name: Name for the main price line in legend (e.g., "IWV Price", "Peer Group Value")
 
     Returns:
         The modified figure object
     """
+    import plotly.graph_objects as go
+
+    # Update existing price trace to show in legend
+    if len(fig.data) > 0:
+        fig.data[0].name = price_line_name
+        fig.data[0].showlegend = True
+
+    # Add reconstitution lines
+    first_recon = True
     for recon_date in RUSSELL_RECONSTITUTION_DATES:
         # Only add lines within analysis period
         if START_DATE <= recon_date <= END_DATE:
-            # Add vertical line
+            # Add vertical line using a scatter trace (for legend)
+            fig.add_trace(go.Scatter(
+                x=[recon_date, recon_date],
+                y=[0, 1],
+                yaxis='y',
+                mode='lines',
+                line=dict(color='red', width=1.5, dash='dot'),
+                name='Russell Reconstitution' if first_recon else None,
+                showlegend=first_recon,
+                legendgroup='reconstitution',
+                hoverinfo='skip'
+            ))
+
+            # Add date label near the line
+            fig.add_annotation(
+                x=recon_date,
+                y=0.98,
+                yref='paper',
+                text=recon_date.strftime('%Y-%m-%d'),
+                showarrow=False,
+                font=dict(size=10, color='red'),
+                textangle=-90,
+                xanchor='left',
+                yanchor='top',
+                bgcolor='rgba(255,255,255,0.8)'
+            )
+
+            first_recon = False
+
+    # Update layout to show legend
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01,
+            bgcolor='rgba(255,255,255,0.8)',
+            bordercolor='rgba(0,0,0,0.3)',
+            borderwidth=1
+        )
+    )
+
+    # Fix y-axis range for reconstitution lines (they use relative 0-1)
+    # We need to update them to use the actual y-axis range
+    return fig
+
+
+def add_reconstitution_vlines(fig, price_line_name="Price"):
+    """Add vertical red lines for Russell Index reconstitution dates with legend
+
+    Uses vline shapes + dummy traces for clean legend display.
+
+    Args:
+        fig: Plotly figure object
+        price_line_name: Name for the main price line in legend
+
+    Returns:
+        The modified figure object
+    """
+    import plotly.graph_objects as go
+
+    # Update existing price trace to show in legend
+    if len(fig.data) > 0:
+        fig.data[0].name = price_line_name
+        fig.data[0].showlegend = True
+
+    # Check if any reconstitution dates are in range
+    recon_dates_in_range = [d for d in RUSSELL_RECONSTITUTION_DATES if START_DATE <= d <= END_DATE]
+
+    if recon_dates_in_range:
+        # Add a dummy trace for legend entry
+        fig.add_trace(go.Scatter(
+            x=[None],
+            y=[None],
+            mode='lines',
+            line=dict(color='red', width=2, dash='dot'),
+            name='Russell Reconstitution',
+            showlegend=True
+        ))
+
+        # Add vertical lines using shapes
+        for recon_date in recon_dates_in_range:
             fig.add_vline(
                 x=recon_date,
-                line=dict(color='red', width=1.5, dash='dot'),
+                line=dict(color='red', width=2, dash='dot'),
                 layer='above'
             )
 
-            # Add annotation at the top
+            # Add date label
             fig.add_annotation(
                 x=recon_date,
-                y=1.02,  # Position above chart
+                y=0.98,
                 yref='paper',
-                text=f"Recon {recon_date.strftime('%Y-%m')}",
+                text=recon_date.strftime('%Y-%m-%d'),
                 showarrow=False,
-                font=dict(size=9, color='red'),
+                font=dict(size=10, color='red'),
                 textangle=-90,
                 xanchor='left',
-                yanchor='bottom'
+                yanchor='top',
+                bgcolor='rgba(255,255,255,0.8)'
             )
+
+    # Update layout to show legend
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01,
+            bgcolor='rgba(255,255,255,0.8)',
+            bordercolor='rgba(0,0,0,0.3)',
+            borderwidth=1
+        )
+    )
 
     return fig

@@ -13,7 +13,7 @@ from config import START_DATE, END_DATE, OUTPUT_DIR, ARK_ETFS, INPUT_DIR
 from data_loader import load_ark_holdings, load_industry_info, load_company_name, get_ark_files_hash, get_stocks_for_etf
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
-from chart_config import CHART_CONFIG, DD_COLORS, add_reconstitution_lines
+from chart_config import CHART_CONFIG, DD_COLORS, add_reconstitution_vlines
 from recovery_probability import get_stock_drawdowns_in_depth_range
 
 st.set_page_config(
@@ -496,8 +496,8 @@ if True:
                     margin=dict(l=0, r=0, t=40, b=0)
                 )
 
-                # Add Russell reconstitution date lines
-                add_reconstitution_lines(fig2)
+                # Add Russell reconstitution date lines with legend
+                add_reconstitution_vlines(fig2, price_line_name=f"{gics} ({version})")
 
                 st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 
