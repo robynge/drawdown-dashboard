@@ -270,42 +270,30 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
 
         "" # Space
 
-        # Detailed position changes
-        detail_cols = st.columns(2)
+        # Position Changes Details Table
+        st.subheader("Position Changes Details")
 
-        with detail_cols[0]:
-            st.markdown("#### Positions Reduced/Exited")
-            reduced = comparison[comparison['Status'].isin(['Exited', 'Reduced'])].copy()
-            reduced = reduced.sort_values('Weight_Change')
+        details_card = st.container(border=True)
+        with details_card:
+            # Prepare display dataframe
+            display_df = comparison[comparison['Status'] != 'Unchanged'].copy()
+            display_df = display_df.sort_values('Weight_Change')
 
-            if len(reduced) > 0:
-                reduced_card = st.container(border=True)
-                with reduced_card:
-                    for _, row in reduced.head(15).iterrows():
-                        status_icon = "🔴" if row['Status'] == 'Exited' else "🟠"
-                        weight_peak = row['Weight_peak'] * 100
-                        weight_trough = row['Weight_trough'] * 100
-                        weight_change = row['Weight_Change'] * 100
-                        st.markdown(f"{status_icon} **{row['Ticker_Clean']}**: {weight_peak:.2f}% → {weight_trough:.2f}% ({weight_change:+.2f}%)")
-            else:
-                st.info("No positions were reduced or exited")
+            # Format columns
+            display_df['Ticker'] = display_df['Ticker_Clean']
+            display_df['Weight Peak (%)'] = (display_df['Weight_peak'] * 100).round(2)
+            display_df['Weight Trough (%)'] = (display_df['Weight_trough'] * 100).round(2)
+            display_df['Weight Change (%)'] = (display_df['Weight_Change'] * 100).round(2)
+            display_df['Position Peak'] = display_df['Position_peak'].astype(int)
+            display_df['Position Trough'] = display_df['Position_trough'].astype(int)
+            display_df['Position Change (%)'] = display_df['Position_Change_Pct'].round(2)
 
-        with detail_cols[1]:
-            st.markdown("#### Positions Added/New")
-            added = comparison[comparison['Status'].isin(['Added', 'New Position'])].copy()
-            added = added.sort_values('Weight_Change', ascending=False)
+            # Select columns to display
+            display_cols = ['Ticker', 'Status', 'Weight Peak (%)', 'Weight Trough (%)',
+                           'Weight Change (%)', 'Position Peak', 'Position Trough', 'Position Change (%)']
+            display_df = display_df[display_cols]
 
-            if len(added) > 0:
-                added_card = st.container(border=True)
-                with added_card:
-                    for _, row in added.head(15).iterrows():
-                        status_icon = "🟢" if row['Status'] == 'New Position' else "🔵"
-                        weight_peak = row['Weight_peak'] * 100
-                        weight_trough = row['Weight_trough'] * 100
-                        weight_change = row['Weight_Change'] * 100
-                        st.markdown(f"{status_icon} **{row['Ticker_Clean']}**: {weight_peak:.2f}% → {weight_trough:.2f}% ({weight_change:+.2f}%)")
-            else:
-                st.info("No positions were added")
+            st.dataframe(display_df, hide_index=True, use_container_width=True)
 
         "" # Space
 
