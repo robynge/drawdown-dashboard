@@ -329,7 +329,7 @@ if len(spread_data) > 0:
         fig_spread.update_yaxes(title_text="Cumulative Spread (%)", gridcolor='lightgray', row=1, col=1)
         fig_spread.update_yaxes(title_text="Daily Spread (%)", gridcolor='lightgray', row=2, col=1)
 
-        st.plotly_chart(fig_spread, use_container_width=True, config=CHART_CONFIG)
+        st.plotly_chart(fig_spread, width='stretch', config=CHART_CONFIG)
 
         # Summary stats
         total_spread = spread_data['Cumulative_Spread'].iloc[-1]
@@ -405,7 +405,7 @@ if len(spread_data) > 0:
             display_stats['Sharpe Ratio'] = display_stats['Sharpe Ratio'].apply(lambda x: f"{x:+.3f}")
             display_stats['Win Rate (%)'] = display_stats['Win Rate (%)'].apply(lambda x: f"{x:.1f}")
 
-            st.dataframe(display_stats, hide_index=True, use_container_width=True)
+            st.dataframe(display_stats, hide_index=True, width='stretch')
 
             "" # Space
 
@@ -439,7 +439,7 @@ if len(spread_data) > 0:
             )
             fig_regime.update_yaxes(gridcolor='lightgray')
 
-            st.plotly_chart(fig_regime, use_container_width=True, config=CHART_CONFIG)
+            st.plotly_chart(fig_regime, width='stretch', config=CHART_CONFIG)
 
             "" # Space
 
@@ -481,7 +481,7 @@ if len(spread_data) > 0:
             fig_regime_cum.update_xaxes(gridcolor='lightgray')
             fig_regime_cum.update_yaxes(gridcolor='lightgray')
 
-            st.plotly_chart(fig_regime_cum, use_container_width=True, config=CHART_CONFIG)
+            st.plotly_chart(fig_regime_cum, width='stretch', config=CHART_CONFIG)
 
     "" # Space
 
@@ -544,7 +544,7 @@ if len(spread_data) > 0:
                 })
 
             reg_df = pd.DataFrame(reg_df_rows)
-            st.dataframe(reg_df, hide_index=True, use_container_width=True)
+            st.dataframe(reg_df, hide_index=True, width='stretch')
 
             "" # Space
 
@@ -600,7 +600,7 @@ if len(spread_data) > 0:
             fig_scatter.update_xaxes(gridcolor='lightgray')
             fig_scatter.update_yaxes(gridcolor='lightgray')
 
-            st.plotly_chart(fig_scatter, use_container_width=True, config=CHART_CONFIG)
+            st.plotly_chart(fig_scatter, width='stretch', config=CHART_CONFIG)
 
             # Interpretation
             if 'contemporaneous' in regression_results:

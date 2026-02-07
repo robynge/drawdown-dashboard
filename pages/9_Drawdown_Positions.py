@@ -243,7 +243,7 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                 )
                 fig_hhi.update_xaxes(gridcolor='lightgray')
                 fig_hhi.update_yaxes(gridcolor='lightgray')
-                st.plotly_chart(fig_hhi, use_container_width=True, config=CHART_CONFIG)
+                st.plotly_chart(fig_hhi, width='stretch', config=CHART_CONFIG)
             else:
                 st.warning("No HHI data available for this period")
 
@@ -293,7 +293,7 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                            'Weight Change (%)', 'Position Peak', 'Position Trough', 'Position Change (%)']
             display_df = display_df[display_cols]
 
-            st.dataframe(display_df, hide_index=True, use_container_width=True)
+            st.dataframe(display_df, hide_index=True, width='stretch')
 
         "" # Space
 
@@ -416,7 +416,7 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
                 fig_changes.update_xaxes(showgrid=False, zeroline=True, zerolinecolor='gray')
                 fig_changes.update_yaxes(showgrid=False)
 
-                st.plotly_chart(fig_changes, use_container_width=True, config=CHART_CONFIG)
+                st.plotly_chart(fig_changes, width='stretch', config=CHART_CONFIG)
     else:
         st.warning("No position data available for this drawdown period")
 
