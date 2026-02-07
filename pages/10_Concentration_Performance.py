@@ -278,59 +278,78 @@ if len(spread_data) > 0:
 
     spread_card = st.container(border=True)
     with spread_card:
-        # Cumulative spread chart
-        fig_spread = make_subplots(
-            rows=2, cols=1,
-            shared_xaxes=True,
-            vertical_spacing=0.08,
-            row_heights=[0.6, 0.4],
-            subplot_titles=("Cumulative Relative Return (ARK - QQQ)", "Daily Spread")
+        # Returns & Concentration chart (from HHI Analysis)
+        fig_returns = make_subplots(specs=[[{"secondary_y": True}]])
+
+        # ETF cumulative return
+        fig_returns.add_trace(
+            go.Scatter(
+                x=spread_data['Date'],
+                y=spread_data['ETF_Cumulative'],
+                mode='lines',
+                name=f'{selected_etf} Return',
+                line=dict(color='black', width=2),
+                hovertemplate=f'<b>{selected_etf} Return</b><br>Date: %{{x|%Y-%m-%d}}<br>Return: %{{y:.2f}}%<extra></extra>'
+            ),
+            secondary_y=False
         )
 
-        # Cumulative spread
-        fig_spread.add_trace(
+        # QQQ cumulative return
+        fig_returns.add_trace(
+            go.Scatter(
+                x=spread_data['Date'],
+                y=spread_data['QQQ_Cumulative'],
+                mode='lines',
+                name='QQQ Return',
+                line=dict(color='orange', width=2),
+                hovertemplate='<b>QQQ Return</b><br>Date: %{x|%Y-%m-%d}<br>Return: %{y:.2f}%<extra></extra>'
+            ),
+            secondary_y=False
+        )
+
+        # Cumulative spread (ARK - QQQ)
+        fig_returns.add_trace(
             go.Scatter(
                 x=spread_data['Date'],
                 y=spread_data['Cumulative_Spread'],
                 mode='lines',
-                name='Cumulative Spread',
-                line=dict(color='steelblue', width=2),
-                hovertemplate='Date: %{x|%Y-%m-%d}<br>Cumulative Spread: %{y:.2f}%<extra></extra>'
+                name='Spread (ARK - QQQ)',
+                line=dict(color='green', width=2, dash='dash'),
+                hovertemplate='<b>Cumulative Spread</b><br>Date: %{x|%Y-%m-%d}<br>Spread: %{y:.2f}%<extra></extra>'
             ),
-            row=1, col=1
+            secondary_y=False
         )
 
-        # Zero line
-        fig_spread.add_hline(y=0, line_dash="solid", line_color="gray", line_width=1, row=1, col=1)
-
-        # Daily spread as bar chart
-        colors = ['green' if x > 0 else 'red' for x in spread_data['Spread']]
-        fig_spread.add_trace(
-            go.Bar(
+        # HHI on secondary axis
+        fig_returns.add_trace(
+            go.Scatter(
                 x=spread_data['Date'],
-                y=spread_data['Spread'],
-                name='Daily Spread',
-                marker_color=colors,
-                opacity=0.7,
-                hovertemplate='Date: %{x|%Y-%m-%d}<br>Daily Spread: %{y:.2f}%<extra></extra>'
+                y=spread_data['HHI'],
+                mode='lines',
+                name=f'{selected_etf} HHI',
+                line=dict(color='steelblue', width=2, dash='dot'),
+                hovertemplate=f'<b>{selected_etf} HHI</b><br>Date: %{{x|%Y-%m-%d}}<br>HHI: %{{y:.4f}}<extra></extra>'
             ),
-            row=2, col=1
+            secondary_y=True
         )
 
-        fig_spread.add_hline(y=0, line_dash="solid", line_color="gray", line_width=1, row=2, col=1)
+        # Add zero line for reference
+        fig_returns.add_hline(y=0, line_dash="solid", line_color="gray", line_width=1, secondary_y=False)
 
-        fig_spread.update_layout(
-            height=600,
-            showlegend=False,
+        fig_returns.update_layout(
+            title=f"{selected_etf} Cumulative Returns vs QQQ & HHI",
+            height=500,
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
             plot_bgcolor='white',
             paper_bgcolor='white',
             hovermode='x unified'
         )
-        fig_spread.update_xaxes(gridcolor='lightgray')
-        fig_spread.update_yaxes(title_text="Cumulative Spread (%)", gridcolor='lightgray', row=1, col=1)
-        fig_spread.update_yaxes(title_text="Daily Spread (%)", gridcolor='lightgray', row=2, col=1)
 
-        st.plotly_chart(fig_spread, width='stretch', config=CHART_CONFIG)
+        fig_returns.update_xaxes(title_text="Date", gridcolor='lightgray', rangeslider=dict(visible=True))
+        fig_returns.update_yaxes(title_text="Cumulative Return (%)", secondary_y=False, gridcolor='lightgray')
+        fig_returns.update_yaxes(title_text="HHI", secondary_y=True)
+
+        st.plotly_chart(fig_returns, width='stretch', config=CHART_CONFIG)
 
         # Summary stats
         total_spread = spread_data['Cumulative_Spread'].iloc[-1]
