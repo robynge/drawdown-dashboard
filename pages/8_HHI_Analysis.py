@@ -80,45 +80,6 @@ def calculate_hhi_data(_files_hash, etf, _holdings):
 
     return hhi_df
 
-@st.cache_data
-def calculate_returns_data(_files_hash, etf, _etf_prices, _qqq_prices):
-    """Calculate absolute and relative returns"""
-    etf_prices = _etf_prices.copy()
-    qqq_prices = _qqq_prices.copy()
-
-    if len(etf_prices) == 0 or len(qqq_prices) == 0:
-        return pd.DataFrame()
-
-    # Merge on date
-    merged = pd.merge(
-        etf_prices[['Date', 'Close']].rename(columns={'Close': 'ETF_Price'}),
-        qqq_prices[['Date', 'Close']].rename(columns={'Close': 'QQQ_Price'}),
-        on='Date',
-        how='inner'
-    )
-
-    if len(merged) == 0:
-        return pd.DataFrame()
-
-    # Drop rows with NaN prices
-    merged = merged.dropna(subset=['ETF_Price', 'QQQ_Price'])
-
-    if len(merged) == 0:
-        return pd.DataFrame()
-
-    # Calculate cumulative returns from start
-    first_etf = merged['ETF_Price'].iloc[0]
-    first_qqq = merged['QQQ_Price'].iloc[0]
-
-    # Check for valid first prices
-    if pd.isna(first_etf) or pd.isna(first_qqq) or first_etf == 0 or first_qqq == 0:
-        return pd.DataFrame()
-
-    merged['ETF_Return'] = (merged['ETF_Price'] / first_etf - 1) * 100
-    merged['QQQ_Return'] = (merged['QQQ_Price'] / first_qqq - 1) * 100
-    merged['Relative_Return'] = merged['ETF_Return'] - merged['QQQ_Return']
-
-    return merged
 
 # Load data
 files_hash = get_ark_files_hash()
@@ -141,7 +102,6 @@ with st.spinner("Loading data..."):
     etf_prices = get_cached_etf_prices(files_hash, selected_etf)
     qqq_prices = get_cached_qqq_prices(files_hash)
     hhi_data = calculate_hhi_data(files_hash, selected_etf, holdings)
-    returns_data = calculate_returns_data(files_hash, selected_etf, etf_prices, qqq_prices)
 
 if len(hhi_data) > 0 and len(etf_prices) > 0:
     # Section 1: Key Metrics
@@ -398,118 +358,6 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
         st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 
         st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. QQQ Y-axis scaled so first day aligns with ETF.*</small>", unsafe_allow_html=True)
-
-    "" # Space
-
-    # Section 4: Performance & Concentration
-    if len(returns_data) > 0:
-        st.subheader("Returns & Concentration")
-
-        returns_card = st.container(border=True)
-        with returns_card:
-            # Merge HHI with returns data
-            returns_hhi = pd.merge(
-                returns_data,
-                hhi_data[['Date', 'HHI']],
-                on='Date',
-                how='inner'
-            )
-
-            if len(returns_hhi) > 0:
-                fig_returns = make_subplots(specs=[[{"secondary_y": True}]])
-
-                # ETF return
-                fig_returns.add_trace(
-                    go.Scatter(
-                        x=returns_hhi['Date'],
-                        y=returns_hhi['ETF_Return'],
-                        mode='lines',
-                        name=f'{selected_etf} Return',
-                        line=dict(color='black', width=2),
-                        hovertemplate='<b>%s Return</b><br>Date: %%{x|%%Y-%%m-%%d}<br>Return: %%{y:.2f}%%<extra></extra>' % selected_etf
-                    ),
-                    secondary_y=False
-                )
-
-                # QQQ return
-                fig_returns.add_trace(
-                    go.Scatter(
-                        x=returns_hhi['Date'],
-                        y=returns_hhi['QQQ_Return'],
-                        mode='lines',
-                        name='QQQ Return',
-                        line=dict(color='orange', width=2),
-                        hovertemplate='<b>QQQ Return</b><br>Date: %{x|%Y-%m-%d}<br>Return: %{y:.2f}%<extra></extra>'
-                    ),
-                    secondary_y=False
-                )
-
-                # Relative return
-                fig_returns.add_trace(
-                    go.Scatter(
-                        x=returns_hhi['Date'],
-                        y=returns_hhi['Relative_Return'],
-                        mode='lines',
-                        name='Relative (vs QQQ)',
-                        line=dict(color='green', width=2, dash='dash'),
-                        hovertemplate='<b>Relative Return</b><br>Date: %{x|%Y-%m-%d}<br>Return: %{y:.2f}%<extra></extra>'
-                    ),
-                    secondary_y=False
-                )
-
-                # HHI on secondary axis
-                fig_returns.add_trace(
-                    go.Scatter(
-                        x=returns_hhi['Date'],
-                        y=returns_hhi['HHI'],
-                        mode='lines',
-                        name=f'{selected_etf} HHI',
-                        line=dict(color='steelblue', width=2, dash='dot'),
-                        hovertemplate=f'<b>{selected_etf} HHI</b><br>Date: %{{x|%Y-%m-%d}}<br>HHI: %{{y:.4f}}<extra></extra>'
-                    ),
-                    secondary_y=True
-                )
-
-                # Add zero line for reference
-                fig_returns.add_hline(y=0, line_dash="solid", line_color="gray", line_width=1, secondary_y=False)
-
-                fig_returns.update_layout(
-                    title=f"{selected_etf} Cumulative Returns vs QQQ & HHI",
-                    height=500,
-                    legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    hovermode='x unified'
-                )
-
-                fig_returns.update_xaxes(title_text="Date", gridcolor='lightgray', rangeslider=dict(visible=True))
-                fig_returns.update_yaxes(title_text="Cumulative Return (%)", secondary_y=False, gridcolor='lightgray')
-                fig_returns.update_yaxes(title_text="HHI", secondary_y=True)
-
-                st.plotly_chart(fig_returns, width='stretch', config=CHART_CONFIG)
-
-                # Summary statistics
-                st.markdown("#### Performance Summary")
-
-                summary_cols = st.columns(3)
-
-                with summary_cols[0]:
-                    etf_total_return = returns_hhi['ETF_Return'].iloc[-1]
-                    st.metric(f"{selected_etf} Total Return", f"{etf_total_return:+.2f}%")
-
-                with summary_cols[1]:
-                    qqq_total_return = returns_hhi['QQQ_Return'].iloc[-1]
-                    st.metric("QQQ Total Return", f"{qqq_total_return:+.2f}%")
-
-                with summary_cols[2]:
-                    relative_return = returns_hhi['Relative_Return'].iloc[-1]
-                    delta_color = "normal" if relative_return >= 0 else "inverse"
-                    st.metric(
-                        "Relative Performance",
-                        f"{relative_return:+.2f}%",
-                        delta="Outperforming" if relative_return >= 0 else "Underperforming",
-                        delta_color=delta_color
-                    )
 
 else:
     st.warning(f"Not enough data for {selected_etf}")
