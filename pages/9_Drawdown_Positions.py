@@ -306,113 +306,117 @@ if len(etf_prices) > 0 and len(drawdowns) > 0:
             chart_data = comparison[comparison['Weight_Change'] != 0].copy()
             chart_data = chart_data.sort_values('Weight_Change')
 
-            # Prepare data for stacked bar chart
-            chart_data['Weight_peak_pct'] = chart_data['Weight_peak'] * 100
-            chart_data['Weight_trough_pct'] = chart_data['Weight_trough'] * 100
-            chart_data['Weight_Change_pct'] = chart_data['Weight_Change'] * 100
+            if len(chart_data) == 0:
+                st.info("No weight changes during this drawdown period")
+            else:
+                # Prepare data for stacked bar chart
+                chart_data['Weight_peak_pct'] = chart_data['Weight_peak'] * 100
+                chart_data['Weight_trough_pct'] = chart_data['Weight_trough'] * 100
+                chart_data['Weight_Change_pct'] = chart_data['Weight_Change'] * 100
 
-            # Build data for chart
-            tickers = chart_data['Ticker_Clean'].tolist()
-            peak_weights = chart_data['Weight_peak_pct'].tolist()
-            trough_weights = chart_data['Weight_trough_pct'].tolist()
-            changes = chart_data['Weight_Change_pct'].tolist()
+                # Build data for chart
+                tickers = chart_data['Ticker_Clean'].tolist()
+                peak_weights = chart_data['Weight_peak_pct'].tolist()
+                trough_weights = chart_data['Weight_trough_pct'].tolist()
+                changes = chart_data['Weight_Change_pct'].tolist()
 
-            fig_changes = go.Figure()
+                fig_changes = go.Figure()
 
-            # For decreased positions: gray from 0 to trough, red from trough to peak
-            # For increased positions: gray from 0 to peak, green from peak to trough
+                # For decreased positions: gray from 0 to trough, red from trough to peak
+                # For increased positions: gray from 0 to peak, green from peak to trough
 
-            bar_width = 0.7  # Consistent width for all bars
+                bar_width = 0.7  # Width for base bars
+                green_bar_width = 0.82  # Wider to match gray + black border (2px on each side)
 
-            for i, ticker in enumerate(tickers):
-                peak_w = peak_weights[i]
-                trough_w = trough_weights[i]
-                change = changes[i]
+                for i, ticker in enumerate(tickers):
+                    peak_w = peak_weights[i]
+                    trough_w = trough_weights[i]
+                    change = changes[i]
 
-                if change < 0:
-                    # Decreased: gray=remaining (trough), red=lost portion
-                    # Gray bar (remaining weight)
-                    fig_changes.add_trace(go.Bar(
-                        y=[ticker], x=[trough_w], orientation='h',
-                        marker=dict(color='lightgray', line=dict(width=0)),
-                        width=bar_width,
-                        showlegend=False, hoverinfo='skip'
-                    ))
-                    # Red bar (lost portion, starts at trough)
-                    fig_changes.add_trace(go.Bar(
-                        y=[ticker], x=[abs(change)], orientation='h',
-                        marker=dict(color='rgba(220,50,50,0.85)', line=dict(width=0)),
-                        base=trough_w,
-                        width=bar_width,
-                        showlegend=False, hoverinfo='skip'
-                    ))
-                    # Black border around peak (entire original position)
-                    fig_changes.add_trace(go.Bar(
-                        y=[ticker], x=[peak_w], orientation='h',
-                        marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=2)),
-                        width=bar_width,
-                        showlegend=False, hoverinfo='skip'
-                    ))
-                else:
-                    # Increased: gray=original (peak), green=added portion
-                    # Gray bar (original weight, no border yet)
-                    fig_changes.add_trace(go.Bar(
-                        y=[ticker], x=[peak_w], orientation='h',
-                        marker=dict(color='lightgray', line=dict(width=0)),
-                        width=bar_width,
-                        showlegend=False, hoverinfo='skip'
-                    ))
-                    # Green bar (added portion, starts at peak, no border)
-                    fig_changes.add_trace(go.Bar(
-                        y=[ticker], x=[change], orientation='h',
-                        marker=dict(color='rgba(50,180,50,0.85)', line=dict(width=0)),
-                        base=peak_w,
-                        width=bar_width,
-                        showlegend=False, hoverinfo='skip'
-                    ))
-                    # Black border on top (covers green edge)
-                    fig_changes.add_trace(go.Bar(
-                        y=[ticker], x=[peak_w], orientation='h',
-                        marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=2)),
-                        width=bar_width,
-                        showlegend=False, hoverinfo='skip'
-                    ))
+                    if change < 0:
+                        # Decreased: gray=remaining (trough), red=lost portion
+                        # Gray bar (remaining weight)
+                        fig_changes.add_trace(go.Bar(
+                            y=[ticker], x=[trough_w], orientation='h',
+                            marker=dict(color='lightgray', line=dict(width=0)),
+                            width=bar_width,
+                            showlegend=False, hoverinfo='skip'
+                        ))
+                        # Red bar (lost portion, starts at trough)
+                        fig_changes.add_trace(go.Bar(
+                            y=[ticker], x=[abs(change)], orientation='h',
+                            marker=dict(color='rgba(220,50,50,0.85)', line=dict(width=0)),
+                            base=trough_w,
+                            width=bar_width,
+                            showlegend=False, hoverinfo='skip'
+                        ))
+                        # Black border around peak (entire original position)
+                        fig_changes.add_trace(go.Bar(
+                            y=[ticker], x=[peak_w], orientation='h',
+                            marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=2)),
+                            width=bar_width,
+                            showlegend=False, hoverinfo='skip'
+                        ))
+                    else:
+                        # Increased: gray=original (peak), green=added portion
+                        # Gray bar (original weight, no border yet)
+                        fig_changes.add_trace(go.Bar(
+                            y=[ticker], x=[peak_w], orientation='h',
+                            marker=dict(color='lightgray', line=dict(width=0)),
+                            width=bar_width,
+                            showlegend=False, hoverinfo='skip'
+                        ))
+                        # Green bar (added portion, starts at peak, wider to match gray+border)
+                        fig_changes.add_trace(go.Bar(
+                            y=[ticker], x=[change], orientation='h',
+                            marker=dict(color='rgba(50,180,50,0.85)', line=dict(width=0)),
+                            base=peak_w,
+                            width=green_bar_width,
+                            showlegend=False, hoverinfo='skip'
+                        ))
+                        # Black border on top (covers green edge)
+                        fig_changes.add_trace(go.Bar(
+                            y=[ticker], x=[peak_w], orientation='h',
+                            marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=2)),
+                            width=bar_width,
+                            showlegend=False, hoverinfo='skip'
+                        ))
 
-            # Add text annotations for weight change
-            for _, row in chart_data.iterrows():
-                ticker = row['Ticker_Clean']
-                peak_w = row['Weight_peak_pct']
-                trough_w = row['Weight_trough_pct']
-                change = row['Weight_Change_pct']
-                max_w = max(peak_w, trough_w)
+                # Add text annotations for weight change
+                for _, row in chart_data.iterrows():
+                    ticker = row['Ticker_Clean']
+                    peak_w = row['Weight_peak_pct']
+                    trough_w = row['Weight_trough_pct']
+                    change = row['Weight_Change_pct']
+                    max_w = max(peak_w, trough_w)
 
-                change_text = f"{change:+.2f}%" if change != 0 else "0%"
-                fig_changes.add_annotation(
-                    y=ticker,
-                    x=max_w + 0.3,
-                    text=change_text,
-                    showarrow=False,
-                    font=dict(size=10, color='red' if change < 0 else 'green'),
-                    xanchor='left'
+                    change_text = f"{change:+.2f}%" if change != 0 else "0%"
+                    fig_changes.add_annotation(
+                        y=ticker,
+                        x=max_w + 0.3,
+                        text=change_text,
+                        showarrow=False,
+                        font=dict(size=10, color='red' if change < 0 else 'green'),
+                        xanchor='left'
+                    )
+
+                # Dynamic height based on number of tickers
+                chart_height = max(400, len(chart_data) * 25)
+
+                fig_changes.update_layout(
+                    title="Weight at Peak vs Trough (Gray=Base, Red=Reduced, Green=Added)",
+                    xaxis_title="Weight (%)",
+                    yaxis_title="",
+                    height=chart_height,
+                    barmode='overlay',
+                    plot_bgcolor='white',
+                    paper_bgcolor='white',
+                    margin=dict(l=0, r=50, t=40, b=0)
                 )
+                fig_changes.update_xaxes(showgrid=False, zeroline=True, zerolinecolor='gray')
+                fig_changes.update_yaxes(showgrid=False)
 
-            # Dynamic height based on number of tickers
-            chart_height = max(400, len(chart_data) * 25)
-
-            fig_changes.update_layout(
-                title="Weight at Peak vs Trough (Gray=Base, Red=Reduced, Green=Added)",
-                xaxis_title="Weight (%)",
-                yaxis_title="",
-                height=chart_height,
-                barmode='overlay',
-                plot_bgcolor='white',
-                paper_bgcolor='white',
-                margin=dict(l=0, r=50, t=40, b=0)
-            )
-            fig_changes.update_xaxes(showgrid=False, zeroline=True, zerolinecolor='gray')
-            fig_changes.update_yaxes(showgrid=False)
-
-            st.plotly_chart(fig_changes, use_container_width=True, config=CHART_CONFIG)
+                st.plotly_chart(fig_changes, use_container_width=True, config=CHART_CONFIG)
     else:
         st.warning("No position data available for this drawdown period")
 

@@ -69,11 +69,11 @@ def calculate_hhi_data(_files_hash, etf, _holdings):
             ~holdings_filtered['Bloomberg Name'].str.contains('curncy', case=False, na=False)
         ]
 
-    # Filter out money market funds
-    excluded_tickers = ['FTOXX', 'FIRXX']
-    holdings_filtered = holdings_filtered[
-        ~holdings_filtered['Ticker'].str.split().str[0].isin(excluded_tickers)
-    ]
+    # Filter out money market funds (prefix matching)
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    ticker_symbols = holdings_filtered['Ticker'].str.split().str[0]
+    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
+    holdings_filtered = holdings_filtered[~is_mm]
 
     # Calculate HHI time series
     hhi_df = calculate_hhi_time_series(holdings_filtered[['Date', 'Ticker', 'Weight']])

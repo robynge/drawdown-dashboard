@@ -59,9 +59,9 @@ def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
         currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
         current_tickers = [t for t in current_tickers if t not in currency_tickers]
 
-    # Filter out specific tickers (e.g., money market funds)
-    excluded_tickers = ['FTOXX', 'FIRXX']
-    current_tickers = [t for t in current_tickers if t.split()[0] not in excluded_tickers]
+    # Filter out money market funds (prefix matching)
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    current_tickers = [t for t in current_tickers if not any(t.split()[0].startswith(p) for p in money_market_prefixes)]
 
     # Calculate start date for lookback period
     lookback_start = latest_date - pd.Timedelta(days=lookback_days)
@@ -115,8 +115,8 @@ def calculate_weighted_correlation_matrix(_files_hash, etf, lookback_days, _hold
         currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
         current_tickers = [t for t in current_tickers if t not in currency_tickers]
 
-    excluded_tickers = ['FTOXX', 'FIRXX']
-    current_tickers = [t for t in current_tickers if t.split()[0] not in excluded_tickers]
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    current_tickers = [t for t in current_tickers if not any(t.split()[0].startswith(p) for p in money_market_prefixes)]
 
     # Calculate start date for lookback period
     lookback_start = latest_date - pd.Timedelta(days=lookback_days)

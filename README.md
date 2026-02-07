@@ -2,6 +2,45 @@
 
 Interactive dashboard for analyzing drawdowns across ARK ETFs and their holdings.
 
+## Quick Start (Important)
+
+**You MUST run the precomputation script before opening Streamlit for the first time, otherwise the initial load will be extremely slow (5-30 minutes):**
+
+```bash
+# Step 1: Install dependencies
+pip install -r requirements.txt
+
+# Step 2: Precompute all caches (REQUIRED! Takes ~2-3 minutes)
+python convert_to_parquet.py
+
+# Step 3: Launch Dashboard
+streamlit run ETF_Analysis.py
+```
+
+### Why is precomputation required?
+
+The dashboard needs to calculate drawdowns for ~3000 R3000 stocks and all ARK ETF holdings. These calculations are very time-consuming (5-30 minutes if done on-the-fly).
+
+Running `convert_to_parquet.py` will:
+1. Convert Excel files to Parquet format (faster data loading)
+2. Precompute R3000 peer group market value data
+3. Precompute drawdowns for all R3000 stocks (~3000 tickers)
+4. Precompute drawdowns for all ARK ETF stocks (~2700 records)
+
+**After precomputation, Streamlit will load all pages instantly on first open.**
+
+### After Updating Data
+
+When you update input data (e.g., `IWV_Transformed_Data.xlsx`), you need to re-run precomputation:
+
+```bash
+python convert_to_parquet.py
+```
+
+Then refresh your browser to see the updated data.
+
+---
+
 ## Project Structure
 
 ```

@@ -2,9 +2,42 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+from pathlib import Path
 from data_loader import load_ark_holdings, get_ark_files_hash, ARK_ETFS
 from drawdown_calculator import calculate_drawdowns
-from config import START_DATE, END_DATE
+from config import START_DATE, END_DATE, INPUT_DIR
+
+
+def _get_ark_drawdowns_cache_path():
+    """Get cache file path for ARK stock drawdowns"""
+    return INPUT_DIR / 'ark_etfs' / 'all_stock_drawdowns_cache.parquet'
+
+
+def _is_cache_valid(cache_path, source_mtime):
+    """Check if cache file exists and is newer than source"""
+    if not cache_path.exists():
+        return False
+    return cache_path.stat().st_mtime >= source_mtime
+
+
+def get_ark_drawdowns_cache():
+    """Get precomputed ARK drawdowns from cache file (fast)"""
+    cache_file = _get_ark_drawdowns_cache_path()
+    if cache_file.exists():
+        df = pd.read_parquet(cache_file)
+        # Convert date columns back to datetime
+        for col in ['peak_date', 'trough_date', 'recovery_date']:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col])
+        return df
+    return None
+
+
+def save_ark_drawdowns_cache(df):
+    """Save ARK drawdowns to cache file"""
+    cache_file = _get_ark_drawdowns_cache_path()
+    df.to_parquet(cache_file, index=False)
+
 
 @st.cache_data
 def calculate_all_stock_drawdowns(_files_hash):
@@ -14,6 +47,11 @@ def calculate_all_stock_drawdowns(_files_hash):
         DataFrame with columns: ticker, etf, peak_date, trough_date, depth_pct,
                                 recovery_date, recovered, days_to_recover
     """
+    # Check for precomputed cache first
+    cached = get_ark_drawdowns_cache()
+    if cached is not None:
+        return cached
+
     all_drawdowns = []
 
     for etf in ARK_ETFS:
@@ -95,6 +133,11 @@ def calculate_all_stock_drawdowns(_files_hash):
             continue
 
     df = pd.DataFrame(all_drawdowns)
+
+    # Save to cache file for future use
+    if len(df) > 0:
+        save_ark_drawdowns_cache(df)
+
     return df
 
 

@@ -57,8 +57,8 @@ def calculate_ark_holdings_drawdowns(_files_hash, etf, min_depth_pct, min_durati
         currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
         current_tickers = [t for t in current_tickers if t not in currency_tickers]
 
-    excluded_tickers = ['FTOXX', 'FIRXX']
-    current_tickers = [t for t in current_tickers if t.split()[0] not in excluded_tickers]
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    current_tickers = [t for t in current_tickers if not any(t.split()[0].startswith(p) for p in money_market_prefixes)]
 
     results = []
     for ticker in current_tickers:
