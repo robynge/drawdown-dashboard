@@ -20,30 +20,17 @@ def _is_cache_valid(cache_path, source_mtime):
 
 
 @st.cache_data
-def calculate_iwv_total_market_value(_files_hash, period_key, _start_date, _end_date):
-    """Calculate IWV total market value (sum of all holdings)
-
-    Args:
-        period_key, _start_date, _end_date: Analysis period for filtering
+def _calculate_iwv_total_market_value_full(_files_hash):
+    """Calculate IWV total market value for ALL dates (internal, cached to file)
 
     Returns:
-        DataFrame with columns: Date, Value
+        DataFrame with columns: Date, Value (unfiltered)
     """
-    # Note: File cache disabled when period filtering is active
-    # cache_path = INPUT_DIR / 'russell_3000' / 'iwv_total_mv_cache.parquet'
-    # if _is_cache_valid(cache_path, _files_hash):
-    #     return pd.read_parquet(cache_path)
+    cache_path = INPUT_DIR / 'russell_3000' / 'iwv_total_mv_cache.parquet'
+    if _is_cache_valid(cache_path, _files_hash):
+        return pd.read_parquet(cache_path)
 
     holdings = load_r3000_holdings(_files_hash)
-
-    # Filter to analysis period
-    holdings = holdings[
-        (holdings['Date'] >= _start_date) &
-        (holdings['Date'] <= _end_date)
-    ].copy()
-
-    if len(holdings) == 0:
-        return pd.DataFrame(columns=['Date', 'Value'])
 
     # Filter out dates where less than 50% of stocks have valid prices
     holdings['_valid_price'] = (holdings['Price'] > 0).astype(int)
@@ -62,39 +49,48 @@ def calculate_iwv_total_market_value(_files_hash, period_key, _start_date, _end_
     total_mv = holdings.groupby('Date')['Market_Value'].sum().reset_index()
     total_mv.columns = ['Date', 'Value']
 
+    # Save to file cache
     total_mv.to_parquet(cache_path, index=False)
     return total_mv
 
 
 @st.cache_data
-def calculate_peer_group_prices_mv(_files_hash, period_key, _start_date, _end_date):
-    """Calculate peer group total market values (sum of market values by GICS)
+def calculate_iwv_total_market_value(_files_hash, period_key, _start_date, _end_date):
+    """Calculate IWV total market value (sum of all holdings), filtered by period
 
     Args:
         period_key, _start_date, _end_date: Analysis period for filtering
 
     Returns:
-        DataFrame with columns: Date, GICS, Value
+        DataFrame with columns: Date, Value
     """
-    # Note: File cache disabled when period filtering is active
-    # cache_path = _get_peer_group_cache_path('mv')
-    # if _is_cache_valid(cache_path, _files_hash):
-    #     return pd.read_parquet(cache_path)
+    # Load full data (from file cache if available)
+    full_data = _calculate_iwv_total_market_value_full(_files_hash)
+
+    # Filter to analysis period
+    filtered = full_data[
+        (full_data['Date'] >= _start_date) &
+        (full_data['Date'] <= _end_date)
+    ].copy()
+
+    return filtered
+
+
+@st.cache_data
+def _calculate_peer_group_prices_mv_full(_files_hash):
+    """Calculate peer group total market values for ALL dates (internal, cached to file)
+
+    Returns:
+        DataFrame with columns: Date, GICS, Value (unfiltered)
+    """
+    cache_path = _get_peer_group_cache_path('mv')
+    if _is_cache_valid(cache_path, _files_hash):
+        return pd.read_parquet(cache_path)
 
     holdings = load_r3000_holdings(_files_hash)
     industry_dict = load_industry_info(source='r3000')
 
-    # Filter to analysis period
-    holdings = holdings[
-        (holdings['Date'] >= _start_date) &
-        (holdings['Date'] <= _end_date)
-    ].copy()
-
-    if len(holdings) == 0:
-        return pd.DataFrame(columns=['Date', 'GICS', 'Value'])
-
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
-    # Vectorized: count valid prices and total per date, then filter
     holdings['_valid_price'] = (holdings['Price'] > 0).astype(int)
     date_stats = holdings.groupby('Date').agg(
         valid_count=('_valid_price', 'sum'),
@@ -113,10 +109,7 @@ def calculate_peer_group_prices_mv(_files_hash, period_key, _start_date, _end_da
             raise ValueError("Cannot calculate Market_Value: missing Position or Price columns")
 
     # Map GICS to tickers - vectorized approach
-    # Extract symbol (first part before space) for all tickers at once
     holdings['Symbol'] = holdings['Ticker'].str.split().str[0]
-
-    # Try mapping by symbol first (most common case), then by full ticker
     holdings['GICS'] = holdings['Symbol'].map(industry_dict)
     still_unmatched = holdings['GICS'].isna()
     if still_unmatched.sum() > 0:
@@ -136,13 +129,8 @@ def calculate_peer_group_prices_mv(_files_hash, period_key, _start_date, _end_da
 
 
 @st.cache_data
-def calculate_peer_group_prices_weighted(_files_hash, period_key, _start_date, _end_date):
-    """Calculate peer group weighted prices
-
-    For each stock:
-    1. Calculate weight = stock's Market_Value / total R3000 Market_Value on that day
-    2. Calculate weighted_price = weight × stock's Price
-    3. Sum weighted_prices by GICS group
+def calculate_peer_group_prices_mv(_files_hash, period_key, _start_date, _end_date):
+    """Calculate peer group total market values (sum of market values by GICS)
 
     Args:
         period_key, _start_date, _end_date: Analysis period for filtering
@@ -150,25 +138,33 @@ def calculate_peer_group_prices_weighted(_files_hash, period_key, _start_date, _
     Returns:
         DataFrame with columns: Date, GICS, Value
     """
-    # Note: File cache disabled when period filtering is active
-    # cache_path = _get_peer_group_cache_path('weighted')
-    # if _is_cache_valid(cache_path, _files_hash):
-    #     return pd.read_parquet(cache_path)
+    # Load full data (from file cache if available)
+    full_data = _calculate_peer_group_prices_mv_full(_files_hash)
+
+    # Filter to analysis period
+    filtered = full_data[
+        (full_data['Date'] >= _start_date) &
+        (full_data['Date'] <= _end_date)
+    ].copy()
+
+    return filtered
+
+
+@st.cache_data
+def _calculate_peer_group_prices_weighted_full(_files_hash):
+    """Calculate peer group weighted prices for ALL dates (internal, cached to file)
+
+    Returns:
+        DataFrame with columns: Date, GICS, Value (unfiltered)
+    """
+    cache_path = _get_peer_group_cache_path('weighted')
+    if _is_cache_valid(cache_path, _files_hash):
+        return pd.read_parquet(cache_path)
 
     holdings = load_r3000_holdings(_files_hash)
     industry_dict = load_industry_info(source='r3000')
 
-    # Filter to analysis period
-    holdings = holdings[
-        (holdings['Date'] >= _start_date) &
-        (holdings['Date'] <= _end_date)
-    ].copy()
-
-    if len(holdings) == 0:
-        return pd.DataFrame(columns=['Date', 'GICS', 'Value'])
-
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
-    # Vectorized: count valid prices and total per date, then filter
     holdings['_valid_price'] = (holdings['Price'] > 0).astype(int)
     date_stats = holdings.groupby('Date').agg(
         valid_count=('_valid_price', 'sum'),
@@ -213,6 +209,33 @@ def calculate_peer_group_prices_weighted(_files_hash, period_key, _start_date, _
     peer_prices.to_parquet(cache_path, index=False)
 
     return peer_prices
+
+
+@st.cache_data
+def calculate_peer_group_prices_weighted(_files_hash, period_key, _start_date, _end_date):
+    """Calculate peer group weighted prices
+
+    For each stock:
+    1. Calculate weight = stock's Market_Value / total R3000 Market_Value on that day
+    2. Calculate weighted_price = weight × stock's Price
+    3. Sum weighted_prices by GICS group
+
+    Args:
+        period_key, _start_date, _end_date: Analysis period for filtering
+
+    Returns:
+        DataFrame with columns: Date, GICS, Value
+    """
+    # Load full data (from file cache if available)
+    full_data = _calculate_peer_group_prices_weighted_full(_files_hash)
+
+    # Filter to analysis period
+    filtered = full_data[
+        (full_data['Date'] >= _start_date) &
+        (full_data['Date'] <= _end_date)
+    ].copy()
+
+    return filtered
 
 
 def get_peer_group_prices(industry, version='mv', period_key=None, start_date=None, end_date=None):
