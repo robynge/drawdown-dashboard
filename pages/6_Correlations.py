@@ -294,9 +294,10 @@ def get_correlation_stats(corr_matrix, weights_df=None):
     return stats
 
 @st.cache_data
-def calculate_rolling_correlations(_files_hash, etf, rolling_window, _returns, _holdings):
+def calculate_rolling_correlations(_files_hash, etf, rolling_window, lookback_days, _returns, _holdings):
     """Calculate rolling mean/median pairwise correlation over time (vectorized)
 
+    lookback_days: Included in cache key to invalidate when lookback period changes
     _returns: Pre-loaded returns data (underscore prefix excludes from hashing)
     _holdings: Pre-loaded holdings data for weight calculation
     """
@@ -532,7 +533,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
     ts_card = st.container(border=True)
     with ts_card:
-        rolling_corr = calculate_rolling_correlations(files_hash, selected_etf, rolling_window, returns, holdings)
+        rolling_corr = calculate_rolling_correlations(files_hash, selected_etf, rolling_window, lookback_days, returns, holdings)
 
         if len(rolling_corr) > 0:
             fig_ts = go.Figure()
