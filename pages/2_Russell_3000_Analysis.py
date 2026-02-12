@@ -11,7 +11,7 @@ from config import OUTPUT_DIR
 from peer_group import get_peer_group_prices, calculate_iwv_total_market_value
 from data_loader import get_r3000_files_hash as get_r3000_data_hash
 from chart_config import CHART_CONFIG, add_reconstitution_vlines
-from session_utils import init_session_state, get_current_dates, has_r3000_data
+from session_utils import init_session_state, get_current_dates, has_r3000_data, get_current_period
 
 st.set_page_config(page_title="Russell 3000 Analysis", page_icon="", layout="wide")
 
@@ -147,8 +147,7 @@ if iwv_prices is not None and iwv_dd is not None:
             # Load IWV total market value
             from drawdown_calculator import calculate_drawdowns
             data_hash = get_r3000_data_hash()
-            prices = calculate_iwv_total_market_value(data_hash)
-            prices = prices[(prices['Date'] >= start_date) & (prices['Date'] <= end_date)]
+            prices = calculate_iwv_total_market_value(data_hash, get_current_period(), start_date, end_date)
 
             prices_for_dd = prices.copy()
             prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
@@ -164,10 +163,10 @@ if iwv_prices is not None and iwv_dd is not None:
         elif is_peer_group:
             # Load peer group data
             with st.spinner(f"Loading {selected_target} data..."):
-                prices = get_peer_group_prices(selected_target, version=version_param)
-
-            # Filter to analysis period
-            prices = prices[(prices['Date'] >= start_date) & (prices['Date'] <= end_date)]
+                prices = get_peer_group_prices(
+                    selected_target, version=version_param,
+                    period_key=get_current_period(), start_date=start_date, end_date=end_date
+                )
 
             # Calculate drawdowns dynamically for the selected version
             from drawdown_calculator import calculate_drawdowns

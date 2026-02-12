@@ -13,7 +13,7 @@ from data_loader import load_etf_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 from recovery_probability import get_etf_drawdowns_in_depth_range
-from session_utils import init_session_state, get_current_dates, render_period_selector
+from session_utils import init_session_state, get_current_dates, render_period_selector, get_current_period
 
 st.set_page_config(
     page_title="ETF Analysis",
@@ -51,24 +51,29 @@ def get_input_files_hash():
 
 @st.cache_data
 def load_all_etf_data(_files_hash, period_key, _start_date, _end_date):
-    """Load price and drawdown data for all ETFs"""
+    """Load price and drawdown data for all ETFs, filtered to analysis period"""
     price_data = {}
     dd_data = []
 
     for etf in ARK_ETFS:
         etf_prices = load_etf_prices(etf)
         if len(etf_prices) > 0:
-            price_data[etf] = etf_prices
-            dd_df = calculate_drawdowns(etf_prices, start_date=_start_date, end_date=_end_date)
-            if len(dd_df) > 0:
-                dd_df.insert(0, 'ETF', etf)
-                dd_data.append(dd_df)
+            # Filter prices to analysis period
+            etf_prices = etf_prices[
+                (etf_prices['Date'] >= _start_date) &
+                (etf_prices['Date'] <= _end_date)
+            ].copy()
+            if len(etf_prices) > 0:
+                price_data[etf] = etf_prices
+                dd_df = calculate_drawdowns(etf_prices, start_date=_start_date, end_date=_end_date)
+                if len(dd_df) > 0:
+                    dd_df.insert(0, 'ETF', etf)
+                    dd_data.append(dd_df)
 
     all_dd = pd.concat(dd_data, ignore_index=True) if dd_data else pd.DataFrame()
     return price_data, all_dd
 
 with st.spinner("Loading ETF drawdown data..."):
-    from session_utils import get_current_period
     etf_prices, etf_dd = load_all_etf_data(get_input_files_hash(), get_current_period(), start_date, end_date)
 
 # Section 1: ARK ETF Price Overview
@@ -384,7 +389,10 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
 
             # Get drawdowns in selected range for THIS ETF only
             with st.spinner(f"Loading {selected_etf} historical drawdowns for {selected_range}..."):
-                range_drawdowns = get_etf_drawdowns_in_depth_range(selected_etf, selected_range)
+                range_drawdowns = get_etf_drawdowns_in_depth_range(
+                    selected_etf, selected_range,
+                    period_key=get_current_period(), start_date=start_date, end_date=end_date
+                )
 
             if len(range_drawdowns) > 0:
                 # Calculate recovery statistics for constituent stocks

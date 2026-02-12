@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import ARK_ETFS, INPUT_DIR, OUTPUT_DIR
 from data_loader import load_ark_holdings, load_r3000_holdings, load_industry_info, get_r3000_drawdowns_cache, save_r3000_drawdowns_cache, get_ark_files_hash, get_r3000_files_hash
 from drawdown_calculator import calculate_drawdowns_with_filter, calculate_drawdowns
-from session_utils import init_session_state, get_current_dates, has_r3000_data
+from session_utils import init_session_state, get_current_dates, has_r3000_data, get_current_period
 
 st.set_page_config(
     page_title="Drawdown Distribution",
@@ -46,14 +46,24 @@ def get_r3000_peer_groups(_files_hash):
         return []
 
 @st.cache_data
-def calculate_ark_holdings_drawdowns(_files_hash, etf, min_depth_pct, min_duration_days, _holdings):
+def calculate_ark_holdings_drawdowns(_files_hash, etf, min_depth_pct, min_duration_days, period_key, _start_date, _end_date, _holdings):
     """Calculate max drawdown for each current holding in ARK ETF
 
     _holdings: Pre-loaded holdings data (underscore prefix excludes from hashing)
+    period_key, _start_date, _end_date: Analysis period for filtering
     """
     holdings = _holdings
 
-    # Get current holdings
+    # Filter holdings to analysis period first
+    holdings = holdings[
+        (holdings['Date'] >= _start_date) &
+        (holdings['Date'] <= _end_date)
+    ].copy()
+
+    if len(holdings) == 0:
+        return pd.DataFrame()
+
+    # Get current holdings (latest date within analysis period)
     latest_date = holdings['Date'].max()
     current_tickers = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
 
@@ -95,17 +105,25 @@ def calculate_ark_holdings_drawdowns(_files_hash, etf, min_depth_pct, min_durati
     return pd.DataFrame(results)
 
 @st.cache_data
-def calculate_r3000_drawdowns_full(_files_hash, min_depth_pct, min_duration_days, _holdings):
+def calculate_r3000_drawdowns_full(_files_hash, min_depth_pct, min_duration_days, period_key, _start_date, _end_date, _holdings):
     """Calculate max drawdown for ALL stocks in R3000 (cached to file)
 
     _holdings: Pre-loaded holdings data (underscore prefix excludes from hashing)
+    period_key, _start_date, _end_date: Analysis period for filtering
     """
-    # Check for precomputed cache first
-    cached = get_r3000_drawdowns_cache()
-    if cached is not None:
-        return cached
+    # Note: File cache disabled when using period filtering (different periods need different results)
+    # Check for precomputed cache only for default period
+    # cached = get_r3000_drawdowns_cache()
+    # if cached is not None:
+    #     return cached
 
     holdings = _holdings.copy()
+
+    # Filter holdings to analysis period
+    holdings = holdings[
+        (holdings['Date'] >= _start_date) &
+        (holdings['Date'] <= _end_date)
+    ].copy()
 
     if len(holdings) == 0:
         return pd.DataFrame()
@@ -166,14 +184,26 @@ def get_r3000_drawdowns_filtered(full_drawdowns, peer_group):
     return full_drawdowns.copy()
 
 @st.cache_data
-def calculate_etf_drawdown(_files_hash, etf):
-    """Calculate the ETF's own drawdown (not holdings)"""
+def calculate_etf_drawdown(_files_hash, etf, period_key, _start_date, _end_date):
+    """Calculate the ETF's own drawdown (not holdings)
+
+    period_key, _start_date, _end_date: Analysis period for filtering
+    """
     price_file = OUTPUT_DIR / f'{etf}_prices.csv'
     if not price_file.exists():
         return None
 
     prices = pd.read_csv(price_file)
     prices['Date'] = pd.to_datetime(prices['Date'])
+
+    # Filter prices to analysis period
+    prices = prices[
+        (prices['Date'] >= _start_date) &
+        (prices['Date'] <= _end_date)
+    ].copy()
+
+    if len(prices) == 0:
+        return None
 
     dd_df = calculate_drawdowns(prices)
     if len(dd_df) == 0:
@@ -226,6 +256,7 @@ with cols[0]:
 # Calculate distributions
 ark_hash = get_ark_files_hash()
 r3000_hash = get_r3000_files_hash()
+period_key = get_current_period()
 
 with st.spinner("Calculating drawdown distributions..."):
     # Load holdings once (cached)
@@ -233,17 +264,23 @@ with st.spinner("Calculating drawdown distributions..."):
     r3000_holdings = load_r3000_holdings(r3000_hash)
 
     # ARK holdings drawdowns
-    ark_dd = calculate_ark_holdings_drawdowns(ark_hash, selected_etf, min_depth_pct=10, min_duration_days=7, _holdings=ark_holdings)
+    ark_dd = calculate_ark_holdings_drawdowns(
+        ark_hash, selected_etf, min_depth_pct=10, min_duration_days=7,
+        period_key=period_key, _start_date=start_date, _end_date=end_date, _holdings=ark_holdings
+    )
 
-    # R3000 drawdowns (from cache or compute once)
-    r3000_dd_full = calculate_r3000_drawdowns_full(r3000_hash, min_depth_pct=10, min_duration_days=7, _holdings=r3000_holdings)
+    # R3000 drawdowns (compute with period filtering)
+    r3000_dd_full = calculate_r3000_drawdowns_full(
+        r3000_hash, min_depth_pct=10, min_duration_days=7,
+        period_key=period_key, _start_date=start_date, _end_date=end_date, _holdings=r3000_holdings
+    )
 
     # Filter by peer group
     peer_group = None if selected_benchmark == "Russell 3000 (All)" else selected_benchmark
     r3000_dd = get_r3000_drawdowns_filtered(r3000_dd_full, peer_group)
 
     # ETF's own drawdown
-    etf_drawdown = calculate_etf_drawdown(ark_hash, selected_etf)
+    etf_drawdown = calculate_etf_drawdown(ark_hash, selected_etf, period_key, start_date, end_date)
 
 if len(ark_dd) > 0 and len(r3000_dd) > 0:
     # Calculate statistics

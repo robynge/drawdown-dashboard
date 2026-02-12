@@ -146,7 +146,18 @@ with col1:
 # Load data
 with st.spinner("Loading data..."):
     holdings = load_ark_holdings(files_hash, selected_etf)
+    # Filter holdings to analysis period
+    holdings = holdings[
+        (holdings['Date'] >= start_date) &
+        (holdings['Date'] <= end_date)
+    ].copy()
+
     etf_prices = load_etf_prices(selected_etf)
+    # Filter ETF prices to analysis period
+    etf_prices = etf_prices[
+        (etf_prices['Date'] >= start_date) &
+        (etf_prices['Date'] <= end_date)
+    ].copy()
 
     if len(etf_prices) > 0:
         drawdowns = calculate_drawdowns(etf_prices)

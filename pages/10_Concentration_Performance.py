@@ -20,7 +20,7 @@ from config import ARK_ETFS, OUTPUT_DIR
 from data_loader import load_ark_holdings, get_ark_files_hash
 from hhi_calculator import calculate_hhi_time_series
 from chart_config import CHART_CONFIG
-from session_utils import init_session_state, get_current_dates
+from session_utils import init_session_state, get_current_dates, get_current_period
 
 st.set_page_config(
     page_title="Concentration vs Performance",
@@ -269,7 +269,6 @@ selected_etf = st.pills(
 
 # Load data for selected ETF
 with st.spinner("Loading data..."):
-    from session_utils import get_current_period
     holdings = load_ark_holdings(files_hash, selected_etf)
     etf_prices = get_cached_etf_prices(files_hash, selected_etf)
     qqq_prices = get_cached_qqq_prices(files_hash)

@@ -15,7 +15,7 @@ from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS, add_reconstitution_vlines
 from recovery_probability import get_stock_drawdowns_in_depth_range
-from session_utils import init_session_state, get_current_dates
+from session_utils import init_session_state, get_current_dates, get_current_period
 
 st.set_page_config(
     page_title="Individual Stock vs Peer Group",
@@ -180,8 +180,10 @@ if True:
             # Load peer group data
             if gics:
                 try:
-                    peer_prices = get_peer_group_prices(gics, version=version_param)
-                    peer_prices = peer_prices[(peer_prices['Date'] >= start_date) & (peer_prices['Date'] <= end_date)]
+                    peer_prices = get_peer_group_prices(
+                        gics, version=version_param,
+                        period_key=get_current_period(), start_date=start_date, end_date=end_date
+                    )
                 except:
                     peer_prices = pd.DataFrame()
                     gics = None
@@ -587,7 +589,10 @@ if True:
 
             # Get drawdowns in selected range for THIS stock only
             with st.spinner(f"Loading {selected_ticker} historical drawdowns for {selected_range}..."):
-                range_drawdowns = get_stock_drawdowns_in_depth_range(selected_ticker, selected_etf, selected_range)
+                range_drawdowns = get_stock_drawdowns_in_depth_range(
+                    selected_ticker, selected_etf, selected_range,
+                    period_key=get_current_period(), start_date=start_date, end_date=end_date
+                )
 
             if len(range_drawdowns) > 0:
                 # Calculate recovery statistics for this stock

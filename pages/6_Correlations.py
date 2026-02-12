@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, INPUT_DIR, OUTPUT_DIR
 from data_loader import load_ark_holdings, load_company_name, get_ark_files_hash, load_etf_prices
-from session_utils import init_session_state, get_current_dates
+from session_utils import init_session_state, get_current_dates, get_current_period
 
 st.set_page_config(
     page_title="Portfolio Correlations",
@@ -48,14 +48,24 @@ def get_current_holdings(_files_hash, etf):
     return current['Ticker'].unique().tolist()
 
 @st.cache_data
-def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
+def calculate_correlation_matrix(_files_hash, etf, lookback_days, period_key, _start_date, _end_date, _holdings):
     """Calculate correlation matrix for current holdings
 
     _holdings: Pre-loaded holdings data (underscore prefix excludes from hashing)
+    period_key, _start_date, _end_date: Analysis period for filtering
     """
     holdings = _holdings
 
-    # Get current holdings
+    # Filter holdings to analysis period first
+    holdings = holdings[
+        (holdings['Date'] >= _start_date) &
+        (holdings['Date'] <= _end_date)
+    ].copy()
+
+    if len(holdings) == 0:
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    # Get current holdings (latest date within analysis period)
     latest_date = holdings['Date'].max()
     current_tickers = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
 
@@ -103,15 +113,25 @@ def calculate_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
 
 
 @st.cache_data
-def calculate_weighted_correlation_matrix(_files_hash, etf, lookback_days, _holdings):
+def calculate_weighted_correlation_matrix(_files_hash, etf, lookback_days, period_key, _start_date, _end_date, _holdings):
     """Calculate weighted correlation matrix for current holdings
 
     Weight for each day = w_A,t × w_B,t (product of both stocks' weights)
     Then use weighted mean, weighted covariance, weighted variance to compute correlation.
+    period_key, _start_date, _end_date: Analysis period for filtering
     """
     holdings = _holdings
 
-    # Get current holdings
+    # Filter holdings to analysis period first
+    holdings = holdings[
+        (holdings['Date'] >= _start_date) &
+        (holdings['Date'] <= _end_date)
+    ].copy()
+
+    if len(holdings) == 0:
+        return pd.DataFrame()
+
+    # Get current holdings (latest date within analysis period)
     latest_date = holdings['Date'].max()
     current_tickers = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
 
@@ -299,10 +319,11 @@ def get_correlation_stats(corr_matrix, weights_df=None):
     return stats
 
 @st.cache_data
-def calculate_rolling_correlations(_files_hash, etf, rolling_window, lookback_days, _returns, _holdings):
+def calculate_rolling_correlations(_files_hash, etf, rolling_window, lookback_days, period_key, _returns, _holdings):
     """Calculate rolling mean/median pairwise correlation over time (vectorized)
 
     lookback_days: Included in cache key to invalidate when lookback period changes
+    period_key: Analysis period key for cache invalidation
     _returns: Pre-loaded returns data (underscore prefix excludes from hashing)
     _holdings: Pre-loaded holdings data for weight calculation
     """
@@ -433,15 +454,20 @@ with cols[0]:
 
 # Calculate correlation matrix
 files_hash = get_ark_files_hash()
+period_key = get_current_period()
 
 with st.spinner("Calculating correlations..."):
     # Load holdings once (cached)
     holdings = load_ark_holdings(files_hash, selected_etf)
-    corr_matrix_unweighted, returns, current_weights, holdings_filtered = calculate_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
+    corr_matrix_unweighted, returns, current_weights, holdings_filtered = calculate_correlation_matrix(
+        files_hash, selected_etf, lookback_days, period_key, start_date, end_date, holdings
+    )
 
     # Use weighted or unweighted correlation matrix based on toggle
     if use_weighted_corr:
-        corr_matrix = calculate_weighted_correlation_matrix(files_hash, selected_etf, lookback_days, holdings)
+        corr_matrix = calculate_weighted_correlation_matrix(
+            files_hash, selected_etf, lookback_days, period_key, start_date, end_date, holdings
+        )
     else:
         corr_matrix = corr_matrix_unweighted
 
@@ -538,7 +564,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
     ts_card = st.container(border=True)
     with ts_card:
-        rolling_corr = calculate_rolling_correlations(files_hash, selected_etf, rolling_window, lookback_days, returns, holdings)
+        rolling_corr = calculate_rolling_correlations(files_hash, selected_etf, rolling_window, lookback_days, period_key, returns, holdings_filtered)
 
         if len(rolling_corr) > 0:
             fig_ts = go.Figure()

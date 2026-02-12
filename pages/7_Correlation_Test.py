@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, INPUT_DIR
 from data_loader import load_ark_holdings, get_ark_files_hash
-from session_utils import init_session_state, get_current_dates
+from session_utils import init_session_state, get_current_dates, get_current_period
 
 st.set_page_config(
     page_title="Correlation Test",
@@ -30,16 +30,26 @@ Bootstrap permutation test to determine if portfolio correlation has significant
 """
 
 @st.cache_data
-def prepare_returns_data(_files_hash, etf, lookback_days, _holdings):
+def prepare_returns_data(_files_hash, etf, lookback_days, period_key, _start_date, _end_date, _holdings):
     """Prepare returns data for correlation analysis
 
     Returns:
         returns: DataFrame of daily returns
         dropped_stocks: list of stocks excluded due to incomplete data
+    period_key, _start_date, _end_date: Analysis period for filtering
     """
     holdings = _holdings
 
-    # Get current holdings
+    # Filter holdings to analysis period first
+    holdings = holdings[
+        (holdings['Date'] >= _start_date) &
+        (holdings['Date'] <= _end_date)
+    ].copy()
+
+    if len(holdings) == 0:
+        return pd.DataFrame(), []
+
+    # Get current holdings (latest date within analysis period)
     latest_date = holdings['Date'].max()
     current_tickers = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
 
@@ -146,12 +156,15 @@ with config_cols[2]:
 
 # Load data
 files_hash = get_ark_files_hash()
+period_key = get_current_period()
 
 with st.spinner("Loading data..."):
     holdings = load_ark_holdings(files_hash, selected_etf)
     # Need enough data for two non-overlapping windows
     lookback_days = 120  # Need enough trading days for two non-overlapping windows
-    returns, dropped_stocks = prepare_returns_data(files_hash, selected_etf, lookback_days, holdings)
+    returns, dropped_stocks = prepare_returns_data(
+        files_hash, selected_etf, lookback_days, period_key, start_date, end_date, holdings
+    )
 
 # Show dropped stocks if any
 if dropped_stocks:

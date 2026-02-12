@@ -4,7 +4,7 @@ import numpy as np
 import streamlit as st
 from pathlib import Path
 from data_loader import load_r3000_holdings, load_industry_info, get_r3000_files_hash
-from config import START_DATE, END_DATE, INPUT_DIR
+from config import INPUT_DIR
 
 
 def _get_peer_group_cache_path(version='mv'):
@@ -20,17 +20,30 @@ def _is_cache_valid(cache_path, source_mtime):
 
 
 @st.cache_data
-def calculate_iwv_total_market_value(_files_hash):
+def calculate_iwv_total_market_value(_files_hash, period_key, _start_date, _end_date):
     """Calculate IWV total market value (sum of all holdings)
+
+    Args:
+        period_key, _start_date, _end_date: Analysis period for filtering
 
     Returns:
         DataFrame with columns: Date, Value
     """
-    cache_path = INPUT_DIR / 'russell_3000' / 'iwv_total_mv_cache.parquet'
-    if _is_cache_valid(cache_path, _files_hash):
-        return pd.read_parquet(cache_path)
+    # Note: File cache disabled when period filtering is active
+    # cache_path = INPUT_DIR / 'russell_3000' / 'iwv_total_mv_cache.parquet'
+    # if _is_cache_valid(cache_path, _files_hash):
+    #     return pd.read_parquet(cache_path)
 
     holdings = load_r3000_holdings(_files_hash)
+
+    # Filter to analysis period
+    holdings = holdings[
+        (holdings['Date'] >= _start_date) &
+        (holdings['Date'] <= _end_date)
+    ].copy()
+
+    if len(holdings) == 0:
+        return pd.DataFrame(columns=['Date', 'Value'])
 
     # Filter out dates where less than 50% of stocks have valid prices
     holdings['_valid_price'] = (holdings['Price'] > 0).astype(int)
@@ -54,21 +67,31 @@ def calculate_iwv_total_market_value(_files_hash):
 
 
 @st.cache_data
-def calculate_peer_group_prices_mv(_files_hash):
+def calculate_peer_group_prices_mv(_files_hash, period_key, _start_date, _end_date):
     """Calculate peer group total market values (sum of market values by GICS)
 
-    Uses file-based caching for faster startup after data updates.
+    Args:
+        period_key, _start_date, _end_date: Analysis period for filtering
 
     Returns:
         DataFrame with columns: Date, GICS, Value
     """
-    # Check file cache first
-    cache_path = _get_peer_group_cache_path('mv')
-    if _is_cache_valid(cache_path, _files_hash):
-        return pd.read_parquet(cache_path)
+    # Note: File cache disabled when period filtering is active
+    # cache_path = _get_peer_group_cache_path('mv')
+    # if _is_cache_valid(cache_path, _files_hash):
+    #     return pd.read_parquet(cache_path)
 
     holdings = load_r3000_holdings(_files_hash)
     industry_dict = load_industry_info(source='r3000')
+
+    # Filter to analysis period
+    holdings = holdings[
+        (holdings['Date'] >= _start_date) &
+        (holdings['Date'] <= _end_date)
+    ].copy()
+
+    if len(holdings) == 0:
+        return pd.DataFrame(columns=['Date', 'GICS', 'Value'])
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
     # Vectorized: count valid prices and total per date, then filter
@@ -113,7 +136,7 @@ def calculate_peer_group_prices_mv(_files_hash):
 
 
 @st.cache_data
-def calculate_peer_group_prices_weighted(_files_hash):
+def calculate_peer_group_prices_weighted(_files_hash, period_key, _start_date, _end_date):
     """Calculate peer group weighted prices
 
     For each stock:
@@ -121,18 +144,28 @@ def calculate_peer_group_prices_weighted(_files_hash):
     2. Calculate weighted_price = weight × stock's Price
     3. Sum weighted_prices by GICS group
 
-    Uses file-based caching for faster startup after data updates.
+    Args:
+        period_key, _start_date, _end_date: Analysis period for filtering
 
     Returns:
         DataFrame with columns: Date, GICS, Value
     """
-    # Check file cache first
-    cache_path = _get_peer_group_cache_path('weighted')
-    if _is_cache_valid(cache_path, _files_hash):
-        return pd.read_parquet(cache_path)
+    # Note: File cache disabled when period filtering is active
+    # cache_path = _get_peer_group_cache_path('weighted')
+    # if _is_cache_valid(cache_path, _files_hash):
+    #     return pd.read_parquet(cache_path)
 
     holdings = load_r3000_holdings(_files_hash)
     industry_dict = load_industry_info(source='r3000')
+
+    # Filter to analysis period
+    holdings = holdings[
+        (holdings['Date'] >= _start_date) &
+        (holdings['Date'] <= _end_date)
+    ].copy()
+
+    if len(holdings) == 0:
+        return pd.DataFrame(columns=['Date', 'GICS', 'Value'])
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
     # Vectorized: count valid prices and total per date, then filter
@@ -182,16 +215,27 @@ def calculate_peer_group_prices_weighted(_files_hash):
     return peer_prices
 
 
-def get_peer_group_prices(industry, version='mv'):
+def get_peer_group_prices(industry, version='mv', period_key=None, start_date=None, end_date=None):
     """Get price data for a specific industry peer group
 
     Args:
         industry: GICS industry name (may be truncated Excel sheet name)
         version: 'mv' for Market Value or 'weighted' for Weighted Price
+        period_key, start_date, end_date: Analysis period for filtering
 
     Returns:
         DataFrame with columns: Date, Value
     """
+    # Import here to avoid circular import
+    from config import ANALYSIS_PERIODS, DEFAULT_PERIOD
+
+    # Use default period if not specified
+    if period_key is None:
+        period_key = DEFAULT_PERIOD
+        period = ANALYSIS_PERIODS[period_key]
+        start_date = period["start"]
+        end_date = period["end"]
+
     # Map truncated Excel sheet names to full GICS names
     # Excel sheet names are limited to 31 characters
     name_mapping = {
@@ -211,9 +255,9 @@ def get_peer_group_prices(industry, version='mv'):
 
     files_hash = get_r3000_files_hash()
     if version == 'mv':
-        all_prices = calculate_peer_group_prices_mv(files_hash)
+        all_prices = calculate_peer_group_prices_mv(files_hash, period_key, start_date, end_date)
     else:
-        all_prices = calculate_peer_group_prices_weighted(files_hash)
+        all_prices = calculate_peer_group_prices_weighted(files_hash, period_key, start_date, end_date)
 
     industry_prices = all_prices[all_prices['GICS'] == full_industry_name].copy()
     industry_prices = industry_prices[['Date', 'Value']].sort_values('Date')
