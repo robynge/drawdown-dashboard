@@ -4,10 +4,15 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import START_DATE, END_DATE
+from session_utils import init_session_state, get_current_dates
 
 st.set_page_config(page_title="Methodology", page_icon="📖", layout="wide")
+
+# Get current period dates (set on main page)
+init_session_state()
+start_date, end_date = get_current_dates()
 
 """
 # Methodology
@@ -15,7 +20,7 @@ st.set_page_config(page_title="Methodology", page_icon="📖", layout="wide")
 This page explains the approach and methodology used in this drawdown analysis project.
 """
 
-st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}")
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
 ""  # Space
 

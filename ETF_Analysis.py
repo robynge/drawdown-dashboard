@@ -8,11 +8,12 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-from config import ARK_ETFS, START_DATE, END_DATE, OUTPUT_DIR
+from config import ARK_ETFS, OUTPUT_DIR
 from data_loader import load_etf_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 from recovery_probability import get_etf_drawdowns_in_depth_range
+from session_utils import init_session_state, get_current_dates, render_period_selector
 
 st.set_page_config(
     page_title="ETF Analysis",
@@ -21,13 +22,21 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Initialize session state and render period selector
+init_session_state()
+with st.sidebar:
+    render_period_selector()
+
+# Get current period dates
+start_date, end_date = get_current_dates()
+
 """
 # ETF Drawdown Analysis
 
 Analyze drawdown patterns across ARK ETFs.
 """
 
-st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}")
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
 ""  # Add space
 
@@ -41,7 +50,7 @@ def get_input_files_hash():
     return max(mtimes) if mtimes else 0
 
 @st.cache_data
-def load_all_etf_data(_files_hash):
+def load_all_etf_data(_files_hash, period_key, _start_date, _end_date):
     """Load price and drawdown data for all ETFs"""
     price_data = {}
     dd_data = []
@@ -50,7 +59,7 @@ def load_all_etf_data(_files_hash):
         etf_prices = load_etf_prices(etf)
         if len(etf_prices) > 0:
             price_data[etf] = etf_prices
-            dd_df = calculate_drawdowns(etf_prices)
+            dd_df = calculate_drawdowns(etf_prices, start_date=_start_date, end_date=_end_date)
             if len(dd_df) > 0:
                 dd_df.insert(0, 'ETF', etf)
                 dd_data.append(dd_df)
@@ -59,7 +68,8 @@ def load_all_etf_data(_files_hash):
     return price_data, all_dd
 
 with st.spinner("Loading ETF drawdown data..."):
-    etf_prices, etf_dd = load_all_etf_data(get_input_files_hash())
+    from session_utils import get_current_period
+    etf_prices, etf_dd = load_all_etf_data(get_input_files_hash(), get_current_period(), start_date, end_date)
 
 # Section 1: ARK ETF Price Overview
 st.subheader("ARK ETF Price Trends")

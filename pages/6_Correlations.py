@@ -10,14 +10,19 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import ARK_ETFS, START_DATE, END_DATE, INPUT_DIR, OUTPUT_DIR
+from config import ARK_ETFS, INPUT_DIR, OUTPUT_DIR
 from data_loader import load_ark_holdings, load_company_name, get_ark_files_hash, load_etf_prices
+from session_utils import init_session_state, get_current_dates
 
 st.set_page_config(
     page_title="Portfolio Correlations",
     page_icon="🔗",
     layout="wide"
 )
+
+# Get current period dates (set on main page)
+init_session_state()
+start_date, end_date = get_current_dates()
 
 """
 # Portfolio Correlations

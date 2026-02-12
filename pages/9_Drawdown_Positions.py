@@ -10,11 +10,12 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import ARK_ETFS, START_DATE, END_DATE, OUTPUT_DIR
+from config import ARK_ETFS, OUTPUT_DIR
 from data_loader import load_ark_holdings, load_etf_prices, get_ark_files_hash
 from drawdown_calculator import calculate_drawdowns
 from hhi_calculator import calculate_hhi_time_series
 from chart_config import CHART_CONFIG
+from session_utils import init_session_state, get_current_dates
 
 st.set_page_config(
     page_title="Drawdown Position Changes",
@@ -22,13 +23,17 @@ st.set_page_config(
     layout="wide"
 )
 
+# Get current period dates (set on main page)
+init_session_state()
+start_date, end_date = get_current_dates()
+
 """
 # Drawdown Position Changes
 
 Analyze how portfolio positions changed during drawdown periods - who was sold, who was added, and concentration changes.
 """
 
-st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}")
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
 "" # Space
 

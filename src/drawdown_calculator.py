@@ -85,10 +85,20 @@ def find_top_n_drawdowns(df, n=10, value_col='Close'):
 
     return drawdowns
 
-def calculate_drawdowns(prices_df, ticker=None):
-    """Calculate top drawdowns and current drawdown"""
+def calculate_drawdowns(prices_df, ticker=None, start_date=None, end_date=None):
+    """Calculate top drawdowns and current drawdown
+
+    Args:
+        prices_df: DataFrame with 'Date' and 'Close' columns
+        ticker: Optional ticker name for output
+        start_date: Start of analysis period (defaults to config START_DATE)
+        end_date: End of analysis period (defaults to config END_DATE)
+    """
+    start = start_date if start_date is not None else START_DATE
+    end = end_date if end_date is not None else END_DATE
+
     prices = prices_df.copy()
-    prices = prices[(prices['Date'] >= START_DATE) & (prices['Date'] <= END_DATE)].copy()
+    prices = prices[(prices['Date'] >= start) & (prices['Date'] <= end)].copy()
 
     if len(prices) == 0 or prices['Close'].isna().all():
         return pd.DataFrame()
@@ -211,19 +221,24 @@ def find_all_valid_drawdowns(df, value_col='Close', min_depth_pct=10, min_durati
     return drawdowns
 
 
-def calculate_drawdowns_with_filter(prices_df, min_depth_pct=10, min_duration_days=7):
+def calculate_drawdowns_with_filter(prices_df, min_depth_pct=10, min_duration_days=7, start_date=None, end_date=None):
     """Calculate all valid drawdowns meeting criteria for distribution analysis
 
     Args:
         prices_df: DataFrame with 'Date' and 'Close' columns
         min_depth_pct: Minimum depth percentage (positive number, e.g., 10 for -10%)
         min_duration_days: Minimum duration in trading days
+        start_date: Start of analysis period (defaults to config START_DATE)
+        end_date: End of analysis period (defaults to config END_DATE)
 
     Returns:
         DataFrame with all valid drawdowns
     """
+    start = start_date if start_date is not None else START_DATE
+    end = end_date if end_date is not None else END_DATE
+
     prices = prices_df.copy()
-    prices = prices[(prices['Date'] >= START_DATE) & (prices['Date'] <= END_DATE)].copy()
+    prices = prices[(prices['Date'] >= start) & (prices['Date'] <= end)].copy()
 
     if len(prices) == 0 or prices['Close'].isna().all():
         return pd.DataFrame()
@@ -259,14 +274,25 @@ def calculate_drawdowns_with_filter(prices_df, min_depth_pct=10, min_duration_da
     return df
 
 
-def calculate_stock_drawdowns_by_etf(holdings_df, prices_df, ticker):
-    """Calculate drawdowns for a stock grouped by ETF holdings"""
+def calculate_stock_drawdowns_by_etf(holdings_df, prices_df, ticker, start_date=None, end_date=None):
+    """Calculate drawdowns for a stock grouped by ETF holdings
+
+    Args:
+        holdings_df: DataFrame with holdings data
+        prices_df: DataFrame with price data
+        ticker: Stock ticker
+        start_date: Start of analysis period (defaults to config START_DATE)
+        end_date: End of analysis period (defaults to config END_DATE)
+    """
+    start = start_date if start_date is not None else START_DATE
+    end = end_date if end_date is not None else END_DATE
+
     results = {}
 
     for etf in holdings_df['ETF'].unique():
         etf_holdings = holdings_df[holdings_df['ETF'] == etf].copy()
-        etf_holdings = etf_holdings[(etf_holdings['Date'] >= START_DATE) &
-                                     (etf_holdings['Date'] <= END_DATE)]
+        etf_holdings = etf_holdings[(etf_holdings['Date'] >= start) &
+                                     (etf_holdings['Date'] <= end)]
 
         if len(etf_holdings) == 0:
             continue

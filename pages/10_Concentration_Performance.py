@@ -16,10 +16,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import ARK_ETFS, START_DATE, END_DATE, OUTPUT_DIR
+from config import ARK_ETFS, OUTPUT_DIR
 from data_loader import load_ark_holdings, get_ark_files_hash
 from hhi_calculator import calculate_hhi_time_series
 from chart_config import CHART_CONFIG
+from session_utils import init_session_state, get_current_dates
 
 st.set_page_config(
     page_title="Concentration vs Performance",
@@ -27,13 +28,17 @@ st.set_page_config(
     layout="wide"
 )
 
+# Get current period dates (set on main page)
+init_session_state()
+start_date, end_date = get_current_dates()
+
 """
 # Concentration vs Performance Analysis
 
 Analyze how portfolio concentration (HHI) relates to ARK's relative performance vs QQQ.
 """
 
-st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}")
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
 "" # Space
 
@@ -61,14 +66,14 @@ def get_cached_etf_prices(_files_hash, etf):
 
 
 @st.cache_data
-def calculate_hhi_data(_files_hash, etf, _holdings):
+def calculate_hhi_data(_files_hash, etf, period_key, _start_date, _end_date, _holdings):
     """Calculate HHI time series for an ETF"""
     holdings = _holdings
 
     # Filter to analysis period and exclude currency/money market
     holdings_filtered = holdings[
-        (holdings['Date'] >= START_DATE) &
-        (holdings['Date'] <= END_DATE)
+        (holdings['Date'] >= _start_date) &
+        (holdings['Date'] <= _end_date)
     ].copy()
 
     # Filter out currency tickers
@@ -264,10 +269,11 @@ selected_etf = st.pills(
 
 # Load data for selected ETF
 with st.spinner("Loading data..."):
+    from session_utils import get_current_period
     holdings = load_ark_holdings(files_hash, selected_etf)
     etf_prices = get_cached_etf_prices(files_hash, selected_etf)
     qqq_prices = get_cached_qqq_prices(files_hash)
-    hhi_data = calculate_hhi_data(files_hash, selected_etf, holdings)
+    hhi_data = calculate_hhi_data(files_hash, selected_etf, get_current_period(), start_date, end_date, holdings)
     spread_data = calculate_spread_data(files_hash, selected_etf, etf_prices, qqq_prices, hhi_data)
 
 if len(spread_data) > 0:

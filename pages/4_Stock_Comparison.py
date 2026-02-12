@@ -8,10 +8,11 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import ARK_ETFS, START_DATE, END_DATE, INPUT_DIR
+from config import ARK_ETFS, INPUT_DIR
 from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list, get_ark_ticker_list, get_ark_files_hash, get_r3000_files_hash
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS
+from session_utils import init_session_state, get_current_dates, has_r3000_data
 
 st.set_page_config(
     page_title="Stock Comparison",
@@ -20,13 +21,22 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Get current period dates (set on main page)
+init_session_state()
+start_date, end_date = get_current_dates()
+
 """
 # ARK vs Russell 3000 Stock Comparison
 
 Compare drawdown patterns between ARK ETF holdings and Russell 3000 constituents.
 """
 
-st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}")
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+
+# Check R3000 data availability
+if not has_r3000_data():
+    st.warning("Russell 3000 data is not available for the 2021-2023 period. R3000 stock comparisons are disabled.")
+    st.info("You can still analyze ARK ETF stocks in this period.")
 
 ""  # Add space
 
@@ -88,7 +98,7 @@ def load_ark_stock_prices(holdings, ticker):
     """Load price data for ARK stock from cached holdings"""
     try:
         stock_data = holdings[holdings['Ticker'] == ticker].copy()
-        stock_data = stock_data[(stock_data['Date'] >= START_DATE) & (stock_data['Date'] <= END_DATE)]
+        stock_data = stock_data[(stock_data['Date'] >= start_date) & (stock_data['Date'] <= end_date)]
 
         if len(stock_data) == 0:
             return pd.DataFrame()
@@ -106,7 +116,7 @@ def load_r3000_stock_prices(holdings, ticker):
     """Load price data for Russell 3000 stock from cached holdings"""
     try:
         stock_data = holdings[holdings['Ticker'] == ticker].copy()
-        stock_data = stock_data[(stock_data['Date'] >= START_DATE) & (stock_data['Date'] <= END_DATE)]
+        stock_data = stock_data[(stock_data['Date'] >= start_date) & (stock_data['Date'] <= end_date)]
 
         if len(stock_data) == 0:
             return pd.DataFrame()

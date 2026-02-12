@@ -9,17 +9,22 @@ import sys
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import START_DATE, END_DATE, OUTPUT_DIR, ARK_ETFS, INPUT_DIR
+from config import OUTPUT_DIR, ARK_ETFS, INPUT_DIR
 from data_loader import load_ark_holdings, load_industry_info, load_company_name, get_ark_files_hash, get_stocks_for_etf
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS, add_reconstitution_vlines
 from recovery_probability import get_stock_drawdowns_in_depth_range
+from session_utils import init_session_state, get_current_dates
 
 st.set_page_config(
     page_title="Individual Stock vs Peer Group",
     layout="wide"
 )
+
+# Get current period dates (set on main page)
+init_session_state()
+start_date, end_date = get_current_dates()
 
 st.title("Individual Stock vs Peer Group")
 
@@ -74,7 +79,7 @@ def load_all_stocks(_files_hash):
             try:
                 holdings = load_ark_holdings(_files_hash, etf)
                 stock_data = holdings[holdings['Ticker'] == full_ticker].copy()
-                stock_data = stock_data[(stock_data['Date'] >= START_DATE) & (stock_data['Date'] <= END_DATE)]
+                stock_data = stock_data[(stock_data['Date'] >= start_date) & (stock_data['Date'] <= end_date)]
 
                 if len(stock_data) >= 30:  # Need at least 30 data points
                     valid_tickers.add(ticker)
@@ -108,7 +113,7 @@ if True:
 
             st.markdown("##### Select Stock")
             files_hash = get_ark_files_hash()
-            stock_list, stock_ticker_map = get_stocks_for_etf(files_hash, selected_etf, START_DATE, END_DATE)
+            stock_list, stock_ticker_map = get_stocks_for_etf(files_hash, selected_etf, start_date, end_date)
             selected_display_ticker = st.selectbox("Select Stock", stock_list, label_visibility="collapsed")
 
             # Get the actual ticker from display name
@@ -141,7 +146,7 @@ if True:
 
             full_ticker = matching_tickers[0]
             stock_data = holdings[holdings['Ticker'] == full_ticker].copy()
-            stock_data = stock_data[(stock_data['Date'] >= START_DATE) & (stock_data['Date'] <= END_DATE)]
+            stock_data = stock_data[(stock_data['Date'] >= start_date) & (stock_data['Date'] <= end_date)]
 
             bloomberg_name = stock_data['Bloomberg Name'].iloc[0] if len(stock_data) > 0 else None
 
@@ -176,7 +181,7 @@ if True:
             if gics:
                 try:
                     peer_prices = get_peer_group_prices(gics, version=version_param)
-                    peer_prices = peer_prices[(peer_prices['Date'] >= START_DATE) & (peer_prices['Date'] <= END_DATE)]
+                    peer_prices = peer_prices[(peer_prices['Date'] >= start_date) & (peer_prices['Date'] <= end_date)]
                 except:
                     peer_prices = pd.DataFrame()
                     gics = None
@@ -353,7 +358,7 @@ if True:
                 showlegend=False,
                 plot_bgcolor='white',
                 paper_bgcolor='white',
-                xaxis=dict(gridcolor='lightgray', showgrid=True, range=[START_DATE, END_DATE]),
+                xaxis=dict(gridcolor='lightgray', showgrid=True, range=[start_date, end_date]),
                 yaxis=dict(gridcolor='lightgray', showgrid=True),
                 margin=dict(l=0, r=0, t=40, b=0)
             )
@@ -491,7 +496,7 @@ if True:
                     showlegend=False,
                     plot_bgcolor='white',
                     paper_bgcolor='white',
-                    xaxis=dict(gridcolor='lightgray', showgrid=True, range=[START_DATE, END_DATE]),
+                    xaxis=dict(gridcolor='lightgray', showgrid=True, range=[start_date, end_date]),
                     yaxis=dict(gridcolor='lightgray', showgrid=True),
                     margin=dict(l=0, r=0, t=40, b=0)
                 )

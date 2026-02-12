@@ -7,12 +7,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import START_DATE, END_DATE, OUTPUT_DIR
+from config import OUTPUT_DIR
 from peer_group import get_peer_group_prices, calculate_iwv_total_market_value
 from data_loader import get_r3000_files_hash as get_r3000_data_hash
 from chart_config import CHART_CONFIG, add_reconstitution_vlines
+from session_utils import init_session_state, get_current_dates, has_r3000_data
 
 st.set_page_config(page_title="Russell 3000 Analysis", page_icon="", layout="wide")
+
+# Get current period dates (set on main page)
+init_session_state()
+start_date, end_date = get_current_dates()
 
 """
 # Russell 3000 Analysis
@@ -20,7 +25,12 @@ st.set_page_config(page_title="Russell 3000 Analysis", page_icon="", layout="wid
 Analyze Russell 3000 Index and GICS Industry Peer Group drawdowns.
 """
 
-st.markdown(f"**Analysis Period:** {START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}")
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+
+# Check R3000 data availability
+if not has_r3000_data():
+    st.warning("Russell 3000 data is not available for the 2021-2023 period. Please select 2024-2026 to view this analysis.")
+    st.stop()
 
 ""  # Add space
 
@@ -138,7 +148,7 @@ if iwv_prices is not None and iwv_dd is not None:
             from drawdown_calculator import calculate_drawdowns
             data_hash = get_r3000_data_hash()
             prices = calculate_iwv_total_market_value(data_hash)
-            prices = prices[(prices['Date'] >= START_DATE) & (prices['Date'] <= END_DATE)]
+            prices = prices[(prices['Date'] >= start_date) & (prices['Date'] <= end_date)]
 
             prices_for_dd = prices.copy()
             prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
@@ -157,7 +167,7 @@ if iwv_prices is not None and iwv_dd is not None:
                 prices = get_peer_group_prices(selected_target, version=version_param)
 
             # Filter to analysis period
-            prices = prices[(prices['Date'] >= START_DATE) & (prices['Date'] <= END_DATE)]
+            prices = prices[(prices['Date'] >= start_date) & (prices['Date'] <= end_date)]
 
             # Calculate drawdowns dynamically for the selected version
             from drawdown_calculator import calculate_drawdowns
