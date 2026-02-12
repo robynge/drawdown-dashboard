@@ -320,10 +320,10 @@ with left_panel:
             r3000_price_df = load_r3000_stock_prices(r3000_holdings, r3000_ticker)
 
             if len(ark_price_df) > 0:
-                ark_dd = calculate_drawdowns(ark_price_df, ticker=ark_ticker)
+                ark_dd = calculate_drawdowns(ark_price_df, ticker=ark_ticker, start_date=start_date, end_date=end_date)
 
             if len(r3000_price_df) > 0:
-                r3000_dd = calculate_drawdowns(r3000_price_df, ticker=r3000_ticker)
+                r3000_dd = calculate_drawdowns(r3000_price_df, ticker=r3000_ticker, start_date=start_date, end_date=end_date)
 
     ""  # Space
 

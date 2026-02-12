@@ -184,7 +184,12 @@ def precompute_ark_drawdowns():
                 if len(price_df) < 30:
                     continue
 
-                dd_data = calculate_drawdowns(price_df)
+                # Use actual data date range for drawdown calculation
+                data_start = price_df['Date'].min()
+                data_end = price_df['Date'].max()
+                dd_data = calculate_drawdowns(price_df, start_date=data_start, end_date=data_end)
+                if len(dd_data) == 0 or 'rank' not in dd_data.columns:
+                    continue
                 historical_dd = dd_data[dd_data['rank'] != 'Current'].copy()
 
                 for _, dd in historical_dd.iterrows():

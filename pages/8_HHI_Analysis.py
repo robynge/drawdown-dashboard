@@ -215,7 +215,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
     dd_hhi_card = st.container(border=True)
     with dd_hhi_card:
         price_df = etf_prices
-        etf_dd_data = calculate_drawdowns(price_df)
+        etf_dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
 
         # Create figure
         fig2 = go.Figure()

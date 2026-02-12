@@ -415,8 +415,10 @@ def get_stock_drawdowns_in_depth_range(ticker, etf, depth_range_label, period_ke
         if len(price_df) < 30:
             return pd.DataFrame()
 
-        # Calculate all drawdowns (excluding current)
-        dd_data = calculate_drawdowns(price_df)
+        # Calculate all drawdowns (excluding current) - MUST pass explicit dates
+        dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
+        if len(dd_data) == 0 or 'rank' not in dd_data.columns:
+            return pd.DataFrame()
         historical_dd = dd_data[dd_data['rank'] != 'Current'].copy()
 
         if len(historical_dd) == 0:

@@ -207,7 +207,7 @@ def calculate_etf_drawdown(_files_hash, etf, period_key, _start_date, _end_date)
     if len(prices) == 0:
         return None
 
-    dd_df = calculate_drawdowns(prices)
+    dd_df = calculate_drawdowns(prices, start_date=_start_date, end_date=_end_date)
     if len(dd_df) == 0:
         return None
 

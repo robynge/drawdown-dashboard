@@ -172,8 +172,8 @@ if True:
             price_df = stock_data[['Date', price_col]].copy()
             price_df.columns = ['Date', 'Close']
 
-            # Calculate drawdowns
-            dd_data = calculate_drawdowns(price_df)
+            # Calculate drawdowns - MUST pass explicit dates to avoid using hardcoded defaults
+            dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
 
             # Get GICS industry
             industry_dict = load_industry_info(source='ark')
@@ -372,10 +372,10 @@ if True:
             # ============ CHART 2: PEER GROUP ============
             if gics and len(peer_prices) > 0:
                 # Calculate peer group drawdowns dynamically (same as Russell 3000 page)
-                from drawdown_calculator import calculate_drawdowns
+                # MUST pass explicit dates to avoid using hardcoded defaults
                 peer_prices_for_dd = peer_prices.copy()
                 peer_prices_for_dd = peer_prices_for_dd.rename(columns={'Value': 'Close'})
-                peer_dd_data = calculate_drawdowns(peer_prices_for_dd)
+                peer_dd_data = calculate_drawdowns(peer_prices_for_dd, start_date=start_date, end_date=end_date)
 
                 # Create figure with drawdown regions (COPIED FROM RUSSELL 3000)
                 fig2 = go.Figure()

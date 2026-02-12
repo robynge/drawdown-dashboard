@@ -153,7 +153,7 @@ if iwv_prices is not None and iwv_dd is not None:
 
             prices_for_dd = prices.copy()
             prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
-            dd_data = calculate_drawdowns(prices_for_dd)
+            dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
 
             if len(dd_data) > 0:
                 dd_data['peak_date'] = pd.to_datetime(dd_data['peak_date'])
@@ -174,7 +174,7 @@ if iwv_prices is not None and iwv_dd is not None:
             from drawdown_calculator import calculate_drawdowns
             prices_for_dd = prices.copy()
             prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
-            dd_data = calculate_drawdowns(prices_for_dd)
+            dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
 
             if len(dd_data) > 0:
                 dd_data['peak_date'] = pd.to_datetime(dd_data['peak_date'])

@@ -162,7 +162,7 @@ with st.spinner("Loading data..."):
     ].copy()
 
     if len(etf_prices) > 0:
-        drawdowns = calculate_drawdowns(etf_prices)
+        drawdowns = calculate_drawdowns(etf_prices, start_date=start_date, end_date=end_date)
 
 if len(etf_prices) > 0 and len(drawdowns) > 0:
     # Filter to top 10 historical drawdowns (exclude current)

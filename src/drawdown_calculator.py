@@ -304,7 +304,7 @@ def calculate_stock_drawdowns_by_etf(holdings_df, prices_df, ticker, start_date=
         if len(merged) == 0:
             continue
 
-        dd_df = calculate_drawdowns(merged.rename(columns={'Close': 'Close'}), ticker=None)
+        dd_df = calculate_drawdowns(merged.rename(columns={'Close': 'Close'}), ticker=None, start_date=start, end_date=end)
         if len(dd_df) > 0:
             results[etf] = dd_df
 
