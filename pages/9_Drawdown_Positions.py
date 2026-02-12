@@ -15,7 +15,7 @@ from data_loader import load_ark_holdings, load_etf_prices, get_ark_files_hash
 from drawdown_calculator import calculate_drawdowns
 from hhi_calculator import calculate_hhi_time_series
 from chart_config import CHART_CONFIG
-from session_utils import init_session_state, get_current_dates
+from session_utils import init_session_state, get_current_dates, render_period_selector
 
 st.set_page_config(
     page_title="Drawdown Position Changes",
@@ -23,8 +23,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# Get current period dates (set on main page)
+# Initialize session state and render period selector
 init_session_state()
+with st.sidebar:
+    render_period_selector()
 start_date, end_date = get_current_dates()
 
 """

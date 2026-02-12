@@ -12,7 +12,7 @@ from config import ARK_ETFS, INPUT_DIR
 from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list, get_ark_ticker_list, get_ark_files_hash, get_r3000_files_hash
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS
-from session_utils import init_session_state, get_current_dates, has_r3000_data
+from session_utils import init_session_state, get_current_dates, has_r3000_data, render_period_selector
 
 st.set_page_config(
     page_title="Stock Comparison",
@@ -21,8 +21,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Get current period dates (set on main page)
+# Initialize session state and render period selector
 init_session_state()
+with st.sidebar:
+    render_period_selector()
 start_date, end_date = get_current_dates()
 
 """

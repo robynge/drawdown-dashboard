@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import ARK_ETFS, INPUT_DIR, OUTPUT_DIR
 from data_loader import load_ark_holdings, load_r3000_holdings, load_industry_info, get_r3000_drawdowns_cache, save_r3000_drawdowns_cache, get_ark_files_hash, get_r3000_files_hash
 from drawdown_calculator import calculate_drawdowns_with_filter, calculate_drawdowns
-from session_utils import init_session_state, get_current_dates, has_r3000_data, get_current_period
+from session_utils import init_session_state, get_current_dates, has_r3000_data, get_current_period, render_period_selector
 
 st.set_page_config(
     page_title="Drawdown Distribution",
@@ -21,8 +21,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# Get current period dates (set on main page)
+# Initialize session state and render period selector
 init_session_state()
+with st.sidebar:
+    render_period_selector()
 start_date, end_date = get_current_dates()
 
 """

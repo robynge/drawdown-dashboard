@@ -7,8 +7,10 @@ from datetime import datetime, timedelta
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import INPUT_DIR
+from session_utils import init_session_state, render_period_selector
 
 # Filter to show only last 1 year of data
 ONE_YEAR_AGO = datetime.now() - timedelta(days=365)
@@ -18,6 +20,11 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
+
+# Initialize session state and render period selector
+init_session_state()
+with st.sidebar:
+    render_period_selector()
 
 """
 # Raw Data

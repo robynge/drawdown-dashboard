@@ -31,8 +31,7 @@ def has_r3000_data():
 
 def render_period_selector():
     """Render the period selector in sidebar.
-    Only call this from the main page (ETF_Analysis.py).
-    Other pages should just use get_current_dates()."""
+    Call this from every page to allow period switching from anywhere."""
     init_session_state()
 
     st.markdown("##### Analysis Period")

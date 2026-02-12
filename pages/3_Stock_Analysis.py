@@ -15,15 +15,17 @@ from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS, add_reconstitution_vlines
 from recovery_probability import get_stock_drawdowns_in_depth_range
-from session_utils import init_session_state, get_current_dates, get_current_period
+from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
 st.set_page_config(
     page_title="Individual Stock vs Peer Group",
     layout="wide"
 )
 
-# Get current period dates (set on main page)
+# Initialize session state and render period selector
 init_session_state()
+with st.sidebar:
+    render_period_selector()
 start_date, end_date = get_current_dates()
 
 st.title("Individual Stock vs Peer Group")

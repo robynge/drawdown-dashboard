@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, INPUT_DIR
 from data_loader import load_ark_holdings, get_ark_files_hash
-from session_utils import init_session_state, get_current_dates, get_current_period
+from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
 st.set_page_config(
     page_title="Correlation Test",
@@ -19,8 +19,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# Get current period dates (set on main page)
+# Initialize session state and render period selector
 init_session_state()
+with st.sidebar:
+    render_period_selector()
 start_date, end_date = get_current_dates()
 
 """
