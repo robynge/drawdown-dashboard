@@ -367,14 +367,15 @@ def get_drawdowns_in_depth_range(depth_range_label, period_key=None, start_date=
     return pd.DataFrame(detailed_dd)
 
 
-def get_stock_drawdowns_in_depth_range(ticker, etf, depth_range_label, period_key=None, start_date=None, end_date=None):
+@st.cache_data
+def get_stock_drawdowns_in_depth_range(ticker, etf, depth_range_label, period_key=None, _start_date=None, _end_date=None):
     """Get all historical drawdowns for a specific stock within a depth range
 
     Args:
         ticker: Stock ticker (e.g., 'TSLA')
         etf: ETF name (e.g., 'ARKK')
         depth_range_label: String like '0% to -10%', '-10% to -20%', etc.
-        period_key, start_date, end_date: Analysis period for filtering
+        period_key, _start_date, _end_date: Analysis period for filtering
 
     Returns:
         DataFrame with columns: peak_date, trough_date, depth_pct, duration_days,
@@ -386,13 +387,13 @@ def get_stock_drawdowns_in_depth_range(ticker, etf, depth_range_label, period_ke
     if period_key is None:
         period_key = DEFAULT_PERIOD
         period = ANALYSIS_PERIODS[period_key]
-        start_date = period["start"]
-        end_date = period["end"]
+        _start_date = period["start"]
+        _end_date = period["end"]
 
     try:
         # Load stock data
         holdings = load_ark_holdings(get_ark_files_hash(), etf)
-        holdings = holdings[(holdings['Date'] >= start_date) & (holdings['Date'] <= end_date)]
+        holdings = holdings[(holdings['Date'] >= _start_date) & (holdings['Date'] <= _end_date)]
 
         # Find matching ticker
         stock_data = holdings[holdings['Ticker'].str.startswith(ticker + ' ', na=False) |
@@ -416,7 +417,7 @@ def get_stock_drawdowns_in_depth_range(ticker, etf, depth_range_label, period_ke
             return pd.DataFrame()
 
         # Calculate all drawdowns (excluding current) - MUST pass explicit dates
-        dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
+        dd_data = calculate_drawdowns(price_df, start_date=_start_date, end_date=_end_date)
         if len(dd_data) == 0 or 'rank' not in dd_data.columns:
             return pd.DataFrame()
         historical_dd = dd_data[dd_data['rank'] != 'Current'].copy()
@@ -494,13 +495,14 @@ def get_stock_drawdowns_in_depth_range(ticker, etf, depth_range_label, period_ke
         return pd.DataFrame()
 
 
-def get_etf_drawdowns_in_depth_range(etf, depth_range_label, period_key=None, start_date=None, end_date=None):
+@st.cache_data
+def get_etf_drawdowns_in_depth_range(etf, depth_range_label, period_key=None, _start_date=None, _end_date=None):
     """Get all historical drawdowns for all constituent stocks in an ETF within a depth range
 
     Args:
         etf: ETF name (e.g., 'ARKK')
         depth_range_label: String like '0% to -10%', '-10% to -20%', etc.
-        period_key, start_date, end_date: Analysis period for filtering
+        period_key, _start_date, _end_date: Analysis period for filtering
 
     Returns:
         DataFrame with columns: ticker, peak_date, trough_date, depth_pct, duration_days,
@@ -512,13 +514,13 @@ def get_etf_drawdowns_in_depth_range(etf, depth_range_label, period_key=None, st
     if period_key is None:
         period_key = DEFAULT_PERIOD
         period = ANALYSIS_PERIODS[period_key]
-        start_date = period["start"]
-        end_date = period["end"]
+        _start_date = period["start"]
+        _end_date = period["end"]
 
     files_hash = get_ark_files_hash()
 
     # Use cached all_stock_drawdowns and filter by ETF
-    all_dd = calculate_all_stock_drawdowns(files_hash, period_key, start_date, end_date)
+    all_dd = calculate_all_stock_drawdowns(files_hash, period_key, _start_date, _end_date)
 
     if len(all_dd) == 0:
         return pd.DataFrame()
@@ -546,6 +548,10 @@ def get_etf_drawdowns_in_depth_range(etf, depth_range_label, period_key=None, st
     # Calculate duration (peak to trough)
     range_dd['duration_days'] = (range_dd['trough_date'] - range_dd['peak_date']).dt.days
 
+    # Preload holdings ONCE (not in loop) - this is cached by load_ark_holdings
+    holdings = load_ark_holdings(files_hash, etf)
+    holdings = holdings[(holdings['Date'] >= _start_date) & (holdings['Date'] <= _end_date)]
+
     # Calculate recovery rate for each drawdown
     detailed_dd = []
 
@@ -561,8 +567,6 @@ def get_etf_drawdowns_in_depth_range(etf, depth_range_label, period_key=None, st
         else:
             # Need to get latest price after trough to calculate current recovery rate
             try:
-                holdings = load_ark_holdings(files_hash, etf)
-                holdings = holdings[(holdings['Date'] >= start_date) & (holdings['Date'] <= end_date)]
                 stock_data = holdings[holdings['Ticker'] == ticker].copy()
 
                 if len(stock_data) == 0:

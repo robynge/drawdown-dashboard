@@ -589,11 +589,11 @@ if True:
                 label_visibility="collapsed"
             )
 
-            # Get drawdowns in selected range for THIS stock only
+            # Get drawdowns in selected range for THIS stock only (cached)
             with st.spinner(f"Loading {selected_ticker} historical drawdowns for {selected_range}..."):
                 range_drawdowns = get_stock_drawdowns_in_depth_range(
                     selected_ticker, selected_etf, selected_range,
-                    period_key=get_current_period(), start_date=start_date, end_date=end_date
+                    period_key=get_current_period(), _start_date=start_date, _end_date=end_date
                 )
 
             if len(range_drawdowns) > 0:

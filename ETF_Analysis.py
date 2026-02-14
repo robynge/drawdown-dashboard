@@ -387,12 +387,11 @@ if selected_etf in etf_prices and len(etf_dd[etf_dd['ETF'] == selected_etf]) > 0
                 key=f"etf_depth_range_{selected_etf}"
             )
 
-            # Get drawdowns in selected range for THIS ETF only
-            with st.spinner(f"Loading {selected_etf} historical drawdowns for {selected_range}..."):
-                range_drawdowns = get_etf_drawdowns_in_depth_range(
-                    selected_etf, selected_range,
-                    period_key=get_current_period(), start_date=start_date, end_date=end_date
-                )
+            # Get drawdowns in selected range for THIS ETF only (cached)
+            range_drawdowns = get_etf_drawdowns_in_depth_range(
+                selected_etf, selected_range,
+                period_key=get_current_period(), _start_date=start_date, _end_date=end_date
+            )
 
             if len(range_drawdowns) > 0:
                 # Calculate recovery statistics for constituent stocks
