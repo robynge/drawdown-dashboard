@@ -6,8 +6,12 @@ only handles reading parquet files and filtering by period.
 """
 import pandas as pd
 import json
+import sys
 from pathlib import Path
 from typing import Tuple, Optional
+
+# Ensure src directory is in path for imports
+sys.path.insert(0, str(Path(__file__).parent))
 
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent

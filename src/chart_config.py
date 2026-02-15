@@ -1,4 +1,10 @@
 """Shared chart configuration for high-quality exports"""
+import sys
+from pathlib import Path
+
+# Ensure src directory is in path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
 from config import RUSSELL_RECONSTITUTION_DATES, START_DATE, END_DATE
 
 # High-quality PNG export - Streamlit + Plotly global default

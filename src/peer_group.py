@@ -2,7 +2,12 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+import sys
 from pathlib import Path
+
+# Ensure src directory is in path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
 from data_loader import load_r3000_holdings, load_industry_info, get_r3000_files_hash, get_industry_files_hash
 from config import INPUT_DIR
 

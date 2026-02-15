@@ -1,6 +1,12 @@
 """Peer group analysis for stocks"""
 import pandas as pd
 import numpy as np
+import sys
+from pathlib import Path
+
+# Ensure src directory is in path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
 from config import START_DATE, END_DATE
 from data_loader import load_industry_info, load_r3000_holdings, get_r3000_files_hash, get_industry_files_hash
 

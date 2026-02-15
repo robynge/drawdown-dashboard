@@ -1,5 +1,11 @@
 """Session state utilities for analysis period management"""
 import streamlit as st
+import sys
+from pathlib import Path
+
+# Ensure src directory is in path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
 from config import ANALYSIS_PERIODS, DEFAULT_PERIOD
 
 

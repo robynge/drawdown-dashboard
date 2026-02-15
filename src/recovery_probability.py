@@ -2,7 +2,12 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+import sys
 from pathlib import Path
+
+# Ensure src directory is in path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
 from data_loader import load_ark_holdings, get_ark_files_hash, ARK_ETFS
 from drawdown_calculator import calculate_drawdowns
 from config import INPUT_DIR, ANALYSIS_PERIODS, DEFAULT_PERIOD

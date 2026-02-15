@@ -1,6 +1,12 @@
 """Drawdown calculation logic"""
 import pandas as pd
 import numpy as np
+import sys
+from pathlib import Path
+
+# Ensure src directory is in path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
 from config import START_DATE, END_DATE
 
 def find_max_drawdown_in_period(df, value_col='Close'):
