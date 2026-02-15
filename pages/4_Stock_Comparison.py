@@ -1,4 +1,4 @@
-"""ARK vs Russell 3000 Stock Comparison"""
+"""ARK vs Russell 3000 Stock Comparison - Using Precomputed Data"""
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -9,7 +9,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, INPUT_DIR
-from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list, get_ark_ticker_list, get_ark_files_hash, get_r3000_files_hash, get_company_name_files_hash
+from data_loader import (
+    load_ark_holdings, load_r3000_holdings, load_company_name,
+    get_r3000_ticker_list, get_ark_ticker_list, get_ark_files_hash,
+    get_r3000_files_hash, get_company_name_files_hash
+)
+from precomputed_loader import (
+    load_ark_stock_drawdowns,
+    load_r3000_stock_drawdowns_detailed,
+    filter_drawdowns_by_period,
+    check_precomputed_exists
+)
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS
 from session_utils import init_session_state, get_current_dates, has_r3000_data, render_period_selector
@@ -35,6 +45,10 @@ Compare drawdown patterns between ARK ETF holdings and Russell 3000 constituents
 
 st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
+# Check for precomputed data
+if not check_precomputed_exists():
+    st.warning("Precomputed data not found. Run `python convert_to_parquet.py` for faster loading.")
+
 # Check R3000 data availability
 if not has_r3000_data():
     st.warning("Russell 3000 data is not available for the 2021-2023 period. R3000 stock comparisons are disabled.")
@@ -46,13 +60,9 @@ if not has_r3000_data():
 def get_ark_stock_list(_files_hash, etf):
     """Get list of stocks from specified ARK ETF (fast - uses precomputed ticker list)"""
     try:
-        # Use fast ticker list instead of loading full holdings
         tickers = get_ark_ticker_list(etf)
-
-        # Load company name mapping once
         company_name_dict = load_company_name(get_company_name_files_hash(), 'ark')
 
-        # Get unique tickers with company names
         stock_info = []
         for ticker in tickers:
             company_name = company_name_dict.get(ticker, ticker)
@@ -62,7 +72,6 @@ def get_ark_stock_list(_files_hash, etf):
                 display_name = ticker
             stock_info.append((ticker, display_name))
 
-        # Sort by ticker
         stock_info.sort(key=lambda x: x[0])
         return stock_info
     except Exception as e:
@@ -73,13 +82,9 @@ def get_ark_stock_list(_files_hash, etf):
 def get_r3000_stock_list(_files_hash):
     """Get list of stocks from Russell 3000 (fast - uses precomputed ticker list)"""
     try:
-        # Use fast ticker list instead of loading full holdings
         tickers = get_r3000_ticker_list()
-
-        # Load company name mapping once
         company_name_dict = load_company_name(get_company_name_files_hash(), 'r3000')
 
-        # Get unique tickers with company names
         stock_info = []
         for ticker in tickers:
             company_name = company_name_dict.get(ticker, ticker)
@@ -89,51 +94,60 @@ def get_r3000_stock_list(_files_hash):
                 display_name = ticker
             stock_info.append((ticker, display_name))
 
-        # Sort by ticker
         stock_info.sort(key=lambda x: x[0])
         return stock_info
     except Exception as e:
         st.error(f"Error loading Russell 3000 stock list: {e}")
         return []
 
-def load_ark_stock_prices(holdings, ticker):
-    """Load price data for ARK stock from cached holdings"""
+@st.cache_data
+def load_ark_stock_prices(_files_hash, etf, ticker, _start_date, _end_date):
+    """Load price data for ARK stock from holdings"""
     try:
-        stock_data = holdings[holdings['Ticker'] == ticker].copy()
-        stock_data = stock_data[(stock_data['Date'] >= start_date) & (stock_data['Date'] <= end_date)]
+        holdings = load_ark_holdings(_files_hash, etf)
+        stock_data = holdings[holdings['Ticker'].str.startswith(ticker + ' ') | (holdings['Ticker'] == ticker)].copy()
+        stock_data = stock_data[
+            (stock_data['Date'] >= _start_date) &
+            (stock_data['Date'] <= _end_date)
+        ]
 
         if len(stock_data) == 0:
             return pd.DataFrame()
 
-        # Rename columns to match expected format
-        stock_data = stock_data.rename(columns={'Stock_Price': 'Close'})
+        # Determine which price column to use
+        if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
+            stock_data = stock_data.rename(columns={'YFinance Close Price': 'Close'})
+        else:
+            stock_data = stock_data.rename(columns={'Stock_Price': 'Close'})
         stock_data = stock_data[['Date', 'Close']].sort_values('Date')
 
         return stock_data
     except Exception as e:
-        st.error(f"Error loading ARK stock prices: {e}")
         return pd.DataFrame()
 
-def load_r3000_stock_prices(holdings, ticker):
-    """Load price data for Russell 3000 stock from cached holdings"""
+@st.cache_data
+def load_r3000_stock_prices(_files_hash, ticker, _start_date, _end_date):
+    """Load price data for Russell 3000 stock from holdings"""
     try:
+        holdings = load_r3000_holdings(_files_hash)
         stock_data = holdings[holdings['Ticker'] == ticker].copy()
-        stock_data = stock_data[(stock_data['Date'] >= start_date) & (stock_data['Date'] <= end_date)]
+        stock_data = stock_data[
+            (stock_data['Date'] >= _start_date) &
+            (stock_data['Date'] <= _end_date)
+        ]
 
         if len(stock_data) == 0:
             return pd.DataFrame()
 
-        # Rename columns to match expected format (Russell 3000 uses 'Price', not 'Stock_Price')
         stock_data = stock_data.rename(columns={'Price': 'Close'})
         stock_data = stock_data[['Date', 'Close']].sort_values('Date')
 
         return stock_data
     except Exception as e:
-        st.error(f"Error loading Russell 3000 stock prices: {e}")
         return pd.DataFrame()
 
 def create_stock_chart(price_df, dd_data, stock_name):
-    """Create price chart with drawdown regions (matching ETF_Analysis.py style)"""
+    """Create price chart with drawdown regions"""
     fig = go.Figure()
 
     # Get top 10 drawdowns
@@ -181,54 +195,53 @@ def create_stock_chart(price_df, dd_data, stock_name):
 
     # Add current drawdown line and shaded area
     if len(dd_data) > 0:
-        current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
-        peak_price = current_dd['peak_price']
-        peak_date = current_dd['peak_date']
-        current_price = current_dd['trough_price']
-        current_dd_pct = current_dd['depth_pct']
+        current_dd = dd_data[dd_data['rank'] == 'Current']
+        if len(current_dd) > 0:
+            current_dd = current_dd.iloc[0]
+            peak_price = current_dd['peak_price']
+            peak_date = current_dd['peak_date']
+            current_price = current_dd['trough_price']
+            current_dd_pct = current_dd['depth_pct']
 
-        # Add horizontal line from peak date to the end of the chart
-        fig.add_shape(
-            type="line",
-            x0=peak_date,
-            x1=price_df['Date'].max(),
-            y0=peak_price,
-            y1=peak_price,
-            line=dict(color='red', width=2, dash='dash'),
-            layer='above'
-        )
+            fig.add_shape(
+                type="line",
+                x0=peak_date,
+                x1=price_df['Date'].max(),
+                y0=peak_price,
+                y1=peak_price,
+                line=dict(color='red', width=2, dash='dash'),
+                layer='above'
+            )
 
-        # Add shaded rectangle from peak date to current date
-        fig.add_shape(
-            type="rect",
-            x0=peak_date,
-            x1=price_df['Date'].max(),
-            y0=current_price,
-            y1=peak_price,
-            fillcolor='rgba(128,128,128,0.25)',
-            line=dict(width=0),
-            layer='below'
-        )
+            fig.add_shape(
+                type="rect",
+                x0=peak_date,
+                x1=price_df['Date'].max(),
+                y0=current_price,
+                y1=peak_price,
+                fillcolor='rgba(128,128,128,0.25)',
+                line=dict(width=0),
+                layer='below'
+            )
 
-        # Add text annotation on the right side showing current drawdown
-        fig.add_annotation(
-            text=f"<b>Current Drawdown</b><br>" +
-                 f"Depth: {current_dd_pct:.2f}%<br>" +
-                 f"Peak: {peak_date.strftime('%Y-%m-%d')} ${peak_price:.2f}<br>" +
-                 f"Current: {price_df['Date'].max().strftime('%Y-%m-%d')} ${current_price:.2f}",
-            x=price_df['Date'].max(),
-            y=(peak_price + current_price) / 2,
-            showarrow=False,
-            xanchor='left',
-            yanchor='middle',
-            xshift=10,
-            font=dict(size=10, color='black'),
-            align='left',
-            bgcolor='rgba(255,255,255,0.8)',
-            bordercolor='rgba(0,0,0,0.3)',
-            borderwidth=1,
-            borderpad=4
-        )
+            fig.add_annotation(
+                text=f"<b>Current Drawdown</b><br>" +
+                     f"Depth: {current_dd_pct:.2f}%<br>" +
+                     f"Peak: {peak_date.strftime('%Y-%m-%d')} ${peak_price:.2f}<br>" +
+                     f"Current: {price_df['Date'].max().strftime('%Y-%m-%d')} ${current_price:.2f}",
+                x=price_df['Date'].max(),
+                y=(peak_price + current_price) / 2,
+                showarrow=False,
+                xanchor='left',
+                yanchor='middle',
+                xshift=10,
+                font=dict(size=10, color='black'),
+                align='left',
+                bgcolor='rgba(255,255,255,0.8)',
+                bordercolor='rgba(0,0,0,0.3)',
+                borderwidth=1,
+                borderpad=4
+            )
 
     fig.update_layout(
         title=f"{stock_name} Price with Top 10 Drawdowns & Current Drawdown",
@@ -309,20 +322,33 @@ with left_panel:
 
     ""  # Space
 
-    # Load data and calculate drawdowns if both stocks selected
+    # Load data and get drawdowns
     if ark_ticker and r3000_ticker:
         with st.spinner("Loading stock data..."):
-            # Use cached ARK holdings for fast ticker lookup
-            ark_holdings = load_ark_holdings(ark_files_hash, selected_etf)
-            ark_price_df = load_ark_stock_prices(ark_holdings, ark_ticker)
-            # Use cached R3000 holdings for fast ticker lookup
-            r3000_holdings = load_r3000_holdings(r3000_files_hash)
-            r3000_price_df = load_r3000_stock_prices(r3000_holdings, r3000_ticker)
+            # Load price data
+            ark_price_df = load_ark_stock_prices(ark_files_hash, selected_etf, ark_ticker, start_date, end_date)
+            r3000_price_df = load_r3000_stock_prices(r3000_files_hash, r3000_ticker, start_date, end_date)
 
-            if len(ark_price_df) > 0:
+            # Try to load precomputed drawdowns for ARK stock
+            ark_dd_precomputed = load_ark_stock_drawdowns(selected_etf, ark_ticker)
+            if len(ark_dd_precomputed) > 0:
+                ark_dd = filter_drawdowns_by_period(ark_dd_precomputed, start_date, end_date)
+                # If filtered result is empty, recalculate for the period
+                if len(ark_dd) == 0 and len(ark_price_df) > 0:
+                    ark_dd = calculate_drawdowns(ark_price_df, ticker=ark_ticker, start_date=start_date, end_date=end_date)
+            elif len(ark_price_df) > 0:
+                # Fallback to dynamic calculation
                 ark_dd = calculate_drawdowns(ark_price_df, ticker=ark_ticker, start_date=start_date, end_date=end_date)
 
-            if len(r3000_price_df) > 0:
+            # Try to load precomputed drawdowns for R3000 stock
+            r3000_dd_precomputed = load_r3000_stock_drawdowns_detailed(r3000_ticker)
+            if len(r3000_dd_precomputed) > 0:
+                r3000_dd = filter_drawdowns_by_period(r3000_dd_precomputed, start_date, end_date)
+                # If filtered result is empty, recalculate for the period
+                if len(r3000_dd) == 0 and len(r3000_price_df) > 0:
+                    r3000_dd = calculate_drawdowns(r3000_price_df, ticker=r3000_ticker, start_date=start_date, end_date=end_date)
+            elif len(r3000_price_df) > 0:
+                # Fallback to dynamic calculation
                 r3000_dd = calculate_drawdowns(r3000_price_df, ticker=r3000_ticker, start_date=start_date, end_date=end_date)
 
     ""  # Space
@@ -334,7 +360,6 @@ with left_panel:
         max_dd = ark_dd[ark_dd['rank'] != 'Current'].iloc[0] if len(ark_dd[ark_dd['rank'] != 'Current']) > 0 else None
 
         if max_dd is not None:
-            # Calculate RoMaD
             first_price = ark_price_df['Close'].iloc[0]
             last_price = ark_price_df['Close'].iloc[-1]
             overall_return = ((last_price - first_price) / first_price) * 100
@@ -354,7 +379,6 @@ with left_panel:
         max_dd = r3000_dd[r3000_dd['rank'] != 'Current'].iloc[0] if len(r3000_dd[r3000_dd['rank'] != 'Current']) > 0 else None
 
         if max_dd is not None:
-            # Calculate RoMaD
             first_price = r3000_price_df['Close'].iloc[0]
             last_price = r3000_price_df['Close'].iloc[-1]
             overall_return = ((last_price - first_price) / first_price) * 100
@@ -406,14 +430,12 @@ if ark_ticker and r3000_ticker:
             display_df = ark_dd[ark_dd['rank'] != 'Current'].head(10).copy()
 
             if len(display_df) > 0:
-                # Format columns
                 display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
                 display_df['Peak Date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
                 display_df['Trough Date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
                 display_df['Peak Price'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
                 display_df['Trough Price'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
 
-                # Select and rename columns
                 display_df = display_df[['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
                 display_df = display_df.rename(columns={'rank': 'Rank'})
 
@@ -429,14 +451,12 @@ if ark_ticker and r3000_ticker:
             display_df = r3000_dd[r3000_dd['rank'] != 'Current'].head(10).copy()
 
             if len(display_df) > 0:
-                # Format columns
                 display_df['Depth %'] = display_df['depth_pct'].apply(lambda x: f"{x:.2f}%")
                 display_df['Peak Date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
                 display_df['Trough Date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
                 display_df['Peak Price'] = display_df['peak_price'].apply(lambda x: f"${x:,.2f}")
                 display_df['Trough Price'] = display_df['trough_price'].apply(lambda x: f"${x:,.2f}")
 
-                # Select and rename columns
                 display_df = display_df[['rank', 'Depth %', 'Peak Date', 'Trough Date', 'Peak Price', 'Trough Price']]
                 display_df = display_df.rename(columns={'rank': 'Rank'})
 

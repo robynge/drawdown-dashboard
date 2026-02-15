@@ -830,6 +830,349 @@ def precompute_r3000_drawdowns_full():
         print(f"  Saved {len(result_df)} ticker drawdowns to {output_path}")
 
 
+def precompute_peer_group_drawdowns():
+    """Step 19: Precompute peer group drawdowns for each GICS industry (MV and weighted versions)"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from peer_group import (
+        _calculate_peer_group_prices_mv_full,
+        _calculate_peer_group_prices_weighted_full
+    )
+    from data_loader import get_r3000_files_hash
+    from drawdown_calculator import calculate_drawdowns
+
+    ensure_dirs()
+    files_hash = get_r3000_files_hash()
+
+    # Load all peer group prices (already grouped by GICS)
+    print("  Loading MV peer group prices...")
+    try:
+        all_mv_prices = _calculate_peer_group_prices_mv_full(files_hash)
+        unique_gics_mv = all_mv_prices['GICS'].unique()
+        print(f"    Found {len(unique_gics_mv)} GICS groups")
+    except Exception as e:
+        print(f"    Error loading MV prices: {e}")
+        all_mv_prices = pd.DataFrame()
+        unique_gics_mv = []
+
+    print("  Loading Weighted peer group prices...")
+    try:
+        all_weighted_prices = _calculate_peer_group_prices_weighted_full(files_hash)
+        unique_gics_weighted = all_weighted_prices['GICS'].unique()
+        print(f"    Found {len(unique_gics_weighted)} GICS groups")
+    except Exception as e:
+        print(f"    Error loading weighted prices: {e}")
+        all_weighted_prices = pd.DataFrame()
+        unique_gics_weighted = []
+
+    # Calculate drawdowns for each GICS group - MV version
+    all_mv_drawdowns = []
+    if len(all_mv_prices) > 0:
+        for gics in unique_gics_mv:
+            try:
+                gics_prices = all_mv_prices[all_mv_prices['GICS'] == gics].copy()
+                if len(gics_prices) >= 30:
+                    gics_prices_dd = gics_prices[['Date', 'Value']].copy()
+                    gics_prices_dd = gics_prices_dd.rename(columns={'Value': 'Close'})
+                    dd_data = calculate_drawdowns(gics_prices_dd, start_date=gics_prices_dd['Date'].min(), end_date=gics_prices_dd['Date'].max())
+                    if len(dd_data) > 0:
+                        dd_data['gics'] = gics
+                        dd_data['version'] = 'mv'
+                        all_mv_drawdowns.append(dd_data)
+            except Exception as e:
+                continue
+
+    # Calculate drawdowns for each GICS group - Weighted version
+    all_weighted_drawdowns = []
+    if len(all_weighted_prices) > 0:
+        for gics in unique_gics_weighted:
+            try:
+                gics_prices = all_weighted_prices[all_weighted_prices['GICS'] == gics].copy()
+                if len(gics_prices) >= 30:
+                    gics_prices_dd = gics_prices[['Date', 'Value']].copy()
+                    gics_prices_dd = gics_prices_dd.rename(columns={'Value': 'Close'})
+                    dd_data = calculate_drawdowns(gics_prices_dd, start_date=gics_prices_dd['Date'].min(), end_date=gics_prices_dd['Date'].max())
+                    if len(dd_data) > 0:
+                        dd_data['gics'] = gics
+                        dd_data['version'] = 'weighted'
+                        all_weighted_drawdowns.append(dd_data)
+            except Exception as e:
+                continue
+
+    # Save MV drawdowns
+    if all_mv_drawdowns:
+        mv_df = pd.concat(all_mv_drawdowns, ignore_index=True)
+        output_path = R3000_PRECOMPUTED_DIR / 'peer_group_drawdowns_mv.parquet'
+        mv_df.to_parquet(output_path, index=False)
+        print(f"    Saved {len(mv_df)} MV drawdown records for {len(all_mv_drawdowns)} GICS groups")
+
+    # Save weighted drawdowns
+    if all_weighted_drawdowns:
+        weighted_df = pd.concat(all_weighted_drawdowns, ignore_index=True)
+        output_path = R3000_PRECOMPUTED_DIR / 'peer_group_drawdowns_weighted.parquet'
+        weighted_df.to_parquet(output_path, index=False)
+        print(f"    Saved {len(weighted_df)} weighted drawdown records for {len(all_weighted_drawdowns)} GICS groups")
+
+
+def precompute_iwv_total_mv_drawdowns():
+    """Step 20: Precompute IWV Total Market Value drawdowns"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from peer_group import _calculate_iwv_total_market_value_full
+    from data_loader import get_r3000_files_hash
+    from drawdown_calculator import calculate_drawdowns
+
+    ensure_dirs()
+    files_hash = get_r3000_files_hash()
+
+    # Get IWV total market value
+    iwv_mv = _calculate_iwv_total_market_value_full(files_hash)
+
+    if len(iwv_mv) >= 30:
+        iwv_mv_dd = iwv_mv.copy()
+        iwv_mv_dd = iwv_mv_dd.rename(columns={'Value': 'Close'})
+        dd_data = calculate_drawdowns(iwv_mv_dd, start_date=iwv_mv_dd['Date'].min(), end_date=iwv_mv_dd['Date'].max())
+
+        if len(dd_data) > 0:
+            output_path = R3000_PRECOMPUTED_DIR / 'iwv_total_mv_drawdowns.parquet'
+            dd_data.to_parquet(output_path, index=False)
+            print(f"    Saved {len(dd_data)} IWV Total MV drawdowns")
+    else:
+        print("    Not enough IWV Total MV data")
+
+
+def precompute_ark_stock_drawdowns_full():
+    """Step 17: Precompute full top 10 drawdowns for each stock in ARK ETFs"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from config import ARK_ETFS
+    from data_loader import load_ark_holdings, get_ark_files_hash
+    from drawdown_calculator import calculate_drawdowns
+
+    ensure_dirs()
+    files_hash = get_ark_files_hash()
+
+    for etf in ARK_ETFS:
+        print(f"  Processing {etf}...")
+        holdings = load_ark_holdings(files_hash, etf)
+
+        if len(holdings) == 0:
+            continue
+
+        # Filter out currency and money market funds
+        if 'Bloomberg Name' in holdings.columns:
+            currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
+            holdings = holdings[~holdings['Ticker'].isin(currency_tickers)]
+
+        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+        holdings = holdings[~holdings['Ticker'].str.split().str[0].apply(
+            lambda t: any(t.startswith(p) for p in money_market_prefixes)
+        )]
+
+        all_tickers = holdings['Ticker'].unique()
+        all_drawdowns = []
+
+        for ticker in all_tickers:
+            stock_data = holdings[holdings['Ticker'] == ticker].copy()
+
+            if len(stock_data) < 30:
+                continue
+
+            # Determine which price column to use
+            if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
+                price_col = 'YFinance Close Price'
+            else:
+                price_col = 'Stock_Price'
+
+            price_df = stock_data[['Date', price_col]].copy()
+            price_df.columns = ['Date', 'Close']
+            price_df = price_df.dropna()
+
+            if len(price_df) < 30:
+                continue
+
+            # Calculate drawdowns for full date range
+            dd_data = calculate_drawdowns(price_df, start_date=price_df['Date'].min(), end_date=price_df['Date'].max())
+
+            if len(dd_data) == 0:
+                continue
+
+            # Add ticker info
+            dd_data['ticker'] = ticker.split()[0] if ' ' in ticker else ticker
+            dd_data['ticker_full'] = ticker
+            all_drawdowns.append(dd_data)
+
+        if all_drawdowns:
+            result_df = pd.concat(all_drawdowns, ignore_index=True)
+            output_path = ARK_PRECOMPUTED_DIR / f'{etf}_stock_drawdowns.parquet'
+            result_df.to_parquet(output_path, index=False)
+            print(f"    Saved {len(result_df)} drawdown records for {len(all_drawdowns)} stocks")
+
+
+def precompute_r3000_stock_drawdowns_full_detailed():
+    """Step 18: Precompute full top 10 drawdowns for each R3000 stock"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from data_loader import load_r3000_holdings, get_r3000_files_hash
+    from drawdown_calculator import calculate_drawdowns
+
+    ensure_dirs()
+    files_hash = get_r3000_files_hash()
+    holdings = load_r3000_holdings(files_hash)
+
+    if len(holdings) == 0:
+        print("  No R3000 holdings data found")
+        return
+
+    all_tickers = holdings['Ticker'].unique()
+    print(f"  Processing {len(all_tickers)} tickers...")
+
+    all_drawdowns = []
+    for i, ticker in enumerate(all_tickers):
+        if (i + 1) % 500 == 0:
+            print(f"    Progress: {i + 1}/{len(all_tickers)}")
+
+        stock_data = holdings[holdings['Ticker'] == ticker].copy()
+
+        if len(stock_data) < 30 or 'Price' not in stock_data.columns:
+            continue
+
+        price_df = stock_data[['Date', 'Price']].copy()
+        price_df = price_df.rename(columns={'Price': 'Close'})
+        price_df = price_df.dropna(subset=['Close'])
+
+        if len(price_df) < 30:
+            continue
+
+        # Calculate drawdowns for full date range
+        dd_data = calculate_drawdowns(price_df, start_date=price_df['Date'].min(), end_date=price_df['Date'].max())
+
+        if len(dd_data) == 0:
+            continue
+
+        # Add ticker info
+        ticker_clean = ticker.split()[0] if isinstance(ticker, str) else ticker
+        dd_data['ticker'] = ticker_clean
+        dd_data['ticker_full'] = ticker
+        all_drawdowns.append(dd_data)
+
+    if all_drawdowns:
+        result_df = pd.concat(all_drawdowns, ignore_index=True)
+        output_path = R3000_PRECOMPUTED_DIR / 'r3000_stock_drawdowns_detailed.parquet'
+        result_df.to_parquet(output_path, index=False)
+        print(f"  Saved {len(result_df)} drawdown records for {len(all_drawdowns)} stocks")
+
+
+def precompute_position_changes():
+    """Step 16: Precompute position changes during top 10 drawdowns for each ETF"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from config import ARK_ETFS
+    from data_loader import load_ark_holdings, get_ark_files_hash
+    from drawdown_calculator import calculate_drawdowns
+
+    ensure_dirs()
+    files_hash = get_ark_files_hash()
+
+    for etf in ARK_ETFS:
+        print(f"  Processing {etf}...")
+
+        # Load ETF prices to get drawdowns
+        price_file = OUTPUT_DIR / f'{etf}_prices.csv'
+        if not price_file.exists():
+            print(f"    Price file not found: {price_file}")
+            continue
+
+        prices = pd.read_csv(price_file)
+        prices['Date'] = pd.to_datetime(prices['Date'])
+
+        # Calculate drawdowns for full date range
+        dd_df = calculate_drawdowns(prices, start_date=prices['Date'].min(), end_date=prices['Date'].max())
+        if len(dd_df) == 0:
+            continue
+
+        # Get top 10 historical drawdowns
+        historical_dds = dd_df[dd_df['rank'] != 'Current'].head(10)
+
+        # Load holdings
+        holdings = load_ark_holdings(files_hash, etf)
+
+        all_changes = []
+
+        for _, dd_row in historical_dds.iterrows():
+            peak_date = dd_row['peak_date']
+            trough_date = dd_row['trough_date']
+            dd_rank = dd_row['rank']
+
+            # Get holdings at peak date (or closest date before)
+            peak_holdings = holdings[holdings['Date'] <= peak_date].copy()
+            if len(peak_holdings) == 0:
+                continue
+            peak_date_actual = peak_holdings['Date'].max()
+            peak_holdings = peak_holdings[peak_holdings['Date'] == peak_date_actual].copy()
+
+            # Get holdings at trough date (or closest date before)
+            trough_holdings = holdings[holdings['Date'] <= trough_date].copy()
+            if len(trough_holdings) == 0:
+                continue
+            trough_date_actual = trough_holdings['Date'].max()
+            trough_holdings = trough_holdings[trough_holdings['Date'] == trough_date_actual].copy()
+
+            # Filter out currency and money market
+            for df in [peak_holdings, trough_holdings]:
+                if 'Bloomberg Name' in df.columns:
+                    mask = ~df['Bloomberg Name'].str.contains('curncy', case=False, na=False)
+                    df.drop(df[~mask].index, inplace=True)
+
+            money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+            for df in [peak_holdings, trough_holdings]:
+                ticker_symbols = df['Ticker'].str.split().str[0]
+                is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
+                df.drop(df[is_mm].index, inplace=True)
+
+            # Create comparison
+            peak_positions = peak_holdings.set_index('Ticker')[['Weight', 'Position']].add_suffix('_peak')
+            trough_positions = trough_holdings.set_index('Ticker')[['Weight', 'Position']].add_suffix('_trough')
+
+            comparison = peak_positions.join(trough_positions, how='outer').fillna(0)
+            comparison['Weight_Change'] = comparison['Weight_trough'] - comparison['Weight_peak']
+            comparison['Position_Change'] = comparison['Position_trough'] - comparison['Position_peak']
+            comparison['Position_Change_Pct'] = np.where(
+                comparison['Position_peak'] > 0,
+                (comparison['Position_trough'] - comparison['Position_peak']) / comparison['Position_peak'] * 100,
+                np.where(comparison['Position_trough'] > 0, 100, 0)
+            )
+
+            # Categorize changes
+            comparison['Status'] = 'Unchanged'
+            comparison.loc[comparison['Position_peak'] == 0, 'Status'] = 'New Position'
+            comparison.loc[comparison['Position_trough'] == 0, 'Status'] = 'Exited'
+            comparison.loc[(comparison['Position_Change'] > 0) & (comparison['Position_peak'] > 0), 'Status'] = 'Added'
+            comparison.loc[(comparison['Position_Change'] < 0) & (comparison['Position_trough'] > 0), 'Status'] = 'Reduced'
+
+            comparison = comparison.reset_index()
+            comparison['Ticker_Clean'] = comparison['Ticker'].str.split().str[0]
+            comparison['dd_rank'] = dd_rank
+            comparison['peak_date'] = peak_date
+            comparison['trough_date'] = trough_date
+            comparison['peak_date_actual'] = peak_date_actual
+            comparison['trough_date_actual'] = trough_date_actual
+            comparison['depth_pct'] = dd_row['depth_pct']
+
+            all_changes.append(comparison)
+
+        if all_changes:
+            result_df = pd.concat(all_changes, ignore_index=True)
+            output_path = ARK_PRECOMPUTED_DIR / f'{etf}_position_changes.parquet'
+            result_df.to_parquet(output_path, index=False)
+            print(f"    Saved {len(result_df)} position change records")
+
+
 def generate_metadata():
     """Step 14: Generate metadata.json with version, timestamps, and hashes"""
     import sys
@@ -869,63 +1212,83 @@ if __name__ == '__main__':
     print("=" * 60)
     print()
 
-    print("Step 1/15: ARK ETFs - Excel to Parquet")
+    print("Step 1/20: ARK ETFs - Excel to Parquet")
     convert_ark_etfs()
     print()
 
-    print("Step 2/15: Russell 3000 - Excel to Parquet")
+    print("Step 2/20: Russell 3000 - Excel to Parquet")
     convert_russell_3000()
     print()
 
-    print("Step 3/15: Peer Group Cache (full time series)")
+    print("Step 3/20: Peer Group Cache (full time series)")
     precompute_peer_group_cache()
     print()
 
-    print("Step 4/15: R3000 Drawdowns (legacy cache)")
+    print("Step 4/20: R3000 Drawdowns (legacy cache)")
     precompute_r3000_drawdowns()
     print()
 
-    print("Step 5/15: ARK Stock Drawdowns")
+    print("Step 5/20: ARK Stock Drawdowns")
     precompute_ark_drawdowns()
     print()
 
-    print("Step 6/15: ARK Holdings Max Drawdowns")
+    print("Step 6/20: ARK Holdings Max Drawdowns")
     precompute_ark_holdings_max_drawdowns()
     print()
 
-    print("Step 7/15: ETF-level Drawdowns")
+    print("Step 7/20: ETF-level Drawdowns")
     precompute_etf_drawdowns()
     print()
 
-    print("Step 8/15: HHI Time Series")
+    print("Step 8/20: HHI Time Series")
     precompute_hhi_timeseries()
     print()
 
-    print("Step 9/15: Correlation Matrices")
+    print("Step 9/20: Correlation Matrices")
     precompute_correlation_matrices()
     print()
 
-    print("Step 10/15: Weighted Correlation Matrices")
+    print("Step 10/20: Weighted Correlation Matrices")
     precompute_weighted_correlations()
     print()
 
-    print("Step 11/15: Rolling Correlations")
+    print("Step 11/20: Rolling Correlations")
     precompute_rolling_correlations()
     print()
 
-    print("Step 12/15: Holdings Drawdowns")
+    print("Step 12/20: Holdings Drawdowns")
     precompute_holdings_drawdowns()
     print()
 
-    print("Step 13/15: Concentration Performance")
+    print("Step 13/20: Concentration Performance")
     precompute_concentration_performance()
     print()
 
-    print("Step 14/15: R3000 Drawdowns Full (precomputed)")
+    print("Step 14/20: R3000 Drawdowns Full (precomputed)")
     precompute_r3000_drawdowns_full()
     print()
 
-    print("Step 15/15: Generate Metadata")
+    print("Step 15/20: Position Changes")
+    precompute_position_changes()
+    print()
+
+    print("Step 16/20: ARK Stock Drawdowns (full details)")
+    precompute_ark_stock_drawdowns_full()
+    print()
+
+    print("Step 17/20: R3000 Stock Drawdowns (full details)")
+    precompute_r3000_stock_drawdowns_full_detailed()
+    print()
+
+    print("Step 18/20: Peer Group Drawdowns")
+    precompute_peer_group_drawdowns()
+    print()
+
+    print("Step 19/20: IWV Total MV Drawdowns")
+    precompute_iwv_total_mv_drawdowns()
+    print()
+
+    print("Step 20/20: Generate Metadata")
     generate_metadata()
     print()
 

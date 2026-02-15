@@ -1,4 +1,8 @@
-"""Correlation Change Statistical Test Page"""
+"""Correlation Change Statistical Test Page
+
+Uses precomputed correlation returns data for faster loading.
+Bootstrap test runs dynamically since it depends on user-selected parameters.
+"""
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -12,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import ARK_ETFS, INPUT_DIR
 from data_loader import load_ark_holdings, get_ark_files_hash
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
+from precomputed_loader import load_correlation_returns, load_current_weights, check_precomputed_exists
 
 st.set_page_config(
     page_title="Correlation Test",
@@ -32,8 +37,31 @@ Bootstrap permutation test to determine if portfolio correlation has significant
 """
 
 @st.cache_data
+def prepare_returns_data_precomputed(_files_hash, etf, lookback_days, period_key, _start_date, _end_date):
+    """Load precomputed returns data for correlation analysis
+
+    Returns:
+        returns: DataFrame of daily returns
+        dropped_stocks: empty list (filtering already done during precomputation)
+    """
+    # Try to load precomputed returns
+    returns = load_correlation_returns(etf, lookback_days)
+
+    if len(returns) == 0:
+        return pd.DataFrame(), []
+
+    # Filter to analysis period
+    returns = returns[
+        (returns.index >= _start_date) &
+        (returns.index <= _end_date)
+    ]
+
+    return returns, []
+
+
+@st.cache_data
 def prepare_returns_data(_files_hash, etf, lookback_days, period_key, _start_date, _end_date, _holdings):
-    """Prepare returns data for correlation analysis
+    """Prepare returns data for correlation analysis (fallback when no precomputed data)
 
     Returns:
         returns: DataFrame of daily returns
@@ -107,7 +135,8 @@ def extract_pairwise_correlations(corr_matrix):
     corr_vals = corr_matrix.where(mask).values.flatten()
     return corr_vals[~np.isnan(corr_vals)]
 
-def bootstrap_permutation_test(rho_a, rho_b, n_iterations=10000):
+@st.cache_data
+def bootstrap_permutation_test(_rho_a_tuple, _rho_b_tuple, n_iterations=10000, _seed=42):
     """
     Bootstrap permutation test for difference in mean correlation.
 
@@ -115,13 +144,21 @@ def bootstrap_permutation_test(rho_a, rho_b, n_iterations=10000):
     H1: rho_B is systematically higher than rho_A
 
     Returns: observed_delta, p_value, null_distribution
+
+    Note: rho_a and rho_b are passed as tuples for caching.
     """
+    rho_a = np.array(_rho_a_tuple)
+    rho_b = np.array(_rho_b_tuple)
+
     # Observed difference
     delta_obs = np.mean(rho_b) - np.mean(rho_a)
 
     # Combine all correlations
     combined = np.concatenate([rho_a, rho_b])
     n_a = len(rho_a)
+
+    # Set seed for reproducibility (allows caching)
+    np.random.seed(_seed)
 
     # Generate null distribution by permutation
     null_deltas = []
@@ -160,13 +197,24 @@ with config_cols[2]:
 files_hash = get_ark_files_hash()
 period_key = get_current_period()
 
+# Need enough data for two non-overlapping windows
+lookback_days = 250  # Use 250d to match precomputed returns
+
 with st.spinner("Loading data..."):
-    holdings = load_ark_holdings(files_hash, selected_etf)
-    # Need enough data for two non-overlapping windows
-    lookback_days = 120  # Need enough trading days for two non-overlapping windows
-    returns, dropped_stocks = prepare_returns_data(
-        files_hash, selected_etf, lookback_days, period_key, start_date, end_date, holdings
-    )
+    # Try precomputed data first
+    if check_precomputed_exists():
+        returns, dropped_stocks = prepare_returns_data_precomputed(
+            files_hash, selected_etf, lookback_days, period_key, start_date, end_date
+        )
+    else:
+        returns, dropped_stocks = pd.DataFrame(), []
+
+    # Fallback to dynamic calculation if precomputed is empty
+    if len(returns) == 0:
+        holdings = load_ark_holdings(files_hash, selected_etf)
+        returns, dropped_stocks = prepare_returns_data(
+            files_hash, selected_etf, lookback_days, period_key, start_date, end_date, holdings
+        )
 
 # Show dropped stocks if any
 if dropped_stocks:
@@ -237,7 +285,10 @@ if len(returns) >= window_size * 2:
         st.subheader("Bootstrap Permutation Test")
 
         with st.spinner(f"Running {n_bootstrap} bootstrap iterations..."):
-            delta_obs, p_value, null_distribution = bootstrap_permutation_test(rho_a, rho_b, n_bootstrap)
+            # Convert to tuples for caching
+            delta_obs, p_value, null_distribution = bootstrap_permutation_test(
+                tuple(rho_a), tuple(rho_b), n_bootstrap
+            )
 
         # Display results
         result_cols = st.columns(3)

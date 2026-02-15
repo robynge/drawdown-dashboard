@@ -1,4 +1,4 @@
-"""Stock Analysis Page"""
+"""Stock Analysis Page - Using Precomputed Data"""
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -14,6 +14,12 @@ from data_loader import (
     load_ark_holdings, load_industry_info, load_company_name,
     get_ark_files_hash, get_stocks_for_etf,
     get_industry_files_hash, get_company_name_files_hash
+)
+from precomputed_loader import (
+    load_ark_stock_drawdowns,
+    load_peer_group_drawdowns,
+    filter_drawdowns_by_period,
+    check_precomputed_exists
 )
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
@@ -34,12 +40,13 @@ start_date, end_date = get_current_dates()
 
 st.title("Individual Stock vs Peer Group")
 
+# Check for precomputed data
+if not check_precomputed_exists():
+    st.warning("Precomputed data not found. Run `python convert_to_parquet.py` for faster loading.")
+
 
 def get_price_column(stock_data):
-    """Detect which price column has actual data
-
-    Returns 'YFinance Close Price' if available, otherwise 'Stock_Price'.
-    """
+    """Detect which price column has actual data"""
     if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
         return 'YFinance Close Price'
     return 'Stock_Price'
@@ -47,14 +54,9 @@ def get_price_column(stock_data):
 
 @st.cache_data
 def load_stock_data(ticker, etf, _files_hash, _start_date, _end_date):
-    """Load stock data from ARK holdings
-
-    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
-    _start_date, _end_date: Date range for filtering (excluded from cache key)
-    """
+    """Load stock data from ARK holdings"""
     holdings = load_ark_holdings(_files_hash, etf)
 
-    # Find the full ticker (e.g., "PD" or "PD US Equity")
     matching_tickers = holdings[holdings['Ticker'].str.startswith(ticker + ' ', na=False) |
                                (holdings['Ticker'] == ticker)]['Ticker'].unique()
 
@@ -75,57 +77,6 @@ def load_stock_data(ticker, etf, _files_hash, _start_date, _end_date):
     return stock_data, full_ticker, bloomberg_name, is_current
 
 
-@st.cache_data
-def get_stock_etf_mapping(_files_hash):
-    """Get mapping of stocks to their ETFs
-
-    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
-    """
-    stock_map = {}
-    for etf in ARK_ETFS:
-        try:
-            holdings = load_ark_holdings(_files_hash, etf)
-
-            # Filter out currency tickers (vectorized, not in loop)
-            if 'Bloomberg Name' in holdings.columns:
-                holdings = holdings[
-                    ~holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-                ]
-
-            # Now just iterate over unique tickers (no more filtering per ticker)
-            for ticker in holdings['Ticker'].unique():
-                if ticker not in stock_map:
-                    stock_map[ticker] = []
-                stock_map[ticker].append((etf, ticker))
-        except:
-            continue
-    return stock_map
-
-@st.cache_data
-def load_all_stocks(_files_hash):
-    """Load all unique stocks across ARK ETFs that have data in analysis period
-
-    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
-    """
-    stock_map = get_stock_etf_mapping(_files_hash)
-    valid_tickers = set()
-
-    # Filter stocks that have data in analysis period
-    for ticker, etf_list in stock_map.items():
-        for etf, full_ticker in etf_list:
-            try:
-                holdings = load_ark_holdings(_files_hash, etf)
-                stock_data = holdings[holdings['Ticker'] == full_ticker].copy()
-                stock_data = stock_data[(stock_data['Date'] >= start_date) & (stock_data['Date'] <= end_date)]
-
-                if len(stock_data) >= 30:  # Need at least 30 data points
-                    valid_tickers.add(ticker)
-                    break
-            except:
-                continue
-
-    return {k: v for k, v in stock_map.items() if k in valid_tickers}
-
 # Main Analysis Section
 if True:
     st.subheader("Individual Stock vs Peer Group Analysis")
@@ -138,6 +89,7 @@ if True:
     dd_data = pd.DataFrame()
     gics = None
     peer_prices = pd.DataFrame()
+    peer_dd_data = pd.DataFrame()
 
     # Left column: two stacked cards
     with cols[0]:
@@ -145,7 +97,6 @@ if True:
         selection_card = st.container(border=True)
         with selection_card:
             st.markdown("##### ETF")
-            # Let user select ETF first
             selected_etf = st.selectbox("Select ETF", ARK_ETFS, label_visibility="collapsed")
 
             st.markdown("##### Select Stock")
@@ -157,7 +108,6 @@ if True:
             selected_ticker = stock_ticker_map.get(selected_display_ticker, selected_display_ticker.replace(" (Non-current)", ""))
 
             st.markdown("##### Peer Group Version")
-            # Peer group version pills
             version = st.pills(
                 "Version",
                 ["Market Value", "Weighted Price"],
@@ -174,32 +124,56 @@ if True:
         if stock_data is None or len(stock_data) == 0:
             st.error(f"No data available for {selected_ticker} in {selected_etf}")
         else:
-            # Calculate stock drawdowns directly from price data
-            price_col = get_price_column(stock_data)
-
-            # Prepare price dataframe for drawdown calculation
-            price_df = stock_data[['Date', price_col]].copy()
-            price_df.columns = ['Date', 'Close']
-
-            # Calculate drawdowns - MUST pass explicit dates to avoid using hardcoded defaults
-            dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
+            # Try to load precomputed stock drawdowns
+            dd_precomputed = load_ark_stock_drawdowns(selected_etf, selected_ticker)
+            if len(dd_precomputed) > 0:
+                dd_data = filter_drawdowns_by_period(dd_precomputed, start_date, end_date)
+                # If filtered result is empty, recalculate
+                if len(dd_data) == 0:
+                    price_col = get_price_column(stock_data)
+                    price_df = stock_data[['Date', price_col]].copy()
+                    price_df.columns = ['Date', 'Close']
+                    dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
+            else:
+                # Fallback to dynamic calculation
+                price_col = get_price_column(stock_data)
+                price_df = stock_data[['Date', price_col]].copy()
+                price_df.columns = ['Date', 'Close']
+                dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
 
             # Get GICS industry
             industry_dict = load_industry_info(get_industry_files_hash(), source='ark')
             gics = industry_dict.get(bloomberg_name) if bloomberg_name else None
 
-            # Load peer group data
+            # Load peer group data and drawdowns
             if gics:
                 try:
                     peer_prices = get_peer_group_prices(
                         gics, version=version_param,
                         period_key=get_current_period(), start_date=start_date, end_date=end_date
                     )
+
+                    # Try to load precomputed peer group drawdowns
+                    peer_dd_precomputed = load_peer_group_drawdowns(gics, version=version_param)
+                    if len(peer_dd_precomputed) > 0:
+                        peer_dd_data = filter_drawdowns_by_period(peer_dd_precomputed, start_date, end_date)
+                        # If filtered result is empty, recalculate
+                        if len(peer_dd_data) == 0 and len(peer_prices) > 0:
+                            peer_prices_for_dd = peer_prices.copy()
+                            peer_prices_for_dd = peer_prices_for_dd.rename(columns={'Value': 'Close'})
+                            peer_dd_data = calculate_drawdowns(peer_prices_for_dd, start_date=start_date, end_date=end_date)
+                    elif len(peer_prices) > 0:
+                        # Fallback to dynamic calculation
+                        peer_prices_for_dd = peer_prices.copy()
+                        peer_prices_for_dd = peer_prices_for_dd.rename(columns={'Value': 'Close'})
+                        peer_dd_data = calculate_drawdowns(peer_prices_for_dd, start_date=start_date, end_date=end_date)
                 except:
                     peer_prices = pd.DataFrame()
+                    peer_dd_data = pd.DataFrame()
                     gics = None
             else:
                 peer_prices = pd.DataFrame()
+                peer_dd_data = pd.DataFrame()
 
             # Card 2: Key Metrics
             if len(dd_data) > 0:
@@ -210,16 +184,14 @@ if True:
                     current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
                     top_dd = dd_data[dd_data['rank'] == '1'].iloc[0]
 
-                    # Calculate RoMaD
                     price_col = get_price_column(stock_data)
-
                     first_price = stock_data[price_col].iloc[0]
                     last_price = stock_data[price_col].iloc[-1]
                     overall_return = ((last_price - first_price) / first_price) * 100
                     max_dd_abs = abs(top_dd['depth_pct'])
                     romad = overall_return / max_dd_abs if max_dd_abs > 0 else 0
 
-                    # Company Name (at top)
+                    # Company Name
                     try:
                         company_names = load_company_name(get_company_name_files_hash(), source='ark')
                         company_name = company_names.get(selected_ticker)
@@ -228,11 +200,10 @@ if True:
                     except:
                         pass
 
-                    # GICS Industry Group (at top)
+                    # GICS Industry Group
                     if gics:
                         st.markdown(f"<small>GICS Industry Group</small><br><b>{gics}</b>", unsafe_allow_html=True)
 
-                    # Max Drawdown
                     st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
 
                     price_col = get_price_column(stock_data)
@@ -244,7 +215,6 @@ if True:
                         peak_price = stock_data[price_col].max()
                         st.markdown(f"<small>Peak Price</small><br><b>${peak_price:.2f}</b>", unsafe_allow_html=True)
 
-                    # RoMaD
                     st.markdown(f"<small>RoMaD</small><br><b>{romad:.2f}</b>", unsafe_allow_html=True)
 
     # Right column: two charts stacked
@@ -255,13 +225,11 @@ if True:
             price_col = get_price_column(stock_data)
 
             # ============ CHART 1: STOCK PRICE ============
-            # Create figure with drawdown regions (COPIED FROM RUSSELL 3000)
             fig1 = go.Figure()
 
             # Get top 10 drawdowns
             if len(dd_data) > 0:
                 top_10_dd = dd_data[dd_data['rank'] != 'Current'].head(10)
-
 
                 # Add drawdown shaded regions
                 for idx, (_, row) in enumerate(top_10_dd.iterrows()):
@@ -277,7 +245,6 @@ if True:
             price_df_copy = stock_data.copy()
             price_df_copy['DD_Info'] = ''
 
-            # Add drawdown info for each date
             if len(dd_data) > 0:
                 top_10_dd = dd_data[dd_data['rank'] != 'Current'].head(10)
                 for _, row in top_10_dd.iterrows():
@@ -289,7 +256,6 @@ if True:
                         f"Trough: {row['trough_date'].strftime('%Y-%m-%d')} ${row['trough_price']:.2f}"
                     )
 
-            # Line color is black for stock
             line_color = 'black'
             hover_format = 'Price: $%{y:.2f}%{customdata}<extra></extra>'
 
@@ -313,7 +279,6 @@ if True:
                 current_price = current_dd['trough_price']
                 current_dd_pct = current_dd['depth_pct']
 
-                # Add horizontal line from peak date to the end of the chart
                 fig1.add_shape(
                     type="line",
                     x0=peak_date,
@@ -324,7 +289,6 @@ if True:
                     layer='above'
                 )
 
-                # Add shaded rectangle from peak date to current date
                 fig1.add_shape(
                     type="rect",
                     x0=peak_date,
@@ -336,7 +300,6 @@ if True:
                     layer='below'
                 )
 
-                # Add text annotation on the right side showing current drawdown
                 annotation_text = (
                     f"<b>Current Drawdown</b><br>" +
                     f"Depth: {current_dd_pct:.2f}%<br>" +
@@ -379,55 +342,37 @@ if True:
             st.plotly_chart(fig1, width='stretch', config=CHART_CONFIG)
 
             # ============ CHART 2: PEER GROUP ============
-            if gics and len(peer_prices) > 0:
-                # Calculate peer group drawdowns dynamically (same as Russell 3000 page)
-                # MUST pass explicit dates to avoid using hardcoded defaults
-                peer_prices_for_dd = peer_prices.copy()
-                peer_prices_for_dd = peer_prices_for_dd.rename(columns={'Value': 'Close'})
-                peer_dd_data = calculate_drawdowns(peer_prices_for_dd, start_date=start_date, end_date=end_date)
-
-                # Create figure with drawdown regions (COPIED FROM RUSSELL 3000)
+            if gics and len(peer_prices) > 0 and len(peer_dd_data) > 0:
                 fig2 = go.Figure()
 
                 # Get top 10 drawdowns
-                if len(peer_dd_data) > 0:
-                    peer_dd_data['peak_date'] = pd.to_datetime(peer_dd_data['peak_date'])
-                    peer_dd_data['trough_date'] = pd.to_datetime(peer_dd_data['trough_date'])
-                    peer_top_10 = peer_dd_data[peer_dd_data['rank'] != 'Current'].head(10)
+                peer_dd_data['peak_date'] = pd.to_datetime(peer_dd_data['peak_date'])
+                peer_dd_data['trough_date'] = pd.to_datetime(peer_dd_data['trough_date'])
+                peer_top_10 = peer_dd_data[peer_dd_data['rank'] != 'Current'].head(10)
 
-                    # Color palette for drawdowns
-                    dd_colors = ['rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
-                                 'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
-                                 'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
-                                 'rgba(255, 228, 181, 0.3)']
-
-                    # Add drawdown shaded regions
-                    for idx, (_, row) in enumerate(peer_top_10.iterrows()):
-                        fig2.add_vrect(
-                            x0=row['peak_date'],
-                            x1=row['trough_date'],
-                            fillcolor=DD_COLORS[idx % len(DD_COLORS)],
-                            layer="below",
-                            line_width=0
-                        )
+                # Add drawdown shaded regions
+                for idx, (_, row) in enumerate(peer_top_10.iterrows()):
+                    fig2.add_vrect(
+                        x0=row['peak_date'],
+                        x1=row['trough_date'],
+                        fillcolor=DD_COLORS[idx % len(DD_COLORS)],
+                        layer="below",
+                        line_width=0
+                    )
 
                 # Add price line with custom hover template
                 peer_df_copy = peer_prices.copy()
                 peer_df_copy['DD_Info'] = ''
 
-                # Add drawdown info for each date
-                if len(peer_dd_data) > 0:
-                    peer_top_10 = peer_dd_data[peer_dd_data['rank'] != 'Current'].head(10)
-                    for _, row in peer_top_10.iterrows():
-                        mask = (peer_df_copy['Date'] >= row['peak_date']) & (peer_df_copy['Date'] <= row['trough_date'])
-                        peer_df_copy.loc[mask, 'DD_Info'] = (
-                            f"<br><b>Drawdown #{row['rank']}</b><br>" +
-                            f"Depth: {row['depth_pct']:.2f}%<br>" +
-                            f"Peak: {row['peak_date'].strftime('%Y-%m-%d')} ${row['peak_price']:,.0f}<br>" +
-                            f"Trough: {row['trough_date'].strftime('%Y-%m-%d')} ${row['trough_price']:,.0f}"
-                        )
+                for _, row in peer_top_10.iterrows():
+                    mask = (peer_df_copy['Date'] >= row['peak_date']) & (peer_df_copy['Date'] <= row['trough_date'])
+                    peer_df_copy.loc[mask, 'DD_Info'] = (
+                        f"<br><b>Drawdown #{row['rank']}</b><br>" +
+                        f"Depth: {row['depth_pct']:.2f}%<br>" +
+                        f"Peak: {row['peak_date'].strftime('%Y-%m-%d')} ${row['peak_price']:,.0f}<br>" +
+                        f"Trough: {row['trough_date'].strftime('%Y-%m-%d')} ${row['trough_price']:,.0f}"
+                    )
 
-                # Line color is darkblue for peer group
                 line_color = 'darkblue'
                 hover_format = 'Value: $%{y:,.0f}%{customdata}<extra></extra>'
 
@@ -444,14 +389,14 @@ if True:
                 ))
 
                 # Add current drawdown line and shaded area
-                if len(peer_dd_data) > 0:
-                    peer_current_dd = peer_dd_data[peer_dd_data['rank'] == 'Current'].iloc[0]
+                peer_current_dd = peer_dd_data[peer_dd_data['rank'] == 'Current']
+                if len(peer_current_dd) > 0:
+                    peer_current_dd = peer_current_dd.iloc[0]
                     peer_peak_price = peer_current_dd['peak_price']
                     peer_peak_date = peer_current_dd['peak_date']
                     peer_current_price = peer_current_dd['trough_price']
                     peer_current_dd_pct = peer_current_dd['depth_pct']
 
-                    # Add horizontal line from peak date to the end of the chart
                     fig2.add_shape(
                         type="line",
                         x0=peer_peak_date,
@@ -462,7 +407,6 @@ if True:
                         layer='above'
                     )
 
-                    # Add shaded rectangle from peak date to current date
                     fig2.add_shape(
                         type="rect",
                         x0=peer_peak_date,
@@ -474,7 +418,6 @@ if True:
                         layer='below'
                     )
 
-                    # Add text annotation on the right side showing current drawdown
                     peer_annotation_text = (
                         f"<b>Current Drawdown</b><br>" +
                         f"Depth: {peer_current_dd_pct:.2f}%<br>" +
@@ -514,9 +457,7 @@ if True:
                     margin=dict(l=0, r=0, t=40, b=0)
                 )
 
-                # Add Russell reconstitution date lines with legend
                 add_reconstitution_vlines(fig2, price_line_name=version)
-
                 st.plotly_chart(fig2, width='stretch', config=CHART_CONFIG)
 
     ""  # Space
@@ -538,21 +479,17 @@ if True:
             peak_date = current_dd['peak_date']
             current_dd_pct = current_dd['depth_pct']
 
-            # For Current drawdown, find the actual trough (lowest price) from peak to now
             drawdown_period = stock_data[stock_data['Date'] >= peak_date]
             actual_trough_price = drawdown_period[price_col].min()
             actual_trough_date = drawdown_period[drawdown_period[price_col] == actual_trough_price]['Date'].iloc[0]
 
-            # Calculate duration
             duration_days = (current_date - peak_date).days
 
-            # Calculate Recovery Rate
             if peak_price != actual_trough_price:
                 recovery_rate = (current_price - actual_trough_price) / (peak_price - actual_trough_price)
             else:
                 recovery_rate = 0.0
 
-            # Create current drawdown info DataFrame
             current_dd_info = pd.DataFrame([{
                 'Peak Date': peak_date.strftime('%Y-%m-%d'),
                 'Peak Price': f'${peak_price:.2f}',
@@ -577,16 +514,13 @@ if True:
 
             ""  # Space
 
-            # Depth range selector
             depth_ranges = ['0% to -10%', '-10% to -20%', '-20% to -30%', '-30% to -40%',
                           '-40% to -50%', '-50% to -60%', '-60% to -70%', '-70% to -80%', '< -80%']
 
-            # Determine default selection based on current drawdown depth
             bins = [-float('inf'), -80, -70, -60, -50, -40, -30, -20, -10, 0]
-            current_range_idx = 0  # Default to '0% to -10%'
+            current_range_idx = 0
             for i in range(len(bins) - 1):
                 if bins[i] < current_dd_pct <= bins[i+1]:
-                    # Reverse index since our depth_ranges list is reversed from bins
                     current_range_idx = len(bins) - 2 - i
                     break
 
@@ -598,7 +532,6 @@ if True:
                 label_visibility="collapsed"
             )
 
-            # Get drawdowns in selected range for THIS stock only (cached)
             with st.spinner(f"Loading {selected_ticker} historical drawdowns for {selected_range}..."):
                 range_drawdowns = get_stock_drawdowns_in_depth_range(
                     selected_ticker, selected_etf, selected_range,
@@ -606,12 +539,10 @@ if True:
                 )
 
             if len(range_drawdowns) > 0:
-                # Calculate recovery statistics for this stock
                 total_events = len(range_drawdowns)
                 recovered_events = range_drawdowns['recovered'].sum()
                 recovery_probability = recovered_events / total_events if total_events > 0 else 0
 
-                # Display recovery statistics
                 st.markdown(f"""
                 **{selected_ticker} - {selected_range} Historical Statistics:**
                 - Total Drawdowns: {total_events}
@@ -621,10 +552,8 @@ if True:
 
                 ""  # Space
 
-                # Display detailed table
                 st.markdown(f"**{selected_ticker} - All Historical Drawdowns in {selected_range}:**")
 
-                # Format the dataframe for display
                 display_range_dd = range_drawdowns.copy()
                 display_range_dd['Peak Date'] = display_range_dd['peak_date'].dt.strftime('%Y-%m-%d')
                 display_range_dd['Trough Date'] = display_range_dd['trough_date'].dt.strftime('%Y-%m-%d')
@@ -640,7 +569,6 @@ if True:
                     lambda x: f'{int(x)}' if pd.notna(x) else 'N/A'
                 )
 
-                # Select and rename columns (no ticker/etf needed since it's all the same stock)
                 display_cols = ['Peak Date', 'Trough Date', 'duration_days',
                               'Depth %', 'Peak Price', 'Trough Price',
                               'Recovered', 'Recovery Date', 'Days to Recover', 'Recovery Rate']
@@ -665,7 +593,6 @@ if True:
     if stock_data is not None and len(stock_data) > 0 and len(dd_data) > 0:
         st.markdown("### Drawdown Details")
 
-        # Add CSS for left alignment
         st.markdown("""
         <style>
         [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
@@ -674,28 +601,21 @@ if True:
         </style>
         """, unsafe_allow_html=True)
 
-        # Filter out Current drawdown (shown in separate module above)
         historical_dd = dd_data[dd_data['rank'] != 'Current'].copy()
 
-        # Select columns to display
         display_cols = ['rank', 'depth_pct', 'peak_date', 'trough_date', 'peak_price', 'trough_price',
                        'PeerGroup_DD_%', 'Cosine_Similarity']
 
-        # Filter to only columns that exist
         display_cols = [col for col in display_cols if col in historical_dd.columns]
-
         display_df = historical_dd[display_cols].copy()
 
-        # Convert rank to string to avoid mixed type issues with PyArrow
         display_df['rank'] = display_df['rank'].astype(str)
 
-        # Format dates
         if 'peak_date' in display_df.columns:
             display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
         if 'trough_date' in display_df.columns:
             display_df['trough_date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
 
-        # Configure column display
         column_config = {
             "rank": st.column_config.TextColumn("Rank"),
             "depth_pct": st.column_config.NumberColumn("Stock DD %", format="%.2f%%"),

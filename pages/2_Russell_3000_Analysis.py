@@ -1,4 +1,4 @@
-"""Russell 3000 Analysis Page"""
+"""Russell 3000 Analysis Page - Using Precomputed Data"""
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -10,6 +10,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import OUTPUT_DIR
 from peer_group import get_peer_group_prices, calculate_iwv_total_market_value
 from data_loader import get_r3000_files_hash as get_r3000_data_hash
+from precomputed_loader import (
+    load_peer_group_drawdowns,
+    load_iwv_total_mv_drawdowns,
+    filter_drawdowns_by_period,
+    check_precomputed_exists
+)
+from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, add_reconstitution_vlines
 from session_utils import init_session_state, get_current_dates, has_r3000_data, get_current_period, render_period_selector
 
@@ -29,6 +36,10 @@ Analyze Russell 3000 Index and GICS Industry Peer Group drawdowns.
 
 st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
+# Check for precomputed data
+if not check_precomputed_exists():
+    st.warning("Precomputed data not found. Run `python convert_to_parquet.py` for faster loading.")
+
 # Check R3000 data availability
 if not has_r3000_data():
     st.warning("Russell 3000 data is not available for the 2021-2023 period. Please select 2024-2026 to view this analysis.")
@@ -36,7 +47,6 @@ if not has_r3000_data():
 
 ""  # Add space
 
-# Helper to get input file modification times for cache invalidation
 def get_r3000_files_hash():
     """Get hash of R3000 input files for cache invalidation"""
     mtimes = []
@@ -55,13 +65,9 @@ def get_r3000_files_hash():
 
     return max(mtimes) if mtimes else 0
 
-# Load IWV index data
 @st.cache_data
 def load_iwv_data(_files_hash):
-    """Load Russell 3000 Index (IWV) price and drawdown data
-
-    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
-    """
+    """Load Russell 3000 Index (IWV) price and drawdown data"""
     price_file = OUTPUT_DIR / 'IWV_prices.csv'
     dd_file = OUTPUT_DIR / 'IWV_drawdown_2024-2026.xlsx'
 
@@ -75,19 +81,14 @@ def load_iwv_data(_files_hash):
     drawdowns['peak_date'] = pd.to_datetime(drawdowns['peak_date'])
     drawdowns['trough_date'] = pd.to_datetime(drawdowns['trough_date'])
 
-    # Convert rank to string for consistency with dynamically calculated drawdowns
     if 'rank' in drawdowns.columns:
         drawdowns['rank'] = drawdowns['rank'].astype(str)
 
     return prices, drawdowns
 
-# Load peer group data
 @st.cache_data
 def load_peer_groups(_files_hash):
-    """Load GICS industry peer group drawdowns
-
-    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
-    """
+    """Load GICS industry peer group drawdowns"""
     peer_file = OUTPUT_DIR / 'R3000_peer_groups_drawdown_2024-2026.xlsx'
 
     if not peer_file.exists():
@@ -147,13 +148,23 @@ if iwv_prices is not None and iwv_dd is not None:
         # Load data based on selection
         if is_iwv_total_mv:
             # Load IWV total market value
-            from drawdown_calculator import calculate_drawdowns
             data_hash = get_r3000_data_hash()
             prices = calculate_iwv_total_market_value(data_hash, get_current_period(), start_date, end_date)
 
-            prices_for_dd = prices.copy()
-            prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
-            dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
+            # Try to load precomputed drawdowns
+            dd_precomputed = load_iwv_total_mv_drawdowns()
+            if len(dd_precomputed) > 0:
+                dd_data = filter_drawdowns_by_period(dd_precomputed, start_date, end_date)
+                # If filtered result is empty, recalculate
+                if len(dd_data) == 0 and len(prices) > 0:
+                    prices_for_dd = prices.copy()
+                    prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
+                    dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
+            else:
+                # Fallback to dynamic calculation
+                prices_for_dd = prices.copy()
+                prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
+                dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
 
             if len(dd_data) > 0:
                 dd_data['peak_date'] = pd.to_datetime(dd_data['peak_date'])
@@ -170,11 +181,20 @@ if iwv_prices is not None and iwv_dd is not None:
                     period_key=get_current_period(), start_date=start_date, end_date=end_date
                 )
 
-            # Calculate drawdowns dynamically for the selected version
-            from drawdown_calculator import calculate_drawdowns
-            prices_for_dd = prices.copy()
-            prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
-            dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
+            # Try to load precomputed peer group drawdowns
+            dd_precomputed = load_peer_group_drawdowns(selected_target, version=version_param)
+            if len(dd_precomputed) > 0:
+                dd_data = filter_drawdowns_by_period(dd_precomputed, start_date, end_date)
+                # If filtered result is empty, recalculate
+                if len(dd_data) == 0 and len(prices) > 0:
+                    prices_for_dd = prices.copy()
+                    prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
+                    dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
+            else:
+                # Fallback to dynamic calculation
+                prices_for_dd = prices.copy()
+                prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
+                dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
 
             if len(dd_data) > 0:
                 dd_data['peak_date'] = pd.to_datetime(dd_data['peak_date'])
@@ -389,7 +409,6 @@ if iwv_prices is not None and iwv_dd is not None:
     # Drawdown Details
     st.markdown("### Drawdown Details")
 
-    # Add CSS for left alignment
     st.markdown("""
     <style>
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {

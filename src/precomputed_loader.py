@@ -210,6 +210,114 @@ def load_current_weights(etf: str) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
+def load_peer_group_drawdowns(gics: str, version: str = 'mv') -> pd.DataFrame:
+    """Load precomputed peer group drawdowns for a GICS industry
+
+    Args:
+        gics: GICS industry group name
+        version: 'mv' for Market Value or 'weighted' for Weighted Price
+
+    Returns:
+        DataFrame with drawdown data for the peer group
+    """
+    filename = f'peer_group_drawdowns_{version}.parquet'
+    path = R3000_PRECOMPUTED_DIR / filename
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    df = _ensure_datetime(df, ['peak_date', 'trough_date'])
+
+    # Filter by GICS
+    df = df[df['gics'] == gics].copy()
+
+    return df
+
+
+def load_iwv_total_mv_drawdowns() -> pd.DataFrame:
+    """Load precomputed IWV Total Market Value drawdowns
+
+    Returns:
+        DataFrame with drawdown data for IWV total market value
+    """
+    path = R3000_PRECOMPUTED_DIR / 'iwv_total_mv_drawdowns.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['peak_date', 'trough_date'])
+
+
+def load_ark_stock_drawdowns(etf: str, ticker: str = None) -> pd.DataFrame:
+    """Load precomputed stock drawdowns for ARK ETF holdings
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+        ticker: Optional ticker to filter (e.g., 'TSLA')
+
+    Returns:
+        DataFrame with full drawdown data for each stock
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_stock_drawdowns.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    df = _ensure_datetime(df, ['peak_date', 'trough_date'])
+
+    if ticker is not None:
+        # Match either clean ticker or full ticker
+        df = df[(df['ticker'] == ticker) | (df['ticker_full'] == ticker)].copy()
+
+    return df
+
+
+def load_r3000_stock_drawdowns_detailed(ticker: str = None) -> pd.DataFrame:
+    """Load precomputed detailed stock drawdowns for R3000
+
+    Args:
+        ticker: Optional ticker to filter (e.g., 'AAPL')
+
+    Returns:
+        DataFrame with full drawdown data for each stock
+    """
+    path = R3000_PRECOMPUTED_DIR / 'r3000_stock_drawdowns_detailed.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    df = _ensure_datetime(df, ['peak_date', 'trough_date'])
+
+    if ticker is not None:
+        # Match either clean ticker or full ticker
+        df = df[(df['ticker'] == ticker) | (df['ticker_full'] == ticker)].copy()
+
+    return df
+
+
+def load_position_changes(etf: str, dd_rank: str = None) -> pd.DataFrame:
+    """Load precomputed position changes during drawdowns for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+        dd_rank: Optional drawdown rank to filter (e.g., '1', '2')
+
+    Returns:
+        DataFrame with position change data for each drawdown period
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_position_changes.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    df = _ensure_datetime(df, ['peak_date', 'trough_date', 'peak_date_actual', 'trough_date_actual'])
+
+    if dd_rank is not None:
+        df = df[df['dd_rank'] == dd_rank].copy()
+
+    return df
+
+
 def load_ark_holdings_max_drawdowns(etf: str = None) -> pd.DataFrame:
     """Load precomputed max drawdowns for ARK holdings
 
