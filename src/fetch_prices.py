@@ -35,5 +35,20 @@ for etf in ARK_ETFS:
     else:
         print(f"  No data for {etf}")
 
+# Fetch QQQ for comparison (used in concentration vs performance analysis)
+print()
+print("Fetching QQQ...")
+qqq = yf.Ticker("QQQ")
+qqq_df = qqq.history(start=start_date, end=end_date_inclusive, interval="1d")
+if not qqq_df.empty:
+    qqq_df = qqq_df.reset_index()
+    qqq_df = qqq_df[['Date', 'Close']]
+    qqq_df['Date'] = qqq_df['Date'].dt.strftime('%Y-%m-%d')
+    qqq_df['Close'] = qqq_df['Close'].round(2)
+    qqq_df.to_csv(OUTPUT_DIR / 'QQQ_prices.csv', index=False, float_format='%.2f')
+    print(f"  Saved QQQ_prices.csv ({len(qqq_df)} rows)")
+else:
+    print("  No data for QQQ")
+
 print()
 print("Done!")
