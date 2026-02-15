@@ -147,7 +147,7 @@ def load_concentration_performance(etf: str) -> pd.DataFrame:
 
 
 def load_r3000_drawdowns() -> pd.DataFrame:
-    """Load precomputed R3000 drawdowns for all stocks
+    """Load precomputed R3000 drawdowns summary for all stocks
 
     Returns:
         DataFrame with columns: ticker, max_drawdown, num_drawdowns, gics_industry_group
@@ -157,6 +157,21 @@ def load_r3000_drawdowns() -> pd.DataFrame:
         return pd.DataFrame()
 
     return pd.read_parquet(path)
+
+
+def load_r3000_drawdowns_with_dates() -> pd.DataFrame:
+    """Load precomputed R3000 drawdowns with date information for period filtering
+
+    Returns:
+        DataFrame with columns: ticker, ticker_full, gics_industry_group, rank,
+                               peak_date, trough_date, depth_pct, duration_days
+    """
+    path = R3000_PRECOMPUTED_DIR / 'r3000_drawdowns_with_dates.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['peak_date', 'trough_date'])
 
 
 def load_iwv_etf_drawdowns() -> pd.DataFrame:

@@ -14,9 +14,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import ARK_ETFS, INPUT_DIR
 from precomputed_loader import (
     load_r3000_drawdowns,
+    load_r3000_drawdowns_with_dates,
     load_etf_drawdowns,
     load_ark_holdings_max_drawdowns,
     filter_by_period,
+    filter_drawdowns_by_period,
     check_precomputed_exists
 )
 from data_loader import load_ark_holdings, load_industry_info, get_ark_files_hash, get_r3000_files_hash, get_industry_files_hash
@@ -100,11 +102,37 @@ def get_ark_holdings_drawdowns(etf, _start_date, _end_date, holdings):
     return pd.DataFrame()
 
 
-def get_r3000_drawdowns_filtered(full_drawdowns, peer_group):
-    """Filter precomputed R3000 drawdowns by peer group"""
+def get_r3000_drawdowns_filtered(detailed_drawdowns, peer_group, start_date, end_date):
+    """Filter precomputed R3000 drawdowns by peer group and analysis period
+
+    Args:
+        detailed_drawdowns: DataFrame with individual drawdowns including peak_date
+        peer_group: GICS industry group to filter (None for all)
+        start_date: Analysis period start
+        end_date: Analysis period end
+
+    Returns:
+        DataFrame with ticker, max_drawdown, num_drawdowns, gics_industry_group
+    """
+    df = detailed_drawdowns.copy()
+
+    # Filter by peer group
     if peer_group and peer_group != "Russell 3000 (All)":
-        return full_drawdowns[full_drawdowns['gics_industry_group'] == peer_group].copy()
-    return full_drawdowns.copy()
+        df = df[df['gics_industry_group'] == peer_group]
+
+    # Filter by analysis period (peak_date within period)
+    df = filter_drawdowns_by_period(df, start_date, end_date)
+
+    if len(df) == 0:
+        return pd.DataFrame()
+
+    # Aggregate to get max_drawdown and num_drawdowns per ticker
+    result = df.groupby(['ticker', 'gics_industry_group']).agg(
+        max_drawdown=('depth_pct', 'min'),
+        num_drawdowns=('depth_pct', 'count')
+    ).reset_index()
+
+    return result
 
 
 def get_etf_max_drawdown(etf, _start_date, _end_date):
@@ -170,16 +198,46 @@ with st.spinner("Loading drawdown distributions..."):
     ark_holdings = load_ark_holdings(ark_hash, selected_etf)
     ark_dd = get_ark_holdings_drawdowns(selected_etf, start_date, end_date, ark_holdings)
 
-    # Load precomputed R3000 drawdowns (fast)
-    r3000_dd_full = load_r3000_drawdowns()
+    # Load precomputed R3000 drawdowns with dates (for period filtering)
+    r3000_dd_detailed = load_r3000_drawdowns_with_dates()
 
-    if len(r3000_dd_full) == 0:
-        st.warning("No precomputed R3000 drawdown data found. Run `python convert_to_parquet.py` to generate.")
-        st.stop()
+    if len(r3000_dd_detailed) == 0:
+        # Fallback to old summary data if detailed not available
+        r3000_dd_full = load_r3000_drawdowns()
+        if len(r3000_dd_full) == 0:
+            st.warning("No precomputed R3000 drawdown data found. Run `python convert_to_parquet.py` to generate.")
+            st.stop()
+        # Use old data without period filtering (show warning)
+        st.warning("⚠️ R3000 detailed drawdown data not available. Showing all-time drawdowns without period filtering. Run `python convert_to_parquet.py` to regenerate.")
+        peer_group = None if selected_benchmark == "Russell 3000 (All)" else selected_benchmark
+        if peer_group:
+            r3000_dd = r3000_dd_full[r3000_dd_full['gics_industry_group'] == peer_group].copy()
+        else:
+            r3000_dd = r3000_dd_full.copy()
+    else:
+        # Check data date range vs analysis period
+        data_min_date = r3000_dd_detailed['peak_date'].min()
+        data_max_date = r3000_dd_detailed['peak_date'].max()
 
-    # Filter by peer group
-    peer_group = None if selected_benchmark == "Russell 3000 (All)" else selected_benchmark
-    r3000_dd = get_r3000_drawdowns_filtered(r3000_dd_full, peer_group)
+        # Check for overlap
+        if end_date < data_min_date or start_date > data_max_date:
+            st.error(f"⚠️ **No data overlap!** Analysis period ({start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}) does not overlap with R3000 data ({data_min_date.strftime('%Y-%m-%d')} to {data_max_date.strftime('%Y-%m-%d')}).")
+            st.info("Please adjust the analysis period in the sidebar to match available data.")
+            st.stop()
+
+        # Show info about partial overlap
+        if start_date < data_min_date or end_date > data_max_date:
+            actual_start = max(start_date, data_min_date)
+            actual_end = min(end_date, data_max_date)
+            st.info(f"📊 R3000 data available: {data_min_date.strftime('%Y-%m-%d')} to {data_max_date.strftime('%Y-%m-%d')}. Showing drawdowns with peak dates in this range.")
+
+        # Filter by peer group AND analysis period
+        peer_group = None if selected_benchmark == "Russell 3000 (All)" else selected_benchmark
+        r3000_dd = get_r3000_drawdowns_filtered(r3000_dd_detailed, peer_group, start_date, end_date)
+
+        if len(r3000_dd) == 0:
+            st.warning(f"No R3000 drawdowns found in the selected analysis period ({start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}).")
+            st.stop()
 
     # ETF's own drawdown (from precomputed data)
     etf_drawdown = get_etf_max_drawdown(selected_etf, start_date, end_date)

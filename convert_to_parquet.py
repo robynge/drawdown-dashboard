@@ -773,7 +773,12 @@ def precompute_concentration_performance():
 
 
 def precompute_r3000_drawdowns_full():
-    """Step 13: Precompute R3000 drawdowns to parquet in precomputed dir"""
+    """Step 13: Precompute R3000 drawdowns to parquet in precomputed dir
+
+    Saves two files:
+    - r3000_drawdowns_full.parquet: Summary with max_drawdown per ticker (for backward compatibility)
+    - r3000_drawdowns_detailed.parquet: All individual drawdowns with dates (for period filtering)
+    """
     import sys
     sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
@@ -791,9 +796,15 @@ def precompute_r3000_drawdowns_full():
     all_tickers = holdings['Ticker'].unique()
     industry_dict = _load_industry_info_impl(source='r3000')
 
+    # Get data date range for reference
+    data_min_date = holdings['Date'].min()
+    data_max_date = holdings['Date'].max()
+    print(f"  Data date range: {data_min_date.strftime('%Y-%m-%d')} to {data_max_date.strftime('%Y-%m-%d')}")
     print(f"  Processing {len(all_tickers)} tickers...")
 
-    results = []
+    summary_results = []
+    detailed_results = []
+
     for i, ticker in enumerate(all_tickers):
         if (i + 1) % 500 == 0:
             print(f"    Progress: {i + 1}/{len(all_tickers)}")
@@ -810,24 +821,54 @@ def precompute_r3000_drawdowns_full():
         if len(price_df) < 10:
             continue
 
-        dd_df = calculate_drawdowns_with_filter(price_df, min_depth_pct=10, min_duration_days=7)
+        # Use full date range (no filtering) to get all drawdowns
+        dd_df = calculate_drawdowns_with_filter(
+            price_df,
+            min_depth_pct=10,
+            min_duration_days=7,
+            start_date=data_min_date,
+            end_date=data_max_date
+        )
 
         if len(dd_df) > 0:
-            max_dd = dd_df['depth_pct'].min()
             ticker_clean = ticker.split()[0] if isinstance(ticker, str) else ticker
             gics = industry_dict.get(ticker, industry_dict.get(ticker_clean, 'Unknown'))
-            results.append({
+
+            # Summary result (backward compatible)
+            max_dd = dd_df['depth_pct'].min()
+            summary_results.append({
                 'ticker': ticker_clean,
                 'max_drawdown': max_dd,
                 'num_drawdowns': len(dd_df),
                 'gics_industry_group': gics
             })
 
-    result_df = pd.DataFrame(results)
-    if len(result_df) > 0:
+            # Detailed results (each drawdown with dates)
+            for _, row in dd_df.iterrows():
+                detailed_results.append({
+                    'ticker': ticker_clean,
+                    'ticker_full': ticker,
+                    'gics_industry_group': gics,
+                    'rank': row['rank'],
+                    'peak_date': row['peak_date'],
+                    'trough_date': row['trough_date'],
+                    'depth_pct': row['depth_pct'],
+                    'duration_days': row['duration_days']
+                })
+
+    # Save summary file (backward compatible)
+    summary_df = pd.DataFrame(summary_results)
+    if len(summary_df) > 0:
         output_path = R3000_PRECOMPUTED_DIR / 'r3000_drawdowns_full.parquet'
-        result_df.to_parquet(output_path, index=False)
-        print(f"  Saved {len(result_df)} ticker drawdowns to {output_path}")
+        summary_df.to_parquet(output_path, index=False)
+        print(f"  Saved {len(summary_df)} ticker summaries to {output_path}")
+
+    # Save detailed file (new - for period filtering)
+    detailed_df = pd.DataFrame(detailed_results)
+    if len(detailed_df) > 0:
+        output_path = R3000_PRECOMPUTED_DIR / 'r3000_drawdowns_with_dates.parquet'
+        detailed_df.to_parquet(output_path, index=False)
+        print(f"  Saved {len(detailed_df)} individual drawdowns to {output_path}")
 
 
 def precompute_peer_group_drawdowns():
