@@ -374,17 +374,18 @@ if len(drawdowns) > 0:
                                 showlegend=False, hoverinfo='skip'
                             ))
                         else:
-                            # Increased: gray=original (peak) with black border, green=added portion OUTSIDE border
+                            # Increased: green first (bottom layer), then gray+black border on top
+                            # Green bar spans full trough width (extends under gray)
                             fig_changes.add_trace(go.Bar(
-                                y=[ticker], x=[peak_w], orientation='h',
-                                marker=dict(color='lightgray', line=dict(color='black', width=2)),
+                                y=[ticker], x=[trough_w], orientation='h',
+                                marker=dict(color='rgba(50,180,50,0.85)', line=dict(width=0)),
                                 width=bar_width,
                                 showlegend=False, hoverinfo='skip'
                             ))
+                            # Gray bar with black border on top (covers original peak portion)
                             fig_changes.add_trace(go.Bar(
-                                y=[ticker], x=[change], orientation='h',
-                                marker=dict(color='rgba(50,180,50,0.85)', line=dict(width=0)),
-                                base=peak_w,
+                                y=[ticker], x=[peak_w], orientation='h',
+                                marker=dict(color='lightgray', line=dict(color='black', width=2)),
                                 width=bar_width,
                                 showlegend=False, hoverinfo='skip'
                             ))
