@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, INPUT_DIR
-from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list, get_ark_ticker_list, get_ark_files_hash, get_r3000_files_hash
+from data_loader import load_ark_holdings, load_r3000_holdings, load_company_name, get_r3000_ticker_list, get_ark_ticker_list, get_ark_files_hash, get_r3000_files_hash, get_company_name_files_hash
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS
 from session_utils import init_session_state, get_current_dates, has_r3000_data, render_period_selector
@@ -50,7 +50,7 @@ def get_ark_stock_list(_files_hash, etf):
         tickers = get_ark_ticker_list(etf)
 
         # Load company name mapping once
-        company_name_dict = load_company_name('ark')
+        company_name_dict = load_company_name(get_company_name_files_hash(), 'ark')
 
         # Get unique tickers with company names
         stock_info = []
@@ -77,7 +77,7 @@ def get_r3000_stock_list(_files_hash):
         tickers = get_r3000_ticker_list()
 
         # Load company name mapping once
-        company_name_dict = load_company_name('r3000')
+        company_name_dict = load_company_name(get_company_name_files_hash(), 'r3000')
 
         # Get unique tickers with company names
         stock_info = []
@@ -370,7 +370,7 @@ with right_panel:
     if ark_ticker and r3000_ticker:
         if ark_price_df is not None and len(ark_price_df) > 0 and ark_dd is not None and len(ark_dd) > 0:
             # ARK stock chart
-            ark_company_name_dict = load_company_name('ark')
+            ark_company_name_dict = load_company_name(get_company_name_files_hash(), 'ark')
             ark_company_name = ark_company_name_dict.get(ark_ticker, ark_ticker)
             ark_display_name = f"{ark_ticker}" if not ark_company_name or ark_company_name == ark_ticker else f"{ark_ticker} - {ark_company_name}"
 
@@ -383,7 +383,7 @@ with right_panel:
 
         if r3000_price_df is not None and len(r3000_price_df) > 0 and r3000_dd is not None and len(r3000_dd) > 0:
             # Russell 3000 stock chart
-            r3000_company_name_dict = load_company_name('r3000')
+            r3000_company_name_dict = load_company_name(get_company_name_files_hash(), 'r3000')
             r3000_company_name = r3000_company_name_dict.get(r3000_ticker, r3000_ticker)
             r3000_display_name = f"{r3000_ticker}" if not r3000_company_name or r3000_company_name == r3000_ticker else f"{r3000_ticker} - {r3000_company_name}"
 

@@ -10,7 +10,11 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import OUTPUT_DIR, ARK_ETFS, INPUT_DIR
-from data_loader import load_ark_holdings, load_industry_info, load_company_name, get_ark_files_hash, get_stocks_for_etf
+from data_loader import (
+    load_ark_holdings, load_industry_info, load_company_name,
+    get_ark_files_hash, get_stocks_for_etf,
+    get_industry_files_hash, get_company_name_files_hash
+)
 from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS, add_reconstitution_vlines
@@ -39,6 +43,37 @@ def get_price_column(stock_data):
     if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
         return 'YFinance Close Price'
     return 'Stock_Price'
+
+
+@st.cache_data
+def load_stock_data(ticker, etf, _files_hash, _start_date, _end_date):
+    """Load stock data from ARK holdings
+
+    _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
+    _start_date, _end_date: Date range for filtering (excluded from cache key)
+    """
+    holdings = load_ark_holdings(_files_hash, etf)
+
+    # Find the full ticker (e.g., "PD" or "PD US Equity")
+    matching_tickers = holdings[holdings['Ticker'].str.startswith(ticker + ' ', na=False) |
+                               (holdings['Ticker'] == ticker)]['Ticker'].unique()
+
+    if len(matching_tickers) == 0:
+        return None, None, None, False
+
+    full_ticker = matching_tickers[0]
+    stock_data = holdings[holdings['Ticker'] == full_ticker].copy()
+    stock_data = stock_data[(stock_data['Date'] >= _start_date) & (stock_data['Date'] <= _end_date)]
+
+    bloomberg_name = stock_data['Bloomberg Name'].iloc[0] if len(stock_data) > 0 else None
+
+    # Check if this stock is in current holdings
+    latest_date = holdings['Date'].max()
+    current_holdings = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
+    is_current = full_ticker in current_holdings
+
+    return stock_data, full_ticker, bloomberg_name, is_current
+
 
 @st.cache_data
 def get_stock_etf_mapping(_files_hash):
@@ -131,36 +166,10 @@ if True:
             )
             version_param = "mv" if version == "Market Value" else "weighted"
 
-        @st.cache_data
-        def load_stock_data(ticker, etf, _files_hash):
-            """Load stock data from ARK holdings
-
-            _files_hash: Cache invalidation parameter (underscore prefix excludes from hashing)
-            """
-            holdings = load_ark_holdings(_files_hash, etf)
-
-            # Find the full ticker (e.g., "PD" or "PD US Equity")
-            matching_tickers = holdings[holdings['Ticker'].str.startswith(ticker + ' ', na=False) |
-                                       (holdings['Ticker'] == ticker)]['Ticker'].unique()
-
-            if len(matching_tickers) == 0:
-                return None, None, None, False
-
-            full_ticker = matching_tickers[0]
-            stock_data = holdings[holdings['Ticker'] == full_ticker].copy()
-            stock_data = stock_data[(stock_data['Date'] >= start_date) & (stock_data['Date'] <= end_date)]
-
-            bloomberg_name = stock_data['Bloomberg Name'].iloc[0] if len(stock_data) > 0 else None
-
-            # Check if this stock is in current holdings
-            latest_date = holdings['Date'].max()
-            current_holdings = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
-            is_current = full_ticker in current_holdings
-
-            return stock_data, full_ticker, bloomberg_name, is_current
-
         files_hash = get_ark_files_hash()
-        stock_data, full_ticker, bloomberg_name, is_current = load_stock_data(selected_ticker, selected_etf, files_hash)
+        stock_data, full_ticker, bloomberg_name, is_current = load_stock_data(
+            selected_ticker, selected_etf, files_hash, start_date, end_date
+        )
 
         if stock_data is None or len(stock_data) == 0:
             st.error(f"No data available for {selected_ticker} in {selected_etf}")
@@ -176,7 +185,7 @@ if True:
             dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
 
             # Get GICS industry
-            industry_dict = load_industry_info(source='ark')
+            industry_dict = load_industry_info(get_industry_files_hash(), source='ark')
             gics = industry_dict.get(bloomberg_name) if bloomberg_name else None
 
             # Load peer group data
@@ -212,7 +221,7 @@ if True:
 
                     # Company Name (at top)
                     try:
-                        company_names = load_company_name(source='ark')
+                        company_names = load_company_name(get_company_name_files_hash(), source='ark')
                         company_name = company_names.get(selected_ticker)
                         if company_name:
                             st.markdown(f"<small>Company Name</small><br><b>{company_name}</b>", unsafe_allow_html=True)
