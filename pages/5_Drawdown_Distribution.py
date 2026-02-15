@@ -141,8 +141,8 @@ def get_etf_max_drawdown(etf, _start_date, _end_date):
     if len(dd_df) == 0:
         return None
 
-    # Filter by period
-    dd_df = filter_by_period(dd_df, _start_date, _end_date)
+    # Filter by period (use filter_drawdowns_by_period since dd_df has peak_date, not Date)
+    dd_df = filter_drawdowns_by_period(dd_df, _start_date, _end_date)
     if len(dd_df) == 0:
         return None
 

@@ -181,14 +181,23 @@ if True:
                 with metrics_card:
                     st.markdown("##### Key Metrics")
 
-                    current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
-                    top_dd = dd_data[dd_data['rank'] == '1'].iloc[0]
+                    current_dd_rows = dd_data[dd_data['rank'] == 'Current']
+                    top_dd_rows = dd_data[dd_data['rank'] == '1']
+                    historical_dd = dd_data[dd_data['rank'] != 'Current']
+
+                    # Get top drawdown
+                    if len(top_dd_rows) > 0:
+                        top_dd = top_dd_rows.iloc[0]
+                    elif len(historical_dd) > 0:
+                        top_dd = historical_dd.iloc[0]
+                    else:
+                        top_dd = None
 
                     price_col = get_price_column(stock_data)
                     first_price = stock_data[price_col].iloc[0]
                     last_price = stock_data[price_col].iloc[-1]
                     overall_return = ((last_price - first_price) / first_price) * 100
-                    max_dd_abs = abs(top_dd['depth_pct'])
+                    max_dd_abs = abs(top_dd['depth_pct']) if top_dd is not None else 0
                     romad = overall_return / max_dd_abs if max_dd_abs > 0 else 0
 
                     # Company Name
@@ -204,7 +213,10 @@ if True:
                     if gics:
                         st.markdown(f"<small>GICS Industry Group</small><br><b>{gics}</b>", unsafe_allow_html=True)
 
-                    st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                    if top_dd is not None:
+                        st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<small>Max Drawdown</small><br><b>N/A</b>", unsafe_allow_html=True)
 
                     price_col = get_price_column(stock_data)
                     cols_price = st.columns(2)
@@ -271,9 +283,10 @@ if True:
                 marker=dict(color='rgba(0,0,0,0)')
             ))
 
-            # Add current drawdown line and shaded area (only for current holdings)
-            if is_current and len(dd_data) > 0:
-                current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
+            # Add current drawdown line and shaded area (only for current holdings and if Current exists)
+            current_dd_rows = dd_data[dd_data['rank'] == 'Current'] if len(dd_data) > 0 else pd.DataFrame()
+            if is_current and len(current_dd_rows) > 0:
+                current_dd = current_dd_rows.iloc[0]
                 peak_price = current_dd['peak_price']
                 peak_date = current_dd['peak_date']
                 current_price = current_dd['trough_price']
@@ -462,15 +475,16 @@ if True:
 
     ""  # Space
 
-    # Current Drawdown Analysis (only for current holdings)
-    if stock_data is not None and len(stock_data) > 0 and len(dd_data) > 0 and is_current:
+    # Current Drawdown Analysis (only for current holdings and if Current drawdown exists)
+    current_dd_for_analysis = dd_data[dd_data['rank'] == 'Current'] if len(dd_data) > 0 else pd.DataFrame()
+    if stock_data is not None and len(stock_data) > 0 and len(current_dd_for_analysis) > 0 and is_current:
         st.markdown("### Current Drawdown Analysis")
 
         current_dd_container = st.container(border=True)
         with current_dd_container:
             st.markdown("#### Current Drawdown Information")
 
-            current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
+            current_dd = current_dd_for_analysis.iloc[0]
             price_col = get_price_column(stock_data)
 
             current_price = stock_data[price_col].iloc[-1]

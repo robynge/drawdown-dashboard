@@ -218,21 +218,37 @@ if iwv_prices is not None and iwv_dd is not None:
             if len(dd_data) == 0 or 'rank' not in dd_data.columns:
                 st.error("Insufficient data to calculate drawdowns for this selection")
             else:
-                current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
-                top_dd = dd_data[dd_data['rank'] == '1'].iloc[0]
+                current_dd_rows = dd_data[dd_data['rank'] == 'Current']
+                top_dd_rows = dd_data[dd_data['rank'] == '1']
+
+                # Get max drawdown from historical data if rank '1' not available
+                historical_dd = dd_data[dd_data['rank'] != 'Current']
+                if len(top_dd_rows) > 0:
+                    top_dd = top_dd_rows.iloc[0]
+                elif len(historical_dd) > 0:
+                    top_dd = historical_dd.iloc[0]  # First historical is the worst
+                else:
+                    top_dd = None
 
                 # Calculate RoMaD (Return over Maximum Drawdown)
                 first_price = prices[price_column].iloc[0]
                 last_price = prices[price_column].iloc[-1]
                 overall_return = ((last_price - first_price) / first_price) * 100
-                max_dd_abs = abs(top_dd['depth_pct'])
+                max_dd_abs = abs(top_dd['depth_pct']) if top_dd is not None else 0
                 romad = overall_return / max_dd_abs if max_dd_abs > 0 else 0
 
                 cols_metrics = st.columns(2)
                 with cols_metrics[0]:
-                    st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                    if len(current_dd_rows) > 0:
+                        current_dd = current_dd_rows.iloc[0]
+                        st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<small>Current Drawdown</small><br><b>N/A</b>", unsafe_allow_html=True)
                 with cols_metrics[1]:
-                    st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                    if top_dd is not None:
+                        st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<small>Max Drawdown</small><br><b>N/A</b>", unsafe_allow_html=True)
 
                 if not is_peer_group:
                     cols_price = st.columns(2)
@@ -308,9 +324,10 @@ if iwv_prices is not None and iwv_dd is not None:
             marker=dict(color='rgba(0,0,0,0)')
         ))
 
-        # Add current drawdown line and shaded area
-        if len(dd_data) > 0 and 'rank' in dd_data.columns:
-            current_dd = dd_data[dd_data['rank'] == 'Current'].iloc[0]
+        # Add current drawdown line and shaded area (only if Current drawdown exists in filtered data)
+        current_dd_rows = dd_data[dd_data['rank'] == 'Current'] if len(dd_data) > 0 and 'rank' in dd_data.columns else pd.DataFrame()
+        if len(current_dd_rows) > 0:
+            current_dd = current_dd_rows.iloc[0]
             peak_price = current_dd['peak_price']
             peak_date = current_dd['peak_date']
             current_price = current_dd['trough_price']

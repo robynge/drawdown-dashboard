@@ -16,6 +16,7 @@ from precomputed_loader import (
     load_hhi_timeseries,
     load_etf_drawdowns,
     filter_by_period,
+    filter_drawdowns_by_period,
     check_precomputed_exists
 )
 from chart_config import CHART_CONFIG, DD_COLORS
@@ -211,7 +212,7 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
         price_df = etf_prices
         # Load precomputed drawdowns
         etf_dd_data = load_etf_drawdowns(selected_etf)
-        etf_dd_data = filter_by_period(etf_dd_data, start_date, end_date)
+        etf_dd_data = filter_drawdowns_by_period(etf_dd_data, start_date, end_date)
 
         # Create figure
         fig2 = go.Figure()
@@ -278,9 +279,10 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
                     yaxis='y3'
                 ))
 
-        # Add current drawdown line and shaded area (if enabled)
-        if show_drawdowns and len(etf_dd_data) > 0:
-            current_dd = etf_dd_data[etf_dd_data['rank'] == 'Current'].iloc[0]
+        # Add current drawdown line and shaded area (if enabled and current drawdown exists in filtered data)
+        current_dd_rows = etf_dd_data[etf_dd_data['rank'] == 'Current'] if len(etf_dd_data) > 0 else pd.DataFrame()
+        if show_drawdowns and len(current_dd_rows) > 0:
+            current_dd = current_dd_rows.iloc[0]
             peak_price = current_dd['peak_price']
             peak_date = current_dd['peak_date']
             current_price = current_dd['trough_price']
