@@ -374,10 +374,10 @@ if len(drawdowns) > 0:
                                 showlegend=False, hoverinfo='skip'
                             ))
                         else:
-                            # Increased: gray=original (peak), green=added portion
+                            # Increased: gray=original (peak) with black border, green=added portion OUTSIDE border
                             fig_changes.add_trace(go.Bar(
                                 y=[ticker], x=[peak_w], orientation='h',
-                                marker=dict(color='lightgray', line=dict(width=0)),
+                                marker=dict(color='lightgray', line=dict(color='black', width=2)),
                                 width=bar_width,
                                 showlegend=False, hoverinfo='skip'
                             ))
@@ -385,12 +385,6 @@ if len(drawdowns) > 0:
                                 y=[ticker], x=[change], orientation='h',
                                 marker=dict(color='rgba(50,180,50,0.85)', line=dict(width=0)),
                                 base=peak_w,
-                                width=bar_width,
-                                showlegend=False, hoverinfo='skip'
-                            ))
-                            fig_changes.add_trace(go.Bar(
-                                y=[ticker], x=[trough_w], orientation='h',
-                                marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=2)),
                                 width=bar_width,
                                 showlegend=False, hoverinfo='skip'
                             ))
