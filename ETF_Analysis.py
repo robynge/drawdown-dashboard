@@ -54,7 +54,10 @@ def load_etf_prices_cached(etf):
 
 
 def load_all_etf_data_precomputed(_start_date, _end_date):
-    """Load precomputed drawdown data and prices for all ETFs, filtered to analysis period"""
+    """Load precomputed drawdown data and prices for all ETFs, filtered to analysis period
+
+    Falls back to runtime calculation if precomputed data doesn't exist.
+    """
     price_data = {}
     dd_data = []
 
@@ -70,14 +73,19 @@ def load_all_etf_data_precomputed(_start_date, _end_date):
             if len(prices) > 0:
                 price_data[etf] = prices
 
-        # Load precomputed drawdowns (fast)
-        dd_df = load_etf_drawdowns(etf)
-        if len(dd_df) > 0:
-            # Filter by period
-            dd_df = filter_by_period(dd_df, _start_date, _end_date)
-            if len(dd_df) > 0:
-                dd_df.insert(0, 'ETF', etf)
-                dd_data.append(dd_df)
+                # Try precomputed drawdowns first, fall back to runtime calculation
+                dd_df = load_etf_drawdowns(etf)
+                if len(dd_df) > 0:
+                    # Filter by period
+                    dd_df = filter_by_period(dd_df, _start_date, _end_date)
+                else:
+                    # Fall back to runtime calculation
+                    dd_df = calculate_drawdowns(prices, start_date=_start_date, end_date=_end_date)
+
+                if len(dd_df) > 0:
+                    dd_df = dd_df.copy()
+                    dd_df.insert(0, 'ETF', etf)
+                    dd_data.append(dd_df)
 
     all_dd = pd.concat(dd_data, ignore_index=True) if dd_data else pd.DataFrame()
     return price_data, all_dd

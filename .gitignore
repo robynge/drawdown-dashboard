@@ -16,8 +16,14 @@ env/
 # Data cache
 data/cache/
 
-# Parquet files (generated locally for faster loading)
-*.parquet
+# Parquet files (large transformed data files)
+input/ark_etfs/*.parquet
+input/russell_3000/*.parquet
+
+# But keep precomputed data (small, needed for Streamlit Cloud)
+!input/ark_etfs/precomputed/
+!input/russell_3000/precomputed/
+!input/precomputed/
 
 # IDE
 .vscode/
