@@ -383,7 +383,7 @@ def filter_by_period(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Ti
 
 def filter_drawdowns_by_period(df: pd.DataFrame, start_date: pd.Timestamp,
                                 end_date: pd.Timestamp) -> pd.DataFrame:
-    """Filter drawdowns DataFrame by peak_date within analysis period
+    """Filter drawdowns DataFrame by peak_date within analysis period and re-rank
 
     Args:
         df: DataFrame with peak_date column
@@ -391,13 +391,29 @@ def filter_drawdowns_by_period(df: pd.DataFrame, start_date: pd.Timestamp,
         end_date: Period end date
 
     Returns:
-        Filtered DataFrame
+        Filtered DataFrame with re-ranked drawdowns (1 = deepest in period)
     """
     if len(df) == 0 or 'peak_date' not in df.columns:
         return df
 
     mask = (df['peak_date'] >= start_date) & (df['peak_date'] <= end_date)
-    return df[mask].copy()
+    filtered = df[mask].copy()
+
+    if len(filtered) == 0:
+        return filtered
+
+    # Re-rank drawdowns within the filtered period (excluding 'Current')
+    # Rank by depth_pct (most negative = rank 1)
+    historical = filtered[filtered['rank'] != 'Current'].copy()
+    current = filtered[filtered['rank'] == 'Current'].copy()
+
+    if len(historical) > 0:
+        historical = historical.sort_values('depth_pct', ascending=True)
+        historical['rank'] = range(1, len(historical) + 1)
+
+    # Combine back
+    filtered = pd.concat([historical, current], ignore_index=True)
+    return filtered
 
 
 def get_metadata() -> dict:
