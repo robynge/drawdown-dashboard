@@ -73,11 +73,37 @@ def load_r3000_holdings(_files_hash):
     return df
 
 
-def load_industry_info(source='ark'):
-    """Load industry mapping from 'value' sheet
+def get_industry_files_hash():
+    """Get hash of industry mapping files for cache invalidation"""
+    ark_file = INPUT_DIR / 'industry_mappings' / 'ARK ETFs industry info.xlsx'
+    r3000_file = INPUT_DIR / 'industry_mappings' / 'IWV_industry group.xlsx'
+    mtimes = []
+    if ark_file.exists():
+        mtimes.append(ark_file.stat().st_mtime)
+    if r3000_file.exists():
+        mtimes.append(r3000_file.stat().st_mtime)
+    return max(mtimes) if mtimes else 0
+
+
+def get_company_name_files_hash():
+    """Get hash of company name mapping files for cache invalidation"""
+    ark_file = INPUT_DIR / 'companyname_mappings' / 'ARK ETFs company name.xlsx'
+    r3000_file = INPUT_DIR / 'companyname_mappings' / 'R3000 company name.xlsx'
+    mtimes = []
+    if ark_file.exists():
+        mtimes.append(ark_file.stat().st_mtime)
+    if r3000_file.exists():
+        mtimes.append(r3000_file.stat().st_mtime)
+    return max(mtimes) if mtimes else 0
+
+
+def _load_industry_info_impl(source='ark'):
+    """Internal implementation - Load industry mapping from 'value' sheet
 
     Maps tickers by their symbol only (e.g., 'AAPL' from 'AAPL US Equity')
     to handle different exchange codes (US/UW/UN/etc)
+
+    Use this for non-Streamlit contexts (e.g., precompute scripts).
     """
     if source == 'ark':
         file_path = INPUT_DIR / 'industry_mappings' / 'ARK ETFs industry info.xlsx'
@@ -137,11 +163,23 @@ def load_industry_info(source='ark'):
     return industry_dict
 
 
-def load_company_name(source='ark'):
+@st.cache_data
+def load_industry_info(_files_hash, source='ark'):
+    """Load industry mapping from 'value' sheet (Streamlit cached version)
+
+    _files_hash: for cache invalidation when files change
+    """
+    return _load_industry_info_impl(source)
+
+
+@st.cache_data
+def load_company_name(_files_hash, source='ark'):
     """Load company name mapping from 'value' sheet
 
     Maps tickers by their symbol only (e.g., 'AAPL' from 'AAPL US Equity')
     to handle different exchange codes (US/UW/UN/etc)
+
+    _files_hash: for cache invalidation when files change
     """
     if source == 'ark':
         file_path = INPUT_DIR / 'companyname_mappings' / 'ARK ETFs company name.xlsx'
@@ -219,24 +257,23 @@ def get_r3000_ticker_list():
     parquet_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.parquet'
     xlsx_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
 
-    # Use parquet file modification time if available
-    source_file = parquet_file if parquet_file.exists() else xlsx_file
-
-    # Check if cache exists and is newer than source
+    # Priority 1: Return cached data if it exists (for Streamlit Cloud)
     if cache_file.exists():
-        if cache_file.stat().st_mtime >= source_file.stat().st_mtime:
-            return pd.read_csv(cache_file)['Ticker'].tolist()
+        return pd.read_csv(cache_file)['Ticker'].tolist()
 
-    # Generate ticker list from source
+    # Priority 2: Generate from source if available (local development)
     if parquet_file.exists():
         df = pd.read_parquet(parquet_file, columns=['Ticker'])
         all_tickers = set(df['Ticker'].unique())
-    else:
+    elif xlsx_file.exists():
         xl = pd.ExcelFile(xlsx_file)
         all_tickers = set()
         for sheet in xl.sheet_names:
             df = pd.read_excel(xl, sheet_name=sheet, usecols=['Ticker'])
             all_tickers.update(df['Ticker'].unique())
+    else:
+        # No source available
+        return []
 
     # Save to cache
     ticker_df = pd.DataFrame({'Ticker': sorted(all_tickers)})
@@ -267,19 +304,18 @@ def get_ark_ticker_list(etf):
     parquet_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.parquet'
     xlsx_file = INPUT_DIR / 'ark_etfs' / f'{etf}_Transformed_Data.xlsx'
 
-    # Use parquet file modification time if available
-    source_file = parquet_file if parquet_file.exists() else xlsx_file
-
-    # Check if cache exists and is newer than source
+    # Priority 1: Return cached data if it exists (for Streamlit Cloud)
     if cache_file.exists():
-        if cache_file.stat().st_mtime >= source_file.stat().st_mtime:
-            return pd.read_csv(cache_file)['Ticker'].tolist()
+        return pd.read_csv(cache_file)['Ticker'].tolist()
 
-    # Generate ticker list from source
+    # Priority 2: Generate from source if available (local development)
     if parquet_file.exists():
         df = pd.read_parquet(parquet_file, columns=['Ticker', 'Bloomberg Name'])
-    else:
+    elif xlsx_file.exists():
         df = pd.read_excel(xlsx_file, usecols=['Ticker', 'Bloomberg Name'])
+    else:
+        # No source available
+        return []
 
     # Filter out currency tickers
     if 'Bloomberg Name' in df.columns:

@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from pathlib import Path
-from data_loader import load_r3000_holdings, load_industry_info, get_r3000_files_hash
+from data_loader import load_r3000_holdings, load_industry_info, get_r3000_files_hash, get_industry_files_hash
 from config import INPUT_DIR
 
 
@@ -12,11 +12,16 @@ def _get_peer_group_cache_path(version='mv'):
     return INPUT_DIR / 'russell_3000' / f'peer_group_{version}_cache.parquet'
 
 
-def _is_cache_valid(cache_path, source_mtime):
-    """Check if cache file exists and is newer than source"""
-    if not cache_path.exists():
-        return False
-    return cache_path.stat().st_mtime >= source_mtime
+def _cache_exists(cache_path):
+    """Check if cache file exists (for Streamlit Cloud where source files may not exist)"""
+    return cache_path.exists()
+
+
+def _source_exists():
+    """Check if source data files exist (for local development)"""
+    parquet_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.parquet'
+    xlsx_file = INPUT_DIR / 'russell_3000' / 'IWV_Transformed_Data.xlsx'
+    return parquet_file.exists() or xlsx_file.exists()
 
 
 @st.cache_data
@@ -27,8 +32,16 @@ def _calculate_iwv_total_market_value_full(_files_hash):
         DataFrame with columns: Date, Value (unfiltered)
     """
     cache_path = INPUT_DIR / 'russell_3000' / 'iwv_total_mv_cache.parquet'
-    if _is_cache_valid(cache_path, _files_hash):
+
+    # Priority 1: Return cached data if it exists (for Streamlit Cloud)
+    if _cache_exists(cache_path):
         return pd.read_parquet(cache_path)
+
+    # Priority 2: Compute from source if available (local development)
+    if not _source_exists():
+        raise FileNotFoundError(
+            "No cache or source data found. Run 'python convert_to_parquet.py' locally first."
+        )
 
     holdings = load_r3000_holdings(_files_hash)
 
@@ -84,11 +97,19 @@ def _calculate_peer_group_prices_mv_full(_files_hash):
         DataFrame with columns: Date, GICS, Value (unfiltered)
     """
     cache_path = _get_peer_group_cache_path('mv')
-    if _is_cache_valid(cache_path, _files_hash):
+
+    # Priority 1: Return cached data if it exists (for Streamlit Cloud)
+    if _cache_exists(cache_path):
         return pd.read_parquet(cache_path)
 
+    # Priority 2: Compute from source if available (local development)
+    if not _source_exists():
+        raise FileNotFoundError(
+            "No cache or source data found. Run 'python convert_to_parquet.py' locally first."
+        )
+
     holdings = load_r3000_holdings(_files_hash)
-    industry_dict = load_industry_info(source='r3000')
+    industry_dict = load_industry_info(get_industry_files_hash(), source='r3000')
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
     holdings['_valid_price'] = (holdings['Price'] > 0).astype(int)
@@ -158,11 +179,19 @@ def _calculate_peer_group_prices_weighted_full(_files_hash):
         DataFrame with columns: Date, GICS, Value (unfiltered)
     """
     cache_path = _get_peer_group_cache_path('weighted')
-    if _is_cache_valid(cache_path, _files_hash):
+
+    # Priority 1: Return cached data if it exists (for Streamlit Cloud)
+    if _cache_exists(cache_path):
         return pd.read_parquet(cache_path)
 
+    # Priority 2: Compute from source if available (local development)
+    if not _source_exists():
+        raise FileNotFoundError(
+            "No cache or source data found. Run 'python convert_to_parquet.py' locally first."
+        )
+
     holdings = load_r3000_holdings(_files_hash)
-    industry_dict = load_industry_info(source='r3000')
+    industry_dict = load_industry_info(get_industry_files_hash(), source='r3000')
 
     # Filter out dates where less than 50% of stocks have valid prices (Price > 0)
     holdings['_valid_price'] = (holdings['Price'] > 0).astype(int)
