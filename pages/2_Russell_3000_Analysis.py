@@ -18,7 +18,7 @@ from precomputed_loader import (
 )
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, add_reconstitution_vlines
-from session_utils import init_session_state, get_current_dates, has_r3000_data, get_current_period, render_period_selector
+from session_utils import init_session_state, get_current_dates, has_r3000_data, get_current_period, render_period_selector, is_latest_period
 
 st.set_page_config(page_title="Russell 3000 Analysis", page_icon="", layout="wide")
 
@@ -237,14 +237,22 @@ if iwv_prices is not None and iwv_dd is not None:
                 max_dd_abs = abs(top_dd['depth_pct']) if top_dd is not None else 0
                 romad = overall_return / max_dd_abs if max_dd_abs > 0 else 0
 
-                cols_metrics = st.columns(2)
-                with cols_metrics[0]:
-                    if len(current_dd_rows) > 0:
-                        current_dd = current_dd_rows.iloc[0]
-                        st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"<small>Current Drawdown</small><br><b>N/A</b>", unsafe_allow_html=True)
-                with cols_metrics[1]:
+                # Only show Current Drawdown for latest period
+                if is_latest_period():
+                    cols_metrics = st.columns(2)
+                    with cols_metrics[0]:
+                        if len(current_dd_rows) > 0:
+                            current_dd = current_dd_rows.iloc[0]
+                            st.markdown(f"<small>Current Drawdown</small><br><b>{current_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<small>Current Drawdown</small><br><b>N/A</b>", unsafe_allow_html=True)
+                    with cols_metrics[1]:
+                        if top_dd is not None:
+                            st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<small>Max Drawdown</small><br><b>N/A</b>", unsafe_allow_html=True)
+                else:
+                    # For historical periods, only show Max Drawdown
                     if top_dd is not None:
                         st.markdown(f"<small>Max Drawdown</small><br><b>{top_dd['depth_pct']:.2f}%</b>", unsafe_allow_html=True)
                     else:
@@ -324,9 +332,9 @@ if iwv_prices is not None and iwv_dd is not None:
             marker=dict(color='rgba(0,0,0,0)')
         ))
 
-        # Add current drawdown line and shaded area (only if Current drawdown exists in filtered data)
+        # Add current drawdown line and shaded area (only for latest period and if Current drawdown exists)
         current_dd_rows = dd_data[dd_data['rank'] == 'Current'] if len(dd_data) > 0 and 'rank' in dd_data.columns else pd.DataFrame()
-        if len(current_dd_rows) > 0:
+        if is_latest_period() and len(current_dd_rows) > 0:
             current_dd = current_dd_rows.iloc[0]
             peak_price = current_dd['peak_price']
             peak_date = current_dd['peak_date']

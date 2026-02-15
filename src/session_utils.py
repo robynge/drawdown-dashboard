@@ -9,6 +9,16 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import ANALYSIS_PERIODS, DEFAULT_PERIOD
 
 
+def is_latest_period():
+    """Check if current period is the latest (default) period.
+
+    Only show 'Current Drawdown' when analyzing the latest period,
+    as it represents the drawdown from the most recent peak to today.
+    For historical periods like 2021-2023, Current Drawdown is meaningless.
+    """
+    return get_current_period() == DEFAULT_PERIOD
+
+
 def init_session_state():
     """Initialize session state with default values.
     Call this at the top of every page."""

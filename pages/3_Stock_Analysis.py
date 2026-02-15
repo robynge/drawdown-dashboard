@@ -25,7 +25,7 @@ from peer_group import get_peer_group_prices
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS, add_reconstitution_vlines
 from recovery_probability import get_stock_drawdowns_in_depth_range
-from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
+from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector, is_latest_period
 
 st.set_page_config(
     page_title="Individual Stock vs Peer Group",
@@ -283,9 +283,9 @@ if True:
                 marker=dict(color='rgba(0,0,0,0)')
             ))
 
-            # Add current drawdown line and shaded area (only for current holdings and if Current exists)
+            # Add current drawdown line and shaded area (only for latest period, current holdings, and if Current exists)
             current_dd_rows = dd_data[dd_data['rank'] == 'Current'] if len(dd_data) > 0 else pd.DataFrame()
-            if is_current and len(current_dd_rows) > 0:
+            if is_latest_period() and is_current and len(current_dd_rows) > 0:
                 current_dd = current_dd_rows.iloc[0]
                 peak_price = current_dd['peak_price']
                 peak_date = current_dd['peak_date']
@@ -401,9 +401,9 @@ if True:
                     marker=dict(color='rgba(0,0,0,0)')
                 ))
 
-                # Add current drawdown line and shaded area
+                # Add current drawdown line and shaded area (only for latest period)
                 peer_current_dd = peer_dd_data[peer_dd_data['rank'] == 'Current']
-                if len(peer_current_dd) > 0:
+                if is_latest_period() and len(peer_current_dd) > 0:
                     peer_current_dd = peer_current_dd.iloc[0]
                     peer_peak_price = peer_current_dd['peak_price']
                     peer_peak_date = peer_current_dd['peak_date']
@@ -475,9 +475,9 @@ if True:
 
     ""  # Space
 
-    # Current Drawdown Analysis (only for current holdings and if Current drawdown exists)
+    # Current Drawdown Analysis (only for latest period, current holdings, and if Current drawdown exists)
     current_dd_for_analysis = dd_data[dd_data['rank'] == 'Current'] if len(dd_data) > 0 else pd.DataFrame()
-    if stock_data is not None and len(stock_data) > 0 and len(current_dd_for_analysis) > 0 and is_current:
+    if is_latest_period() and stock_data is not None and len(stock_data) > 0 and len(current_dd_for_analysis) > 0 and is_current:
         st.markdown("### Current Drawdown Analysis")
 
         current_dd_container = st.container(border=True)

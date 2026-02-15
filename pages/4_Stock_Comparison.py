@@ -22,7 +22,7 @@ from precomputed_loader import (
 )
 from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG, DD_COLORS
-from session_utils import init_session_state, get_current_dates, has_r3000_data, render_period_selector
+from session_utils import init_session_state, get_current_dates, has_r3000_data, render_period_selector, is_latest_period
 
 st.set_page_config(
     page_title="Stock Comparison",
@@ -193,8 +193,8 @@ def create_stock_chart(price_df, dd_data, stock_name):
         marker=dict(color='rgba(0,0,0,0)')
     ))
 
-    # Add current drawdown line and shaded area
-    if len(dd_data) > 0:
+    # Add current drawdown line and shaded area (only for latest period)
+    if is_latest_period() and len(dd_data) > 0:
         current_dd = dd_data[dd_data['rank'] == 'Current']
         if len(current_dd) > 0:
             current_dd = current_dd.iloc[0]
