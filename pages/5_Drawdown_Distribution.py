@@ -1,4 +1,4 @@
-"""Drawdown Distribution Page"""
+"""Drawdown Distribution Page - Using Precomputed Data"""
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -10,10 +10,16 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import ARK_ETFS, INPUT_DIR, OUTPUT_DIR
-from data_loader import load_ark_holdings, load_r3000_holdings, load_industry_info, get_r3000_drawdowns_cache, save_r3000_drawdowns_cache, get_ark_files_hash, get_r3000_files_hash
-from drawdown_calculator import calculate_drawdowns_with_filter, calculate_drawdowns
-from session_utils import init_session_state, get_current_dates, has_r3000_data, get_current_period, render_period_selector
+from config import ARK_ETFS, INPUT_DIR
+from precomputed_loader import (
+    load_r3000_drawdowns,
+    load_etf_drawdowns,
+    load_ark_holdings_max_drawdowns,
+    filter_by_period,
+    check_precomputed_exists
+)
+from data_loader import load_ark_holdings, load_industry_info, get_ark_files_hash, get_r3000_files_hash, get_industry_files_hash
+from session_utils import init_session_state, get_current_dates, has_r3000_data, render_period_selector
 
 st.set_page_config(
     page_title="Drawdown Distribution",
@@ -33,12 +39,15 @@ start_date, end_date = get_current_dates()
 Compare drawdown distributions between ARK ETF holdings and Russell 3000 constituents.
 """
 
-@st.cache_data
-def get_r3000_peer_groups(_files_hash):
+# Check for precomputed data
+if not check_precomputed_exists():
+    st.warning("Precomputed data not found. Please run `python convert_to_parquet.py` to generate precomputed data for faster loading.")
+
+
+def get_r3000_peer_groups():
     """Get list of GICS Industry Groups from R3000"""
     try:
-        industry_dict = load_industry_info(source='r3000')
-        # Filter out invalid entries (Bloomberg error messages)
+        industry_dict = load_industry_info(get_industry_files_hash(), source='r3000')
         peer_groups = sorted([
             pg for pg in set(industry_dict.values())
             if pg and not pg.startswith('#N/A') and 'Unable to retrieve' not in pg
@@ -47,136 +56,47 @@ def get_r3000_peer_groups(_files_hash):
     except:
         return []
 
-@st.cache_data
-def calculate_ark_holdings_drawdowns(_files_hash, etf, min_depth_pct, min_duration_days, period_key, _start_date, _end_date, _holdings):
-    """Calculate max drawdown for each current holding in ARK ETF
 
-    _holdings: Pre-loaded holdings data (underscore prefix excludes from hashing)
-    period_key, _start_date, _end_date: Analysis period for filtering
+def get_ark_holdings_drawdowns(etf, _start_date, _end_date, holdings):
+    """Get max drawdowns for current ARK holdings from precomputed data
+
+    Args:
+        etf: ETF name
+        _start_date, _end_date: Analysis period
+        holdings: ARK holdings DataFrame
+
+    Returns:
+        DataFrame with ticker, max_drawdown, num_drawdowns
     """
-    holdings = _holdings
+    # Load precomputed max drawdowns
+    precomputed_dd = load_ark_holdings_max_drawdowns(etf)
+    if len(precomputed_dd) == 0:
+        return pd.DataFrame()
 
-    # Filter holdings to analysis period first
-    holdings = holdings[
+    # Filter holdings to analysis period to determine current tickers
+    holdings_filtered = holdings[
         (holdings['Date'] >= _start_date) &
         (holdings['Date'] <= _end_date)
     ].copy()
 
-    if len(holdings) == 0:
+    if len(holdings_filtered) == 0:
         return pd.DataFrame()
 
     # Get current holdings (latest date within analysis period)
-    latest_date = holdings['Date'].max()
-    current_tickers = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
+    latest_date = holdings_filtered['Date'].max()
+    current_tickers = holdings_filtered[holdings_filtered['Date'] == latest_date]['Ticker'].unique()
 
-    # Filter out currency and money market funds
-    if 'Bloomberg Name' in holdings.columns:
-        currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
-        current_tickers = [t for t in current_tickers if t not in currency_tickers]
+    # Clean ticker names
+    current_tickers_clean = [t.split()[0] for t in current_tickers]
 
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
-    current_tickers = [t for t in current_tickers if not any(t.split()[0].startswith(p) for p in money_market_prefixes)]
+    # Filter precomputed drawdowns to current tickers only
+    result = precomputed_dd[precomputed_dd['ticker'].isin(current_tickers_clean)].copy()
 
-    results = []
-    for ticker in current_tickers:
-        stock_data = holdings[holdings['Ticker'] == ticker].copy()
+    # Return only the columns needed
+    if len(result) > 0:
+        return result[['ticker', 'max_drawdown', 'num_drawdowns']]
 
-        if len(stock_data) < 10:
-            continue
-
-        # Prepare price data
-        price_df = stock_data[['Date', 'Stock_Price']].copy()
-        price_df = price_df.rename(columns={'Stock_Price': 'Close'})
-        price_df = price_df.dropna(subset=['Close'])
-
-        if len(price_df) < 10:
-            continue
-
-        # Calculate drawdowns with filter
-        dd_df = calculate_drawdowns_with_filter(price_df, min_depth_pct, min_duration_days)
-
-        if len(dd_df) > 0:
-            # Get the maximum (deepest) drawdown
-            max_dd = dd_df['depth_pct'].min()
-            results.append({
-                'ticker': ticker.split()[0],
-                'max_drawdown': max_dd,
-                'num_drawdowns': len(dd_df)
-            })
-
-    return pd.DataFrame(results)
-
-@st.cache_data
-def calculate_r3000_drawdowns_full(_files_hash, min_depth_pct, min_duration_days, period_key, _start_date, _end_date, _holdings):
-    """Calculate max drawdown for ALL stocks in R3000 (cached to file)
-
-    _holdings: Pre-loaded holdings data (underscore prefix excludes from hashing)
-    period_key, _start_date, _end_date: Analysis period for filtering
-    """
-    # Note: File cache disabled when using period filtering (different periods need different results)
-    # Check for precomputed cache only for default period
-    # cached = get_r3000_drawdowns_cache()
-    # if cached is not None:
-    #     return cached
-
-    holdings = _holdings.copy()
-
-    # Filter holdings to analysis period
-    holdings = holdings[
-        (holdings['Date'] >= _start_date) &
-        (holdings['Date'] <= _end_date)
-    ].copy()
-
-    if len(holdings) == 0:
-        return pd.DataFrame()
-
-    # Get unique tickers
-    all_tickers = holdings['Ticker'].unique()
-
-    # Get industry mapping for all tickers
-    industry_dict = load_industry_info(source='r3000')
-
-    results = []
-    total = len(all_tickers)
-    for i, ticker in enumerate(all_tickers):
-        stock_data = holdings[holdings['Ticker'] == ticker].copy()
-
-        if len(stock_data) < 10:
-            continue
-
-        # R3000 uses 'Price' column
-        if 'Price' not in stock_data.columns:
-            continue
-
-        price_df = stock_data[['Date', 'Price']].copy()
-        price_df = price_df.rename(columns={'Price': 'Close'})
-        price_df = price_df.dropna(subset=['Close'])
-
-        if len(price_df) < 10:
-            continue
-
-        # Calculate drawdowns with filter
-        dd_df = calculate_drawdowns_with_filter(price_df, min_depth_pct, min_duration_days)
-
-        if len(dd_df) > 0:
-            max_dd = dd_df['depth_pct'].min()
-            ticker_clean = ticker.split()[0] if isinstance(ticker, str) else ticker
-            # Get industry group for this ticker
-            gics = industry_dict.get(ticker, industry_dict.get(ticker_clean, 'Unknown'))
-            results.append({
-                'ticker': ticker_clean,
-                'max_drawdown': max_dd,
-                'num_drawdowns': len(dd_df),
-                'gics_industry_group': gics
-            })
-
-    result_df = pd.DataFrame(results)
-
-    # Save to cache file for future use
-    if len(result_df) > 0:
-        save_r3000_drawdowns_cache(result_df)
-
-    return result_df
+    return pd.DataFrame()
 
 
 def get_r3000_drawdowns_filtered(full_drawdowns, peer_group):
@@ -185,33 +105,19 @@ def get_r3000_drawdowns_filtered(full_drawdowns, peer_group):
         return full_drawdowns[full_drawdowns['gics_industry_group'] == peer_group].copy()
     return full_drawdowns.copy()
 
-@st.cache_data
-def calculate_etf_drawdown(_files_hash, etf, period_key, _start_date, _end_date):
-    """Calculate the ETF's own drawdown (not holdings)
 
-    period_key, _start_date, _end_date: Analysis period for filtering
-    """
-    price_file = OUTPUT_DIR / f'{etf}_prices.csv'
-    if not price_file.exists():
-        return None
-
-    prices = pd.read_csv(price_file)
-    prices['Date'] = pd.to_datetime(prices['Date'])
-
-    # Filter prices to analysis period
-    prices = prices[
-        (prices['Date'] >= _start_date) &
-        (prices['Date'] <= _end_date)
-    ].copy()
-
-    if len(prices) == 0:
-        return None
-
-    dd_df = calculate_drawdowns(prices, start_date=_start_date, end_date=_end_date)
+def get_etf_max_drawdown(etf, _start_date, _end_date):
+    """Get ETF's maximum drawdown from precomputed data"""
+    dd_df = load_etf_drawdowns(etf)
     if len(dd_df) == 0:
         return None
 
-    # Get max historical drawdown (excluding current)
+    # Filter by period
+    dd_df = filter_by_period(dd_df, _start_date, _end_date)
+    if len(dd_df) == 0:
+        return None
+
+    # Get historical drawdowns (exclude Current)
     historical = dd_df[dd_df['rank'] != 'Current']
     if len(historical) > 0:
         max_dd = historical['depth_pct'].min()
@@ -219,6 +125,7 @@ def calculate_etf_drawdown(_files_hash, etf, period_key, _start_date, _end_date)
         max_dd = dd_df['depth_pct'].min()
 
     return max_dd
+
 
 # Main section
 st.subheader("Distribution Analysis")
@@ -240,8 +147,7 @@ with cols[0]:
         ""  # Space
 
         st.markdown("##### Select R3000 Benchmark")
-        r3000_hash = get_r3000_files_hash()
-        peer_groups = get_r3000_peer_groups(r3000_hash)
+        peer_groups = get_r3000_peer_groups()
         benchmark_options = ["Russell 3000 (All)"] + peer_groups
 
         selected_benchmark = st.selectbox(
@@ -257,32 +163,25 @@ with cols[0]:
 
 # Calculate distributions
 ark_hash = get_ark_files_hash()
-r3000_hash = get_r3000_files_hash()
-period_key = get_current_period()
 
-with st.spinner("Calculating drawdown distributions..."):
-    # Load holdings once (cached)
+with st.spinner("Loading drawdown distributions..."):
+    # Load ARK holdings and get precomputed drawdowns for current holdings
     ark_holdings = load_ark_holdings(ark_hash, selected_etf)
-    r3000_holdings = load_r3000_holdings(r3000_hash)
+    ark_dd = get_ark_holdings_drawdowns(selected_etf, start_date, end_date, ark_holdings)
 
-    # ARK holdings drawdowns
-    ark_dd = calculate_ark_holdings_drawdowns(
-        ark_hash, selected_etf, min_depth_pct=10, min_duration_days=7,
-        period_key=period_key, _start_date=start_date, _end_date=end_date, _holdings=ark_holdings
-    )
+    # Load precomputed R3000 drawdowns (fast)
+    r3000_dd_full = load_r3000_drawdowns()
 
-    # R3000 drawdowns (compute with period filtering)
-    r3000_dd_full = calculate_r3000_drawdowns_full(
-        r3000_hash, min_depth_pct=10, min_duration_days=7,
-        period_key=period_key, _start_date=start_date, _end_date=end_date, _holdings=r3000_holdings
-    )
+    if len(r3000_dd_full) == 0:
+        st.warning("No precomputed R3000 drawdown data found. Run `python convert_to_parquet.py` to generate.")
+        st.stop()
 
     # Filter by peer group
     peer_group = None if selected_benchmark == "Russell 3000 (All)" else selected_benchmark
     r3000_dd = get_r3000_drawdowns_filtered(r3000_dd_full, peer_group)
 
-    # ETF's own drawdown
-    etf_drawdown = calculate_etf_drawdown(ark_hash, selected_etf, period_key, start_date, end_date)
+    # ETF's own drawdown (from precomputed data)
+    etf_drawdown = get_etf_max_drawdown(selected_etf, start_date, end_date)
 
 if len(ark_dd) > 0 and len(r3000_dd) > 0:
     # Calculate statistics
@@ -320,7 +219,6 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
             )
 
             # === Top chart: Percentage distribution ===
-            # R3000 percentage distribution
             fig.add_trace(go.Histogram(
                 x=r3000_dd['max_drawdown'],
                 name=selected_benchmark,
@@ -337,7 +235,6 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                 showlegend=True
             ), row=1, col=1)
 
-            # ARK percentage distribution
             fig.add_trace(go.Histogram(
                 x=ark_dd['max_drawdown'],
                 name=f'{selected_etf} Holdings',
@@ -355,7 +252,6 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
             ), row=1, col=1)
 
             # === Bottom chart: Count distribution ===
-            # R3000 count distribution
             fig.add_trace(go.Histogram(
                 x=r3000_dd['max_drawdown'],
                 name=selected_benchmark,
@@ -371,7 +267,6 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                 showlegend=False
             ), row=2, col=1)
 
-            # ARK count distribution
             fig.add_trace(go.Histogram(
                 x=ark_dd['max_drawdown'],
                 name=f'{selected_etf} Holdings',
@@ -387,8 +282,7 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                 showlegend=False
             ), row=2, col=1)
 
-            # Add dummy traces for reference lines legend (actual line graphics)
-            # Use legend2 to place them separately on the right
+            # Add dummy traces for reference lines legend
             fig.add_trace(go.Scatter(
                 x=[None], y=[None],
                 mode='lines',
@@ -419,7 +313,6 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
 
             # Add vertical lines for both subplots
             for row in [1, 2]:
-                # ETF drawdown line
                 if etf_drawdown is not None:
                     fig.add_vline(
                         x=etf_drawdown,
@@ -429,7 +322,6 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                         row=row, col=1
                     )
 
-                # Mean lines
                 fig.add_vline(
                     x=r3000_stats['mean'],
                     line_dash="dot",
@@ -456,7 +348,6 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
                 paper_bgcolor='white'
             )
 
-            # Update axes
             fig.update_xaxes(title_text="Max Drawdown (%)", gridcolor='lightgray', row=2, col=1)
             fig.update_yaxes(title_text="% of Stocks", gridcolor='lightgray', row=1, col=1)
             fig.update_yaxes(title_text="Number of Stocks", gridcolor='lightgray', row=2, col=1)

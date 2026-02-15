@@ -1,4 +1,4 @@
-"""HHI Concentration Analysis Page"""
+"""HHI Concentration Analysis Page - Using Precomputed Data"""
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -10,10 +10,13 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import ARK_ETFS, INPUT_DIR, OUTPUT_DIR
-from data_loader import load_ark_holdings, load_etf_prices, get_ark_files_hash
-from hhi_calculator import calculate_hhi_time_series
-from drawdown_calculator import calculate_drawdowns
+from config import ARK_ETFS, OUTPUT_DIR
+from precomputed_loader import (
+    load_hhi_timeseries,
+    load_etf_drawdowns,
+    filter_by_period,
+    check_precomputed_exists
+)
 from chart_config import CHART_CONFIG, DD_COLORS
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
@@ -39,6 +42,11 @@ st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_dat
 
 "" # Space
 
+# Check for precomputed data
+if not check_precomputed_exists():
+    st.warning("Precomputed data not found. Please run `python convert_to_parquet.py` to generate precomputed data for faster loading.")
+
+
 @st.cache_data
 def get_cached_qqq_prices(_files_hash):
     """Load and cache QQQ prices"""
@@ -48,6 +56,7 @@ def get_cached_qqq_prices(_files_hash):
         df['Date'] = pd.to_datetime(df['Date'])
         return df
     return pd.DataFrame()
+
 
 @st.cache_data
 def get_cached_etf_prices(_files_hash, etf):
@@ -59,37 +68,6 @@ def get_cached_etf_prices(_files_hash, etf):
         return df
     return pd.DataFrame()
 
-@st.cache_data
-def calculate_hhi_data(_files_hash, etf, period_key, _start_date, _end_date, _holdings):
-    """Calculate HHI time series for an ETF"""
-    holdings = _holdings
-
-    # Filter to analysis period and exclude currency/money market
-    holdings_filtered = holdings[
-        (holdings['Date'] >= _start_date) &
-        (holdings['Date'] <= _end_date)
-    ].copy()
-
-    # Filter out currency tickers
-    if 'Bloomberg Name' in holdings_filtered.columns:
-        holdings_filtered = holdings_filtered[
-            ~holdings_filtered['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-        ]
-
-    # Filter out money market funds (prefix matching)
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
-    ticker_symbols = holdings_filtered['Ticker'].str.split().str[0]
-    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
-    holdings_filtered = holdings_filtered[~is_mm]
-
-    # Calculate HHI time series
-    hhi_df = calculate_hhi_time_series(holdings_filtered[['Date', 'Ticker', 'Weight']])
-
-    return hhi_df
-
-
-# Load data
-files_hash = get_ark_files_hash()
 
 # ETF Selection
 st.subheader("Select ETF")
@@ -103,14 +81,29 @@ selected_etf = st.pills(
 
 "" # Space
 
-# Load data for selected ETF
+# Load precomputed data
 with st.spinner("Loading data..."):
-    holdings = load_ark_holdings(files_hash, selected_etf)
-    etf_prices = get_cached_etf_prices(files_hash, selected_etf)
-    qqq_prices = get_cached_qqq_prices(files_hash)
-    hhi_data = calculate_hhi_data(files_hash, selected_etf, get_current_period(), start_date, end_date, holdings)
+    # Load precomputed HHI time series (fast)
+    hhi_data_full = load_hhi_timeseries(selected_etf)
+
+    if len(hhi_data_full) == 0:
+        st.warning(f"No precomputed HHI data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
+        st.stop()
+
+    # Filter by analysis period
+    hhi_data = filter_by_period(hhi_data_full, start_date, end_date)
+
+    # Load ETF prices (lightweight, from CSV)
+    etf_prices = get_cached_etf_prices(0, selected_etf)
+    qqq_prices = get_cached_qqq_prices(0)
 
 if len(hhi_data) > 0 and len(etf_prices) > 0:
+    # Filter ETF prices to analysis period
+    etf_prices = etf_prices[
+        (etf_prices['Date'] >= start_date) &
+        (etf_prices['Date'] <= end_date)
+    ].copy()
+
     # Section 1: Key Metrics
     st.subheader("Current Concentration Metrics")
 
@@ -215,7 +208,9 @@ if len(hhi_data) > 0 and len(etf_prices) > 0:
     dd_hhi_card = st.container(border=True)
     with dd_hhi_card:
         price_df = etf_prices
-        etf_dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
+        # Load precomputed drawdowns
+        etf_dd_data = load_etf_drawdowns(selected_etf)
+        etf_dd_data = filter_by_period(etf_dd_data, start_date, end_date)
 
         # Create figure
         fig2 = go.Figure()

@@ -14,6 +14,7 @@ from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 from recovery_probability import get_etf_drawdowns_in_depth_range
 from session_utils import init_session_state, get_current_dates, render_period_selector, get_current_period
+from precomputed_loader import load_etf_drawdowns, filter_by_period, check_precomputed_exists
 
 st.set_page_config(
     page_title="ETF Analysis",
@@ -40,41 +41,49 @@ st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_dat
 
 ""  # Add space
 
-def get_input_files_hash():
-    """Get hash of input file modification times for cache invalidation"""
-    mtimes = []
-    for etf in ARK_ETFS:
-        price_file = OUTPUT_DIR / f'{etf}_prices.csv'
-        if price_file.exists():
-            mtimes.append(price_file.stat().st_mtime)
-    return max(mtimes) if mtimes else 0
+# Check for precomputed data
+if not check_precomputed_exists():
+    st.warning("Precomputed data not found. Please run `python convert_to_parquet.py` to generate precomputed data for faster loading.")
+
 
 @st.cache_data
-def load_all_etf_data(_files_hash, period_key, _start_date, _end_date):
-    """Load price and drawdown data for all ETFs, filtered to analysis period"""
+def load_etf_prices_cached(etf):
+    """Load and cache ETF prices"""
+    return load_etf_prices(etf)
+
+
+def load_all_etf_data_precomputed(_start_date, _end_date):
+    """Load precomputed drawdown data and prices for all ETFs, filtered to analysis period"""
     price_data = {}
     dd_data = []
 
     for etf in ARK_ETFS:
-        etf_prices = load_etf_prices(etf)
-        if len(etf_prices) > 0:
+        # Load prices (lightweight)
+        prices = load_etf_prices_cached(etf)
+        if len(prices) > 0:
             # Filter prices to analysis period
-            etf_prices = etf_prices[
-                (etf_prices['Date'] >= _start_date) &
-                (etf_prices['Date'] <= _end_date)
+            prices = prices[
+                (prices['Date'] >= _start_date) &
+                (prices['Date'] <= _end_date)
             ].copy()
-            if len(etf_prices) > 0:
-                price_data[etf] = etf_prices
-                dd_df = calculate_drawdowns(etf_prices, start_date=_start_date, end_date=_end_date)
-                if len(dd_df) > 0:
-                    dd_df.insert(0, 'ETF', etf)
-                    dd_data.append(dd_df)
+            if len(prices) > 0:
+                price_data[etf] = prices
+
+        # Load precomputed drawdowns (fast)
+        dd_df = load_etf_drawdowns(etf)
+        if len(dd_df) > 0:
+            # Filter by period
+            dd_df = filter_by_period(dd_df, _start_date, _end_date)
+            if len(dd_df) > 0:
+                dd_df.insert(0, 'ETF', etf)
+                dd_data.append(dd_df)
 
     all_dd = pd.concat(dd_data, ignore_index=True) if dd_data else pd.DataFrame()
     return price_data, all_dd
 
+
 with st.spinner("Loading ETF drawdown data..."):
-    etf_prices, etf_dd = load_all_etf_data(get_input_files_hash(), get_current_period(), start_date, end_date)
+    etf_prices, etf_dd = load_all_etf_data_precomputed(start_date, end_date)
 
 # Section 1: ARK ETF Price Overview
 st.subheader("ARK ETF Price Trends")

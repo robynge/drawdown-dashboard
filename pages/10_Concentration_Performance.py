@@ -1,4 +1,4 @@
-"""Concentration vs Performance Analysis Page
+"""Concentration vs Performance Analysis Page - Using Precomputed Data
 
 Analyze the relationship between portfolio concentration (HHI) and relative performance (ARK vs QQQ).
 Includes regime analysis and regression tests.
@@ -17,8 +17,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, OUTPUT_DIR
-from data_loader import load_ark_holdings, get_ark_files_hash
-from hhi_calculator import calculate_hhi_time_series
+from precomputed_loader import (
+    load_concentration_performance,
+    filter_by_period,
+    check_precomputed_exists
+)
 from chart_config import CHART_CONFIG
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
@@ -44,107 +47,9 @@ st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_dat
 
 "" # Space
 
-
-@st.cache_data
-def get_cached_qqq_prices(_files_hash):
-    """Load and cache QQQ prices"""
-    qqq_file = OUTPUT_DIR / 'QQQ_prices.csv'
-    if qqq_file.exists():
-        df = pd.read_csv(qqq_file)
-        df['Date'] = pd.to_datetime(df['Date'])
-        return df
-    return pd.DataFrame()
-
-
-@st.cache_data
-def get_cached_etf_prices(_files_hash, etf):
-    """Load and cache ETF prices"""
-    etf_file = OUTPUT_DIR / f'{etf}_prices.csv'
-    if etf_file.exists():
-        df = pd.read_csv(etf_file)
-        df['Date'] = pd.to_datetime(df['Date'])
-        return df
-    return pd.DataFrame()
-
-
-@st.cache_data
-def calculate_hhi_data(_files_hash, etf, period_key, _start_date, _end_date, _holdings):
-    """Calculate HHI time series for an ETF"""
-    holdings = _holdings
-
-    # Filter to analysis period and exclude currency/money market
-    holdings_filtered = holdings[
-        (holdings['Date'] >= _start_date) &
-        (holdings['Date'] <= _end_date)
-    ].copy()
-
-    # Filter out currency tickers
-    if 'Bloomberg Name' in holdings_filtered.columns:
-        holdings_filtered = holdings_filtered[
-            ~holdings_filtered['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-        ]
-
-    # Filter out money market funds (prefix matching)
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
-    ticker_symbols = holdings_filtered['Ticker'].str.split().str[0]
-    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
-    holdings_filtered = holdings_filtered[~is_mm]
-
-    # Calculate HHI time series
-    hhi_df = calculate_hhi_time_series(holdings_filtered[['Date', 'Ticker', 'Weight']])
-
-    return hhi_df
-
-
-@st.cache_data
-def calculate_spread_data(_files_hash, etf, _etf_prices, _qqq_prices, _hhi_data):
-    """Calculate daily returns, spread, and merge with HHI"""
-    etf_prices = _etf_prices.copy()
-    qqq_prices = _qqq_prices.copy()
-    hhi_data = _hhi_data.copy()
-
-    if len(etf_prices) == 0 or len(qqq_prices) == 0:
-        return pd.DataFrame()
-
-    # Merge on date
-    merged = pd.merge(
-        etf_prices[['Date', 'Close']].rename(columns={'Close': 'ETF_Price'}),
-        qqq_prices[['Date', 'Close']].rename(columns={'Close': 'QQQ_Price'}),
-        on='Date',
-        how='inner'
-    )
-
-    if len(merged) == 0:
-        return pd.DataFrame()
-
-    # Drop rows with NaN prices
-    merged = merged.dropna(subset=['ETF_Price', 'QQQ_Price'])
-
-    if len(merged) < 2:
-        return pd.DataFrame()
-
-    # Calculate daily returns
-    merged['ETF_Daily_Return'] = merged['ETF_Price'].pct_change() * 100
-    merged['QQQ_Daily_Return'] = merged['QQQ_Price'].pct_change() * 100
-    merged['Spread'] = merged['ETF_Daily_Return'] - merged['QQQ_Daily_Return']
-
-    # Calculate cumulative returns from start
-    first_etf = merged['ETF_Price'].iloc[0]
-    first_qqq = merged['QQQ_Price'].iloc[0]
-    merged['ETF_Cumulative'] = (merged['ETF_Price'] / first_etf - 1) * 100
-    merged['QQQ_Cumulative'] = (merged['QQQ_Price'] / first_qqq - 1) * 100
-    merged['Cumulative_Spread'] = merged['ETF_Cumulative'] - merged['QQQ_Cumulative']
-
-    # Merge with HHI
-    merged = pd.merge(merged, hhi_data[['Date', 'HHI', 'Effective_Positions']], on='Date', how='inner')
-
-    # Calculate HHI change
-    merged['HHI_Change'] = merged['HHI'].diff()
-
-    # Drop first row (NaN from pct_change)
-    merged = merged.dropna(subset=['ETF_Daily_Return', 'QQQ_Daily_Return', 'Spread'])
-
-    return merged
+# Check for precomputed data
+if not check_precomputed_exists():
+    st.warning("Precomputed data not found. Please run `python convert_to_parquet.py` to generate precomputed data for faster loading.")
 
 
 @st.cache_data
@@ -254,9 +159,6 @@ def run_regression_analysis(spread_data):
     return results
 
 
-# Load data
-files_hash = get_ark_files_hash()
-
 # ETF Selection
 st.subheader("Select ETF")
 
@@ -269,13 +171,17 @@ selected_etf = st.pills(
 
 "" # Space
 
-# Load data for selected ETF
+# Load precomputed data
 with st.spinner("Loading data..."):
-    holdings = load_ark_holdings(files_hash, selected_etf)
-    etf_prices = get_cached_etf_prices(files_hash, selected_etf)
-    qqq_prices = get_cached_qqq_prices(files_hash)
-    hhi_data = calculate_hhi_data(files_hash, selected_etf, get_current_period(), start_date, end_date, holdings)
-    spread_data = calculate_spread_data(files_hash, selected_etf, etf_prices, qqq_prices, hhi_data)
+    # Load precomputed concentration performance data (fast)
+    spread_data_full = load_concentration_performance(selected_etf)
+
+    if len(spread_data_full) == 0:
+        st.warning(f"No precomputed concentration performance data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
+        st.stop()
+
+    # Filter by analysis period
+    spread_data = filter_by_period(spread_data_full, start_date, end_date)
 
 if len(spread_data) > 0:
     # =========================================================================
@@ -285,7 +191,7 @@ if len(spread_data) > 0:
 
     spread_card = st.container(border=True)
     with spread_card:
-        # Returns & Concentration chart (from HHI Analysis)
+        # Returns & Concentration chart
         fig_returns = make_subplots(specs=[[{"secondary_y": True}]])
 
         # ETF cumulative return

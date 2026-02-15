@@ -1,0 +1,332 @@
+"""Precomputed data loader module
+
+Provides unified interface to load precomputed data for Streamlit pages.
+All heavy computation is moved to convert_to_parquet.py, this module
+only handles reading parquet files and filtering by period.
+"""
+import pandas as pd
+import json
+from pathlib import Path
+from typing import Tuple, Optional
+
+# Paths
+PROJECT_ROOT = Path(__file__).parent.parent
+INPUT_DIR = PROJECT_ROOT / 'input'
+ARK_PRECOMPUTED_DIR = INPUT_DIR / 'ark_etfs' / 'precomputed'
+R3000_PRECOMPUTED_DIR = INPUT_DIR / 'russell_3000' / 'precomputed'
+METADATA_PATH = INPUT_DIR / 'precomputed' / 'metadata.json'
+
+
+def _ensure_datetime(df: pd.DataFrame, date_cols: list) -> pd.DataFrame:
+    """Ensure date columns are datetime type"""
+    for col in date_cols:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col])
+    return df
+
+
+def load_etf_drawdowns(etf: str) -> pd.DataFrame:
+    """Load precomputed ETF-level drawdowns
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+
+    Returns:
+        DataFrame with drawdown data (peak_date, trough_date, depth_pct, etc.)
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_etf_drawdowns.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['peak_date', 'trough_date', 'recovery_date'])
+
+
+def load_hhi_timeseries(etf: str) -> pd.DataFrame:
+    """Load precomputed HHI time series for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+
+    Returns:
+        DataFrame with columns: Date, HHI, Effective_Positions, Top5_Concentration, Num_Positions
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_hhi_timeseries.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['Date'])
+
+
+def load_correlation_matrix(etf: str, lookback_days: int = 250) -> pd.DataFrame:
+    """Load precomputed correlation matrix for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+        lookback_days: Lookback period in days (60, 120, or 250)
+
+    Returns:
+        DataFrame with correlation matrix (tickers as index and columns)
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_correlation_matrix_{lookback_days}d.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    return pd.read_parquet(path)
+
+
+def load_weighted_correlation_matrix(etf: str, lookback_days: int = 250) -> pd.DataFrame:
+    """Load precomputed weighted correlation matrix for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+        lookback_days: Lookback period in days (60, 120, or 250)
+
+    Returns:
+        DataFrame with weighted correlation matrix (tickers as index and columns)
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_weighted_correlation_matrix_{lookback_days}d.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    return pd.read_parquet(path)
+
+
+def load_rolling_correlations(etf: str, lookback_days: int = 250, rolling_window: int = 20) -> pd.DataFrame:
+    """Load precomputed rolling correlations for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+        lookback_days: Lookback period in days (60, 120, or 250)
+        rolling_window: Rolling window size (20 or 30)
+
+    Returns:
+        DataFrame with columns: Date, mean_corr, median_corr, weighted_mean_corr
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_rolling_correlations_{lookback_days}d_{rolling_window}w.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['Date'])
+
+
+def load_holdings_drawdowns(etf: str) -> pd.DataFrame:
+    """Load precomputed holdings drawdowns for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+
+    Returns:
+        DataFrame with drawdown data for all constituent stocks
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_holdings_drawdowns.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['peak_date', 'trough_date', 'recovery_date'])
+
+
+def load_concentration_performance(etf: str) -> pd.DataFrame:
+    """Load precomputed concentration vs performance data for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+
+    Returns:
+        DataFrame with merged price, HHI, and spread data
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_concentration_performance.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['Date'])
+
+
+def load_r3000_drawdowns() -> pd.DataFrame:
+    """Load precomputed R3000 drawdowns for all stocks
+
+    Returns:
+        DataFrame with columns: ticker, max_drawdown, num_drawdowns, gics_industry_group
+    """
+    path = R3000_PRECOMPUTED_DIR / 'r3000_drawdowns_full.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    return pd.read_parquet(path)
+
+
+def load_iwv_etf_drawdowns() -> pd.DataFrame:
+    """Load precomputed IWV ETF drawdowns
+
+    Returns:
+        DataFrame with IWV ETF drawdown data
+    """
+    path = R3000_PRECOMPUTED_DIR / 'iwv_etf_drawdowns.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['peak_date', 'trough_date', 'recovery_date'])
+
+
+def load_correlation_returns(etf: str, lookback_days: int = 250) -> pd.DataFrame:
+    """Load precomputed returns data used for correlation calculation
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+        lookback_days: Lookback period in days
+
+    Returns:
+        DataFrame with daily returns for each holding
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_returns_{lookback_days}d.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    if 'Date' in df.columns:
+        df['Date'] = pd.to_datetime(df['Date'])
+        df = df.set_index('Date')
+    return df
+
+
+def load_current_weights(etf: str) -> pd.DataFrame:
+    """Load precomputed current weights for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+
+    Returns:
+        DataFrame with columns: Ticker, Weight
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_current_weights.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    return pd.read_parquet(path)
+
+
+def load_ark_holdings_max_drawdowns(etf: str = None) -> pd.DataFrame:
+    """Load precomputed max drawdowns for ARK holdings
+
+    Args:
+        etf: ETF name (e.g., 'ARKK'). If None, returns all ETFs.
+
+    Returns:
+        DataFrame with columns: etf, ticker, max_drawdown, num_drawdowns, first_date, last_date
+    """
+    path = ARK_PRECOMPUTED_DIR / 'ark_holdings_max_drawdowns.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+
+    # Ensure date columns are datetime
+    df = _ensure_datetime(df, ['first_date', 'last_date'])
+
+    if etf is not None:
+        df = df[df['etf'] == etf].copy()
+
+    return df
+
+
+def filter_by_period(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestamp,
+                     date_column: str = 'Date') -> pd.DataFrame:
+    """Filter DataFrame by analysis period
+
+    Args:
+        df: DataFrame to filter
+        start_date: Period start date
+        end_date: Period end date
+        date_column: Name of date column to filter on
+
+    Returns:
+        Filtered DataFrame
+    """
+    if len(df) == 0 or date_column not in df.columns:
+        return df
+
+    mask = (df[date_column] >= start_date) & (df[date_column] <= end_date)
+    return df[mask].copy()
+
+
+def filter_drawdowns_by_period(df: pd.DataFrame, start_date: pd.Timestamp,
+                                end_date: pd.Timestamp) -> pd.DataFrame:
+    """Filter drawdowns DataFrame by peak_date within analysis period
+
+    Args:
+        df: DataFrame with peak_date column
+        start_date: Period start date
+        end_date: Period end date
+
+    Returns:
+        Filtered DataFrame
+    """
+    if len(df) == 0 or 'peak_date' not in df.columns:
+        return df
+
+    mask = (df['peak_date'] >= start_date) & (df['peak_date'] <= end_date)
+    return df[mask].copy()
+
+
+def get_metadata() -> dict:
+    """Load precomputed metadata
+
+    Returns:
+        Dictionary with metadata (version, generated_at, source_hashes, parameters)
+    """
+    if not METADATA_PATH.exists():
+        return {}
+
+    with open(METADATA_PATH, 'r') as f:
+        return json.load(f)
+
+
+def check_precomputed_validity() -> Tuple[bool, str]:
+    """Check if precomputed data is valid and up-to-date
+
+    Returns:
+        Tuple of (is_valid, message)
+    """
+    # Check if precomputed directories exist
+    if not ARK_PRECOMPUTED_DIR.exists():
+        return False, "Precomputed data directory not found. Run `python convert_to_parquet.py` to generate."
+
+    # Check if metadata exists
+    if not METADATA_PATH.exists():
+        return False, "Metadata file not found. Run `python convert_to_parquet.py` to generate."
+
+    # Load metadata
+    metadata = get_metadata()
+    if not metadata:
+        return False, "Metadata file is empty. Run `python convert_to_parquet.py` to generate."
+
+    # Check source file hashes
+    from data_loader import get_ark_files_hash, get_r3000_files_hash
+
+    current_ark_hash = get_ark_files_hash()
+    current_r3000_hash = get_r3000_files_hash()
+
+    stored_ark_hash = metadata.get('source_hashes', {}).get('ark_files_hash', 0)
+    stored_r3000_hash = metadata.get('source_hashes', {}).get('r3000_files_hash', 0)
+
+    if current_ark_hash != stored_ark_hash:
+        return False, "ARK source data has been updated. Run `python convert_to_parquet.py` to regenerate precomputed data."
+
+    if current_r3000_hash != stored_r3000_hash:
+        return False, "Russell 3000 source data has been updated. Run `python convert_to_parquet.py` to regenerate precomputed data."
+
+    return True, f"Precomputed data is valid. Generated at: {metadata.get('generated_at', 'unknown')}"
+
+
+def check_precomputed_exists() -> bool:
+    """Quick check if any precomputed data exists (for page initialization)
+
+    Returns:
+        True if precomputed data exists, False otherwise
+    """
+    return ARK_PRECOMPUTED_DIR.exists() and any(ARK_PRECOMPUTED_DIR.glob('*.parquet'))
