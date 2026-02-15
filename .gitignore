@@ -17,12 +17,14 @@ env/
 data/cache/
 
 # Parquet files (large transformed data files)
-input/ark_etfs/*.parquet
-input/russell_3000/*.parquet
+input/ark_etfs/*_Transformed_Data.parquet
+input/russell_3000/*_Transformed_Data.parquet
 
-# But keep precomputed data (small, needed for Streamlit Cloud)
+# But keep precomputed/cache data (small, needed for Streamlit Cloud)
 !input/ark_etfs/precomputed/
 !input/russell_3000/precomputed/
+!input/russell_3000/*_cache.parquet
+!input/ark_etfs/*_cache.parquet
 !input/precomputed/
 
 # IDE
