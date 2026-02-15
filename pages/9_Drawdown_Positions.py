@@ -27,6 +27,17 @@ st.set_page_config(
     layout="wide"
 )
 
+
+@st.cache_data
+def load_etf_prices(etf):
+    """Load ETF prices from CSV"""
+    etf_file = OUTPUT_DIR / f'{etf}_prices.csv'
+    if etf_file.exists():
+        df = pd.read_csv(etf_file)
+        df['Date'] = pd.to_datetime(df['Date'])
+        return df
+    return pd.DataFrame()
+
 # Initialize session state and render period selector
 init_session_state()
 with st.sidebar:
@@ -69,8 +80,16 @@ with st.spinner("Loading data..."):
     # Load precomputed position changes
     position_changes_full = load_position_changes(selected_etf)
 
-    # Load precomputed HHI data
+    # Load precomputed HHI data and filter to analysis period
     hhi_full = load_hhi_timeseries(selected_etf)
+    hhi_period = filter_by_period(hhi_full, start_date, end_date)
+
+    # Load ETF prices and filter to analysis period
+    etf_prices_full = load_etf_prices(selected_etf)
+    etf_prices = etf_prices_full[
+        (etf_prices_full['Date'] >= start_date) &
+        (etf_prices_full['Date'] <= end_date)
+    ].copy() if len(etf_prices_full) > 0 else pd.DataFrame()
 
 if len(drawdowns) > 0:
     # Filter to top 10 historical drawdowns (exclude current)
@@ -169,27 +188,81 @@ if len(drawdowns) > 0:
 
                     "" # Space
 
-                    # HHI chart during drawdown
-                    fig_hhi = go.Figure()
-                    fig_hhi.add_trace(go.Scatter(
-                        x=hhi_during_dd['Date'],
-                        y=hhi_during_dd['HHI'],
-                        mode='lines',
-                        name='HHI',
-                        line=dict(color='steelblue', width=2)
-                    ))
-                    fig_hhi.update_layout(
-                        title=f"HHI During Drawdown",
-                        xaxis_title="Date",
-                        yaxis_title="HHI",
-                        height=300,
-                        plot_bgcolor='white',
-                        paper_bgcolor='white',
-                        margin=dict(l=0, r=0, t=40, b=0)
-                    )
-                    fig_hhi.update_xaxes(gridcolor='lightgray')
-                    fig_hhi.update_yaxes(gridcolor='lightgray')
-                    st.plotly_chart(fig_hhi, width='stretch', config=CHART_CONFIG)
+                    # Price & HHI chart for entire analysis period with highlighted drawdown
+                    if len(etf_prices) > 0 and len(hhi_period) > 0:
+                        from plotly.subplots import make_subplots
+
+                        fig_hhi = make_subplots(specs=[[{"secondary_y": True}]])
+
+                        # Add drawdown region highlight
+                        fig_hhi.add_vrect(
+                            x0=peak_date,
+                            x1=trough_date,
+                            fillcolor='rgba(255, 0, 0, 0.15)',
+                            layer="below",
+                            line_width=0
+                        )
+
+                        # ETF Price line
+                        fig_hhi.add_trace(
+                            go.Scatter(
+                                x=etf_prices['Date'],
+                                y=etf_prices['Close'],
+                                mode='lines',
+                                name=f'{selected_etf} Price',
+                                line=dict(color='black', width=2),
+                                hovertemplate=f'<b>{selected_etf}</b><br>Date: %{{x|%Y-%m-%d}}<br>Price: $%{{y:.2f}}<extra></extra>'
+                            ),
+                            secondary_y=False
+                        )
+
+                        # HHI line
+                        fig_hhi.add_trace(
+                            go.Scatter(
+                                x=hhi_period['Date'],
+                                y=hhi_period['HHI'],
+                                mode='lines',
+                                name='HHI',
+                                line=dict(color='steelblue', width=2, dash='dot'),
+                                hovertemplate='<b>HHI</b><br>Date: %{x|%Y-%m-%d}<br>HHI: %{y:.4f}<extra></extra>'
+                            ),
+                            secondary_y=True
+                        )
+
+                        # Add vertical lines for peak and trough
+                        fig_hhi.add_vline(x=peak_date, line_dash="dash", line_color="red", line_width=1)
+                        fig_hhi.add_vline(x=trough_date, line_dash="dash", line_color="red", line_width=1)
+
+                        # Add annotations for peak and trough
+                        fig_hhi.add_annotation(
+                            x=peak_date, y=1.02, yref="paper",
+                            text="Peak", showarrow=False,
+                            font=dict(size=10, color='red')
+                        )
+                        fig_hhi.add_annotation(
+                            x=trough_date, y=1.02, yref="paper",
+                            text="Trough", showarrow=False,
+                            font=dict(size=10, color='red')
+                        )
+
+                        fig_hhi.update_layout(
+                            title=f"{selected_etf} Price & HHI (Drawdown #{dd_rank} Highlighted)",
+                            height=400,
+                            plot_bgcolor='white',
+                            paper_bgcolor='white',
+                            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+                            margin=dict(l=0, r=0, t=60, b=0),
+                            hovermode='x unified'
+                        )
+                        fig_hhi.update_xaxes(title_text="Date", gridcolor='lightgray')
+                        fig_hhi.update_yaxes(title_text=f"{selected_etf} Price ($)", gridcolor='lightgray', secondary_y=False)
+                        fig_hhi.update_yaxes(title_text="HHI", showgrid=False, secondary_y=True)
+
+                        st.plotly_chart(fig_hhi, width='stretch', config=CHART_CONFIG)
+
+                        st.markdown("<small>*Red shaded area indicates the selected drawdown period.*</small>", unsafe_allow_html=True)
+                    else:
+                        st.warning("Price or HHI data not available for this period")
                 else:
                     st.warning("No HHI data available for this period")
 
@@ -269,7 +342,6 @@ if len(drawdowns) > 0:
                     fig_changes = go.Figure()
 
                     bar_width = 0.7
-                    green_bar_width = 0.82
 
                     for i, ticker in enumerate(tickers):
                         peak_w = peak_weights[i]
@@ -309,11 +381,11 @@ if len(drawdowns) > 0:
                                 y=[ticker], x=[change], orientation='h',
                                 marker=dict(color='rgba(50,180,50,0.85)', line=dict(width=0)),
                                 base=peak_w,
-                                width=green_bar_width,
+                                width=bar_width,
                                 showlegend=False, hoverinfo='skip'
                             ))
                             fig_changes.add_trace(go.Bar(
-                                y=[ticker], x=[peak_w], orientation='h',
+                                y=[ticker], x=[trough_w], orientation='h',
                                 marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=2)),
                                 width=bar_width,
                                 showlegend=False, hoverinfo='skip'
