@@ -6,7 +6,8 @@ import plotly.graph_objects as go
 import sys
 from pathlib import Path
 
-# Add src to path
+# Add project root and src to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, OUTPUT_DIR
