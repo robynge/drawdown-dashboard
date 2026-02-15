@@ -115,9 +115,13 @@ if len(drawdowns) > 0:
         trough_date = selected_dd['trough_date']
         dd_rank = selected_dd['rank']
 
-        # Try to get precomputed position changes
+        # Try to get precomputed position changes (match by peak_date, not rank)
         if len(position_changes_full) > 0:
-            comparison = position_changes_full[position_changes_full['dd_rank'] == dd_rank].copy()
+            # Ensure peak_date_actual is datetime for comparison
+            if 'peak_date_actual' in position_changes_full.columns:
+                position_changes_full['peak_date_actual'] = pd.to_datetime(position_changes_full['peak_date_actual'])
+            # Match by peak_date since ranks are period-specific but precomputed data uses global dates
+            comparison = position_changes_full[position_changes_full['peak_date_actual'] == peak_date].copy()
             if len(comparison) > 0:
                 peak_date_actual = comparison['peak_date_actual'].iloc[0]
                 trough_date_actual = comparison['trough_date_actual'].iloc[0]
