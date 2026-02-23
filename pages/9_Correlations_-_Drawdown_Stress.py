@@ -218,11 +218,15 @@ if len(stress_corr) > 0:
                     'rgba(255, 228, 181, 0.5)'
                 ]
 
-                # Add drawdown shaded regions
+                # Add drawdown shaded regions using add_shape for better compatibility
                 for idx, (_, row) in enumerate(stress_corr.iterrows()):
-                    fig_stress.add_vrect(
+                    fig_stress.add_shape(
+                        type="rect",
                         x0=row['peak_date'],
                         x1=row['trough_date'],
+                        y0=0,
+                        y1=1,
+                        yref="paper",
                         fillcolor=dd_colors[idx % len(dd_colors)],
                         layer="below",
                         line_width=0
