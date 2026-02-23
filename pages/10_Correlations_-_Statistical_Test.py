@@ -301,9 +301,9 @@ if len(returns) >= window_size * 2:
             st.metric("Observed Δ (Mean)", f"{delta_obs:+.4f}")
 
         with result_cols[1]:
-            # P-value display: show "< 1/n" if p=0 (more scientifically accurate)
+            # P-value display: show "< 0.0001" if p=0 (more readable)
             if p_value == 0:
-                p_display = f"< {1/n_bootstrap:.1e}"
+                p_display = "< 0.0001"
             else:
                 p_display = f"{p_value:.4f}"
             st.metric("P-Value", p_display)
