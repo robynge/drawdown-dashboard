@@ -60,24 +60,8 @@ with cols[0]:
             label_visibility="collapsed"
         )
 
-        "" # Space
-
-        st.markdown("##### Lookback Period")
-        st.markdown("*For normal correlation baseline*")
-        lookback_options = {
-            "60 Days": 60,
-            "120 Days": 120,
-            "250 Days": 250
-        }
-        selected_lookback = st.pills(
-            "Lookback",
-            options=list(lookback_options.keys()),
-            default="120 Days",
-            label_visibility="collapsed"
-        )
-        lookback_days = lookback_options[selected_lookback]
-
-# Load data
+# Load data - use 120 days as fixed baseline for normal correlation
+lookback_days = 120
 stress_corr = load_stress_correlations(selected_etf)
 corr_matrix = load_correlation_matrix(selected_etf, lookback_days)
 
@@ -109,7 +93,7 @@ if len(stress_corr) > 0:
 
             st.markdown("**Normal Correlation**")
             st.markdown(f"Mean: **{normal_corr:.3f}**")
-            st.caption(f"Based on {selected_lookback}")
+            st.caption("Based on 120-day baseline")
 
             "" # Space
 
@@ -139,7 +123,7 @@ if len(stress_corr) > 0:
         metric_cols = st.columns(3)
         with metric_cols[0]:
             st.metric("Normal Correlation", f"{normal_corr:.3f}",
-                      help=f"Average pairwise correlation over {selected_lookback}")
+                      help="Average pairwise correlation over 120-day baseline")
 
         with metric_cols[1]:
             st.metric("Stress Correlation", f"{stress_mean:.3f}",
