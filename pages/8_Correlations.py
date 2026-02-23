@@ -811,41 +811,94 @@ if corr_matrix is not None and len(corr_matrix) > 0:
     # Correlation Matrix Data Table & Download (at bottom of page)
     st.subheader("Data Download")
 
-    data_card = st.container(border=True)
-    with data_card:
-        # Show current selections
-        st.markdown("**Current Selection:**")
-        weight_label = "Weighted" if use_weighted_corr else "Unweighted"
-        st.markdown(f"- **ETF:** {selected_etf}")
-        st.markdown(f"- **Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
-        st.markdown(f"- **Lookback Period:** {lookback_days} days")
-        st.markdown(f"- **Correlation Mode:** {correlation_mode}")
-        st.markdown(f"- **Correlation Type:** {weight_label}")
+    # Show current selections
+    weight_label = "Weighted" if use_weighted_corr else "Unweighted"
+    st.markdown(f"**ETF:** {selected_etf} | **Mode:** {correlation_mode} | **Type:** {weight_label}")
 
-        ""  # Space
+    ""  # Space
 
-        # Clean column names for display
-        display_corr = corr_matrix.copy()
-        display_corr.columns = [c.split()[0] if isinstance(c, str) else c for c in display_corr.columns]
-        display_corr.index = [c.split()[0] if isinstance(c, str) else c for c in display_corr.index]
+    # Create tabs for different data views
+    data_tabs = st.tabs(["Correlation Matrix", "Pairwise Rankings"])
 
-        # Display table
-        st.dataframe(
-            display_corr.round(3),
-            width='stretch',
-            height=400
-        )
+    # Tab 1: Correlation Matrix
+    with data_tabs[0]:
+        matrix_card = st.container(border=True)
+        with matrix_card:
+            # Clean column names for display
+            display_corr = corr_matrix.copy()
+            display_corr.columns = [c.split()[0] if isinstance(c, str) else c for c in display_corr.columns]
+            display_corr.index = [c.split()[0] if isinstance(c, str) else c for c in display_corr.index]
 
-        ""  # Space
+            st.markdown(f"**{len(display_corr)} x {len(display_corr)} correlation matrix**")
 
-        # Download button
-        csv_data = display_corr.to_csv()
-        st.download_button(
-            label="Download Correlation Matrix (CSV)",
-            data=csv_data,
-            file_name=f"{selected_etf}_correlation_matrix_{correlation_mode.lower()}_{lookback_days}d.csv",
-            mime="text/csv"
-        )
+            # Display table
+            st.dataframe(
+                display_corr.round(3),
+                width='stretch',
+                height=400
+            )
+
+            ""  # Space
+
+            # Download button
+            csv_data = display_corr.to_csv()
+            st.download_button(
+                label="Download Correlation Matrix (CSV)",
+                data=csv_data,
+                file_name=f"{selected_etf}_correlation_matrix_{correlation_mode.lower()}.csv",
+                mime="text/csv"
+            )
+
+    # Tab 2: Pairwise Rankings
+    with data_tabs[1]:
+        rankings_card = st.container(border=True)
+        with rankings_card:
+            # Build pairwise rankings DataFrame
+            n = len(corr_matrix.columns)
+            tickers = corr_matrix.columns.tolist()
+            tickers_clean = [t.split()[0] if isinstance(t, str) else t for t in tickers]
+
+            # Get all pairwise correlations
+            pairs_data = []
+            for i in range(n):
+                for j in range(i + 1, n):
+                    corr_val = corr_matrix.iloc[i, j]
+                    if not pd.isna(corr_val):
+                        pairs_data.append({
+                            'Ticker 1': tickers_clean[i],
+                            'Ticker 2': tickers_clean[j],
+                            'Correlation': round(corr_val, 4)
+                        })
+
+            pairs_df = pd.DataFrame(pairs_data)
+
+            if len(pairs_df) > 0:
+                # Sort by correlation (descending)
+                pairs_df = pairs_df.sort_values('Correlation', ascending=False).reset_index(drop=True)
+                pairs_df.index = pairs_df.index + 1  # Start index from 1
+                pairs_df.index.name = 'Rank'
+
+                st.markdown(f"**{len(pairs_df)} pairwise correlations (sorted by correlation)**")
+
+                # Display table
+                st.dataframe(
+                    pairs_df,
+                    width='stretch',
+                    height=400
+                )
+
+                ""  # Space
+
+                # Download button
+                csv_rankings = pairs_df.to_csv()
+                st.download_button(
+                    label="Download Pairwise Rankings (CSV)",
+                    data=csv_rankings,
+                    file_name=f"{selected_etf}_pairwise_rankings_{correlation_mode.lower()}.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.warning("No pairwise correlations available.")
 
 else:
     # More specific error messages for debugging
