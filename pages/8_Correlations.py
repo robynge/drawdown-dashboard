@@ -337,23 +337,6 @@ with cols[0]:
 
         ""  # Space
 
-        st.markdown("##### Rolling Window")
-        rolling_options = {
-            "20 Days": 20,
-            "30 Days": 30
-        }
-        selected_rolling = st.pills(
-            "Rolling",
-            options=list(rolling_options.keys()),
-            default="20 Days",
-            label_visibility="collapsed"
-        )
-        if selected_rolling is None:
-            selected_rolling = "20 Days"
-        rolling_window = rolling_options[selected_rolling]
-
-        ""  # Space
-
         st.markdown("##### Correlation Mode")
         correlation_mode = st.pills(
             "Mode",
@@ -363,6 +346,27 @@ with cols[0]:
         )
         if correlation_mode is None:
             correlation_mode = "Overall"
+
+        # Rolling Window only shown for Overall mode
+        if correlation_mode == "Overall":
+            ""  # Space
+
+            st.markdown("##### Rolling Window")
+            rolling_options = {
+                "20 Days": 20,
+                "30 Days": 30
+            }
+            selected_rolling = st.pills(
+                "Rolling",
+                options=list(rolling_options.keys()),
+                default="20 Days",
+                label_visibility="collapsed"
+            )
+            if selected_rolling is None:
+                selected_rolling = "20 Days"
+            rolling_window = rolling_options[selected_rolling]
+        else:
+            rolling_window = 20  # Default value when not shown
 
         ""  # Space
 
