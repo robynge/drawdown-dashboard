@@ -15,6 +15,8 @@ from config import ARK_ETFS
 from precomputed_loader import (
     load_stress_correlations,
     load_correlation_matrix,
+    load_etf_drawdowns,
+    filter_drawdowns_by_period,
     check_precomputed_exists
 )
 from data_loader import load_etf_prices
@@ -80,28 +82,41 @@ with cols[0]:
 
 # Load data
 stress_corr_full = load_stress_correlations(selected_etf)
+etf_drawdowns = load_etf_drawdowns(selected_etf)
 corr_matrix = load_correlation_matrix(selected_etf, lookback_days)
 
-# Filter drawdowns: Top 1 from 2021-2023 + Top 10 from 2024-2026 = 11 total
+# Get drawdowns for each period (with period-specific ranking)
+# Period 1: 2021-2023 - get top 1
+period1_start = pd.Timestamp('2021-01-01')
+period1_end = pd.Timestamp('2023-12-31')
+dd_2021_2023 = filter_drawdowns_by_period(etf_drawdowns, period1_start, period1_end)
+dd_2021_2023 = dd_2021_2023[dd_2021_2023['rank'] != 'Current']
+if len(dd_2021_2023) > 0:
+    dd_2021_2023 = dd_2021_2023[dd_2021_2023['rank'] == 1].head(1)
+
+# Period 2: 2024-2026 - get top 10
+period2_start = pd.Timestamp('2024-01-01')
+period2_end = pd.Timestamp('2026-12-31')
+dd_2024_2026 = filter_drawdowns_by_period(etf_drawdowns, period2_start, period2_end)
+dd_2024_2026 = dd_2024_2026[dd_2024_2026['rank'] != 'Current']
+if len(dd_2024_2026) > 0:
+    dd_2024_2026 = dd_2024_2026[dd_2024_2026['rank'].astype(int) <= 10]
+
+# Combine drawdowns from both periods
+combined_dd = pd.concat([dd_2021_2023, dd_2024_2026], ignore_index=True)
+
+# Match with stress correlation data by peak_date
 stress_corr = pd.DataFrame()
-if len(stress_corr_full) > 0:
-    # Period cutoff
-    period_cutoff = pd.Timestamp('2024-01-01')
-
-    # Split by period based on peak_date
-    period_2021_2023 = stress_corr_full[stress_corr_full['peak_date'] < period_cutoff].copy()
-    period_2024_2026 = stress_corr_full[stress_corr_full['peak_date'] >= period_cutoff].copy()
-
-    # Sort by depth and take top N from each period
-    if len(period_2021_2023) > 0:
-        period_2021_2023 = period_2021_2023.sort_values('depth_pct', ascending=True).head(1)
-    if len(period_2024_2026) > 0:
-        period_2024_2026 = period_2024_2026.sort_values('depth_pct', ascending=True).head(10)
-
-    # Combine
-    stress_corr = pd.concat([period_2021_2023, period_2024_2026], ignore_index=True)
-
-    # Re-rank by depth
+if len(combined_dd) > 0 and len(stress_corr_full) > 0:
+    # Merge to get correlation data
+    stress_corr = combined_dd.merge(
+        stress_corr_full[['peak_date', 'mean_corr', 'median_corr', 'min_corr', 'max_corr', 'std_corr', 'num_tickers', 'num_pairs']],
+        on='peak_date',
+        how='left'
+    )
+    # Rename columns for consistency
+    stress_corr = stress_corr.rename(columns={'rank': 'dd_rank', 'duration': 'duration_days'})
+    # Re-rank by depth (ascending = most negative first)
     stress_corr = stress_corr.sort_values('depth_pct', ascending=True).reset_index(drop=True)
     stress_corr['dd_rank'] = range(1, len(stress_corr) + 1)
 
