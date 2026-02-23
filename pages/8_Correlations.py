@@ -314,7 +314,8 @@ with cols[0]:
             "ETF",
             options=ARK_ETFS,
             default=ARK_ETFS[0],
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="etf_selector"
         )
 
         ""  # Space
@@ -329,7 +330,8 @@ with cols[0]:
             "Lookback",
             options=list(lookback_options.keys()),
             default="120 Days",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="lookback_selector"
         )
         if selected_lookback is None:
             selected_lookback = "120 Days"
@@ -342,7 +344,8 @@ with cols[0]:
             "Mode",
             options=["Overall", "Drawdown", "Recovery"],
             default="Overall",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="correlation_mode_selector"
         )
         if correlation_mode is None:
             correlation_mode = "Overall"
@@ -360,7 +363,8 @@ with cols[0]:
                 "Rolling",
                 options=list(rolling_options.keys()),
                 default="20 Days",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key="rolling_window_selector"
             )
             if selected_rolling is None:
                 selected_rolling = "20 Days"
