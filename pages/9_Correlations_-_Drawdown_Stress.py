@@ -110,15 +110,18 @@ stress_corr = pd.DataFrame()
 if len(combined_dd) > 0 and len(stress_corr_full) > 0:
     # Merge to get correlation data
     stress_corr = combined_dd.merge(
-        stress_corr_full[['peak_date', 'mean_corr', 'median_corr', 'min_corr', 'max_corr', 'std_corr', 'num_tickers', 'num_pairs']],
+        stress_corr_full[['peak_date', 'mean_corr', 'median_corr', 'min_corr', 'max_corr', 'std_corr', 'num_tickers', 'num_pairs', 'duration_days']],
         on='peak_date',
         how='left'
     )
-    # Rename columns for consistency
-    stress_corr = stress_corr.rename(columns={'rank': 'dd_rank', 'duration': 'duration_days'})
+    # Calculate duration_days if not present
+    if 'duration_days' not in stress_corr.columns or stress_corr['duration_days'].isna().all():
+        stress_corr['duration_days'] = (stress_corr['trough_date'] - stress_corr['peak_date']).dt.days
     # Re-rank by depth (ascending = most negative first)
     stress_corr = stress_corr.sort_values('depth_pct', ascending=True).reset_index(drop=True)
     stress_corr['dd_rank'] = range(1, len(stress_corr) + 1)
+    # Drop rows without correlation data
+    stress_corr = stress_corr.dropna(subset=['mean_corr'])
 
 # Calculate normal correlation baseline
 normal_corr = 0
