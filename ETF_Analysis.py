@@ -15,7 +15,7 @@ from drawdown_calculator import calculate_drawdowns
 from chart_config import CHART_CONFIG
 from recovery_probability import get_etf_drawdowns_in_depth_range
 from session_utils import init_session_state, get_current_dates, render_period_selector, get_current_period
-from precomputed_loader import load_etf_drawdowns, filter_by_period, check_precomputed_exists
+from precomputed_loader import check_precomputed_exists
 
 st.set_page_config(
     page_title="ETF Analysis",
@@ -73,14 +73,10 @@ def load_all_etf_data_precomputed(_start_date, _end_date):
             if len(prices) > 0:
                 price_data[etf] = prices
 
-                # Try precomputed drawdowns first, fall back to runtime calculation
-                dd_df = load_etf_drawdowns(etf)
-                if len(dd_df) > 0:
-                    # Filter by period
-                    dd_df = filter_by_period(dd_df, _start_date, _end_date)
-                else:
-                    # Fall back to runtime calculation
-                    dd_df = calculate_drawdowns(prices, start_date=_start_date, end_date=_end_date)
+                # Calculate drawdowns for the specific analysis period
+                # Runtime calculation ensures we get top 10 drawdowns WITHIN the period
+                # (precomputed data only has global top 10, which doesn't work for period filtering)
+                dd_df = calculate_drawdowns(prices, start_date=_start_date, end_date=_end_date)
 
                 if len(dd_df) > 0:
                     dd_df = dd_df.copy()
