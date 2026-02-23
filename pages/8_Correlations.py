@@ -44,7 +44,6 @@ Analyze pairwise correlations across all current holdings in an ARK ETF.
 """
 
 st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
-st.caption("*Correlation Matrix uses lookback from end date. Drawdown/Recovery modes use all historical drawdowns (2021-2026).*")
 
 "" # Space
 
