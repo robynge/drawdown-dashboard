@@ -41,7 +41,7 @@ Analyze how portfolio correlations change during drawdown periods (stress correl
 """
 
 st.markdown("**Analysis Period:** 2021-01-01 to 2026-02-21")
-st.caption("Includes top 1 drawdown from 2021-2023 + top 10 drawdowns from 2024-2026 (11 total).")
+st.caption("Includes top 1 drawdown from 2021-2023 + available drawdowns from 2024-2026.")
 
 "" # Space
 
@@ -303,7 +303,7 @@ if len(stress_corr) > 0:
 
                 st.plotly_chart(fig_stress, width='stretch')
 
-                st.markdown("<small>*Colored regions show drawdown periods (top 1 from 2021-2023 + top 10 from 2024-2026). Red line connects mean correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline.*</small>", unsafe_allow_html=True)
+                st.markdown("<small>*Colored regions show drawdown periods (top 1 from 2021-2023 + available from 2024-2026). Red line connects mean correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline.*</small>", unsafe_allow_html=True)
             else:
                 st.warning(f"No price data available for {selected_etf}")
 
