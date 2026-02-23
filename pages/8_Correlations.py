@@ -200,8 +200,15 @@ def calculate_correlation_from_returns(returns_df):
     if len(valid_cols) < 2:
         return pd.DataFrame()
 
-    # Calculate correlation - NaN between non-overlapping stocks is fine
-    return returns_only[valid_cols].corr()
+    # Calculate correlation
+    corr_matrix = returns_only[valid_cols].corr()
+
+    # Remove stocks that have NO valid correlation with any other stock
+    # (all off-diagonal values are NaN)
+    has_valid_corr = (corr_matrix.notna().sum() > 1)  # >1 because diagonal is always 1.0
+    corr_matrix = corr_matrix.loc[has_valid_corr, has_valid_corr]
+
+    return corr_matrix
 
 
 def get_correlation_stats(corr_matrix, weights_df=None):
