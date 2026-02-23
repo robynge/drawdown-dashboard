@@ -19,7 +19,8 @@ from precomputed_loader import (
     load_current_weights,
     load_etf_drawdowns,
     filter_by_period,
-    check_precomputed_exists
+    check_precomputed_exists,
+    ARK_PRECOMPUTED_DIR
 )
 from data_loader import load_etf_prices, load_ark_holdings, get_ark_files_hash
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
@@ -45,6 +46,13 @@ Analyze pairwise correlations across all current holdings in an ARK ETF.
 # Check for precomputed data
 if not check_precomputed_exists():
     st.warning("Precomputed data not found. Please run `python convert_to_parquet.py` to generate precomputed data for faster loading.")
+    # Show diagnostic info
+    with st.expander("Diagnostic Info"):
+        st.code(f"Precomputed dir: {ARK_PRECOMPUTED_DIR}")
+        st.code(f"Dir exists: {ARK_PRECOMPUTED_DIR.exists()}")
+        if ARK_PRECOMPUTED_DIR.exists():
+            files = list(ARK_PRECOMPUTED_DIR.glob('*.parquet'))
+            st.code(f"Parquet files found: {len(files)}")
 
 
 def get_period_dates(drawdowns_df):
