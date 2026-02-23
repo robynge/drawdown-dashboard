@@ -169,12 +169,12 @@ if len(stress_corr) > 0:
                 # Create figure with secondary y-axis
                 fig_stress = make_subplots(specs=[[{"secondary_y": True}]])
 
-                # Drawdown colors
+                # Drawdown colors (0.5 opacity for better visibility)
                 dd_colors = [
-                    'rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
-                    'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
-                    'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
-                    'rgba(255, 228, 181, 0.3)'
+                    'rgba(255, 99, 71, 0.5)', 'rgba(255, 165, 0, 0.5)', 'rgba(255, 215, 0, 0.5)',
+                    'rgba(144, 238, 144, 0.5)', 'rgba(173, 216, 230, 0.5)', 'rgba(221, 160, 221, 0.5)',
+                    'rgba(255, 192, 203, 0.5)', 'rgba(176, 224, 230, 0.5)', 'rgba(240, 230, 140, 0.5)',
+                    'rgba(255, 228, 181, 0.5)'
                 ]
 
                 # Add drawdown shaded regions
