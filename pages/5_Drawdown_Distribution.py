@@ -42,6 +42,10 @@ start_date, end_date = get_current_dates()
 Compare drawdown distributions between ARK ETF holdings and Russell 3000 constituents.
 """
 
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+
+"" # Space
+
 # Check for precomputed data
 if not check_precomputed_exists():
     st.warning("Precomputed data not found. Please run `python convert_to_parquet.py` to generate precomputed data for faster loading.")

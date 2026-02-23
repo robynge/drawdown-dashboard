@@ -40,6 +40,10 @@ start_date, end_date = get_current_dates()
 
 st.title("Individual Stock vs Peer Group")
 
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+
+"" # Space
+
 # Check for precomputed data
 if not check_precomputed_exists():
     st.warning("Precomputed data not found. Run `python convert_to_parquet.py` for faster loading.")

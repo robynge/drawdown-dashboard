@@ -36,6 +36,10 @@ start_date, end_date = get_current_dates()
 Bootstrap permutation test to determine if portfolio correlation has significantly changed.
 """
 
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+
+"" # Space
+
 @st.cache_data
 def prepare_returns_data_precomputed(_files_hash, etf, lookback_days, period_key, _start_date, _end_date):
     """Load precomputed returns data for correlation analysis

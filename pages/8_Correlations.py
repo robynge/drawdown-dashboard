@@ -43,6 +43,11 @@ start_date, end_date = get_current_dates()
 Analyze pairwise correlations across all current holdings in an ARK ETF.
 """
 
+st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+st.caption("*Correlation Matrix uses lookback from end date. Drawdown/Recovery modes use all historical drawdowns (2021-2026).*")
+
+"" # Space
+
 # Check for precomputed data
 if not check_precomputed_exists():
     st.warning("Precomputed data not found. Please run `python convert_to_parquet.py` to generate precomputed data for faster loading.")

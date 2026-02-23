@@ -37,8 +37,8 @@ start_date, end_date = get_current_dates()
 Analyze how portfolio correlations change during drawdown periods (stress correlations).
 """
 
-st.markdown("**Analysis Period:** 2021-01-01 to 2026-02-21 (Full Data)")
-st.caption("Stress correlations are calculated across all top 10 drawdowns in the full historical period.")
+st.markdown("**Analysis Period:** Full Historical Data (2021-2026)")
+st.caption("Stress correlations are calculated across all top 10 drawdowns in the full historical period. This analysis ignores the period selector.")
 
 "" # Space
 
