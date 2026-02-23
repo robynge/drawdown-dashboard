@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import sys
 from pathlib import Path
 
@@ -163,11 +162,11 @@ if len(stress_corr) > 0:
             etf_prices = load_etf_prices(selected_etf)
 
             if len(etf_prices) > 0:
-                # Use full price history (not filtered by analysis period)
-                etf_prices_filtered = etf_prices.copy()
+                # Use full price history
+                price_df = etf_prices.copy()
 
-                # Create figure with secondary y-axis
-                fig_stress = make_subplots(specs=[[{"secondary_y": True}]])
+                # Create figure (go.Figure works with add_vrect, make_subplots doesn't)
+                fig_stress = go.Figure()
 
                 # Drawdown colors
                 dd_colors = [
@@ -188,17 +187,14 @@ if len(stress_corr) > 0:
                     )
 
                 # Add ETF price line
-                fig_stress.add_trace(
-                    go.Scatter(
-                        x=etf_prices_filtered['Date'],
-                        y=etf_prices_filtered['Close'],
-                        mode='lines',
-                        name=f'{selected_etf} Price',
-                        line=dict(color='black', width=2),
-                        hovertemplate=f'<b>{selected_etf}</b><br>Date: %{{x|%Y-%m-%d}}<br>Price: $%{{y:.2f}}<extra></extra>'
-                    ),
-                    secondary_y=False
-                )
+                fig_stress.add_trace(go.Scatter(
+                    x=price_df['Date'],
+                    y=price_df['Close'],
+                    mode='lines',
+                    name=f'{selected_etf} Price',
+                    line=dict(color='black', width=2),
+                    hoverinfo='skip'
+                ))
 
                 # Calculate midpoints and add correlation points
                 midpoint_dates = []
@@ -206,7 +202,6 @@ if len(stress_corr) > 0:
                 hover_texts = []
 
                 for _, row in stress_corr.iterrows():
-                    # Calculate midpoint date
                     peak = row['peak_date']
                     trough = row['trough_date']
                     midpoint = peak + (trough - peak) / 2
@@ -226,28 +221,26 @@ if len(stress_corr) > 0:
                 midpoint_corrs = [x[1] for x in sorted_data]
                 hover_texts = [x[2] for x in sorted_data]
 
-                # Add correlation line connecting midpoints
-                fig_stress.add_trace(
-                    go.Scatter(
-                        x=midpoint_dates,
-                        y=midpoint_corrs,
-                        mode='lines+markers',
-                        name='Stress Correlation',
-                        line=dict(color='red', width=2),
-                        marker=dict(size=12, color='red', symbol='circle'),
-                        hovertemplate='%{customdata}<extra></extra>',
-                        customdata=hover_texts
-                    ),
-                    secondary_y=True
-                )
+                # Add correlation line on secondary y-axis
+                fig_stress.add_trace(go.Scatter(
+                    x=midpoint_dates,
+                    y=midpoint_corrs,
+                    mode='lines+markers',
+                    name='Stress Correlation',
+                    line=dict(color='red', width=2),
+                    marker=dict(size=12, color='red', symbol='circle'),
+                    hovertemplate='%{customdata}<extra></extra>',
+                    customdata=hover_texts,
+                    yaxis='y2'
+                ))
 
                 # Add normal correlation reference line
                 fig_stress.add_hline(
                     y=normal_corr, line_dash="dash", line_color="steelblue", line_width=2,
-                    secondary_y=True,
                     annotation_text=f"Normal: {normal_corr:.3f}",
                     annotation_position="right",
-                    annotation_font_color="steelblue"
+                    annotation_font_color="steelblue",
+                    yref="y2"
                 )
 
                 fig_stress.update_layout(
@@ -256,12 +249,11 @@ if len(stress_corr) > 0:
                     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                     plot_bgcolor='white',
                     paper_bgcolor='white',
-                    hovermode='x unified'
+                    hovermode='closest',
+                    xaxis=dict(title="Date", gridcolor='lightgray'),
+                    yaxis=dict(title=f"{selected_etf} Price ($)", gridcolor='lightgray'),
+                    yaxis2=dict(title="Mean Correlation", overlaying='y', side='right', range=[0, 1], showgrid=False)
                 )
-
-                fig_stress.update_xaxes(title_text="Date", gridcolor='lightgray')
-                fig_stress.update_yaxes(title_text=f"{selected_etf} Price ($)", gridcolor='lightgray', secondary_y=False)
-                fig_stress.update_yaxes(title_text="Mean Correlation", range=[0, 1], showgrid=False, secondary_y=True)
 
                 st.plotly_chart(fig_stress, width='stretch')
 
