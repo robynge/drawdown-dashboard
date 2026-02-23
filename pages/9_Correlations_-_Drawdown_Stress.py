@@ -40,7 +40,7 @@ Analyze how portfolio correlations change during drawdown periods (stress correl
 """
 
 st.markdown("**Analysis Period:** 2021-01-01 to 2026-02-21")
-st.caption("Includes top 1 drawdown from 2021-2023 + available drawdowns from 2024-2026.")
+st.caption("Includes top 1 drawdown from 2021-2023 + top 10 drawdowns from 2024-2026.")
 
 "" # Space
 
@@ -106,6 +106,7 @@ combined_dd = pd.concat([dd_2021_2023, dd_2024_2026], ignore_index=True)
 
 # Match with stress correlation data by peak_date
 stress_corr = pd.DataFrame()
+all_drawdowns = pd.DataFrame()  # Keep all drawdowns for chart regions
 if len(combined_dd) > 0 and len(stress_corr_full) > 0:
     # Merge to get correlation data
     stress_corr = combined_dd.merge(
@@ -119,7 +120,9 @@ if len(combined_dd) > 0 and len(stress_corr_full) > 0:
     # Re-rank by depth (ascending = most negative first)
     stress_corr = stress_corr.sort_values('depth_pct', ascending=True).reset_index(drop=True)
     stress_corr['dd_rank'] = range(1, len(stress_corr) + 1)
-    # Drop rows without correlation data
+    # Keep all drawdowns for chart regions (before dropna)
+    all_drawdowns = stress_corr.copy()
+    # Drop rows without correlation data for statistics
     stress_corr = stress_corr.dropna(subset=['mean_corr'])
 
 # Calculate normal correlation baseline
@@ -132,10 +135,10 @@ if corr_matrix is not None and len(corr_matrix) > 0:
     if len(valid_corrs) > 0:
         normal_corr = np.mean(valid_corrs)
 
-if len(stress_corr) > 0:
+if len(all_drawdowns) > 0:
     # Summary statistics in left panel
-    stress_mean = stress_corr['mean_corr'].mean()
-    correlation_increase = ((stress_mean / normal_corr) - 1) * 100 if normal_corr > 0 else 0
+    stress_mean = stress_corr['mean_corr'].mean() if len(stress_corr) > 0 else 0
+    correlation_increase = ((stress_mean / normal_corr) - 1) * 100 if normal_corr > 0 and stress_mean > 0 else 0
 
     with cols[0]:
         "" # Space
@@ -144,7 +147,7 @@ if len(stress_corr) > 0:
         with stats_card:
             st.markdown("##### Summary Statistics")
 
-            st.markdown(f"**Drawdown Events:** {len(stress_corr)}")
+            st.markdown(f"**Drawdown Events:** {len(all_drawdowns)} ({len(stress_corr)} with corr data)")
 
             "" # Space
 
@@ -154,18 +157,22 @@ if len(stress_corr) > 0:
 
             "" # Space
 
-            st.markdown("**Stress Correlation**")
-            st.markdown(f"Mean: **{stress_mean:.3f}**")
-            delta_color = "🔴" if stress_mean > normal_corr else "🟢"
-            st.markdown(f"Δ: {delta_color} **{stress_mean - normal_corr:+.3f}**")
+            if len(stress_corr) > 0:
+                st.markdown("**Stress Correlation**")
+                st.markdown(f"Mean: **{stress_mean:.3f}**")
+                delta_color = "🔴" if stress_mean > normal_corr else "🟢"
+                st.markdown(f"Δ: {delta_color} **{stress_mean - normal_corr:+.3f}**")
 
-            "" # Space
+                "" # Space
 
-            st.markdown("**Correlation Increase**")
-            if correlation_increase > 0:
-                st.markdown(f"**+{correlation_increase:.1f}%** during stress")
+                st.markdown("**Correlation Increase**")
+                if correlation_increase > 0:
+                    st.markdown(f"**+{correlation_increase:.1f}%** during stress")
+                else:
+                    st.markdown(f"**{correlation_increase:.1f}%** during stress")
             else:
-                st.markdown(f"**{correlation_increase:.1f}%** during stress")
+                st.markdown("**Stress Correlation**")
+                st.markdown("*No data available*")
 
     # Right panel: Charts
     with cols[1]:
@@ -183,14 +190,22 @@ if len(stress_corr) > 0:
                       help=f"Average pairwise correlation over {selected_lookback}")
 
         with metric_cols[1]:
-            st.metric("Stress Correlation", f"{stress_mean:.3f}",
-                      delta=f"{stress_mean - normal_corr:+.3f}",
-                      delta_color="inverse",
-                      help="Average correlation during drawdown periods")
+            if len(stress_corr) > 0:
+                st.metric("Stress Correlation", f"{stress_mean:.3f}",
+                          delta=f"{stress_mean - normal_corr:+.3f}",
+                          delta_color="inverse",
+                          help="Average correlation during drawdown periods")
+            else:
+                st.metric("Stress Correlation", "N/A",
+                          help="No stress correlation data available")
 
         with metric_cols[2]:
-            st.metric("Correlation Increase", f"{correlation_increase:+.1f}%",
-                      help="How much correlations increase during stress")
+            if len(stress_corr) > 0:
+                st.metric("Correlation Increase", f"{correlation_increase:+.1f}%",
+                          help="How much correlations increase during stress")
+            else:
+                st.metric("Correlation Increase", "N/A",
+                          help="No stress correlation data available")
 
         "" # Space
 
@@ -209,16 +224,16 @@ if len(stress_corr) > 0:
                 # Create figure (same pattern as working ETF analysis)
                 fig_stress = go.Figure()
 
-                # Drawdown colors
+                # Drawdown colors (11 colors for 11 drawdowns)
                 dd_colors = [
                     'rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
                     'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
                     'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
-                    'rgba(255, 228, 181, 0.3)'
+                    'rgba(255, 228, 181, 0.3)', 'rgba(152, 251, 152, 0.3)'
                 ]
 
-                # Add drawdown shaded regions (same as ETF analysis)
-                for idx, (_, row) in enumerate(stress_corr.iterrows()):
+                # Add drawdown shaded regions for ALL drawdowns (same as ETF analysis)
+                for idx, (_, row) in enumerate(all_drawdowns.iterrows()):
                     fig_stress.add_vrect(
                         x0=row['peak_date'],
                         x1=row['trough_date'],
@@ -237,55 +252,57 @@ if len(stress_corr) > 0:
                     hoverinfo='skip'
                 ))
 
-                # Calculate midpoints for correlation points
-                midpoint_dates = []
-                midpoint_corrs = []
-                hover_texts = []
+                # Add correlation points only if we have correlation data
+                if len(stress_corr) > 0:
+                    # Calculate midpoints for correlation points
+                    midpoint_dates = []
+                    midpoint_corrs = []
+                    hover_texts = []
 
-                for _, row in stress_corr.iterrows():
-                    peak = row['peak_date']
-                    trough = row['trough_date']
-                    midpoint = peak + (trough - peak) / 2
-                    midpoint_dates.append(midpoint)
-                    midpoint_corrs.append(row['mean_corr'])
-                    duration = int(row['duration_days']) if pd.notna(row['duration_days']) else (trough - peak).days
-                    hover_texts.append(
-                        f"<b>Drawdown #{int(row['dd_rank'])}</b><br>" +
-                        f"Period: {peak.strftime('%Y-%m-%d')} to {trough.strftime('%Y-%m-%d')}<br>" +
-                        f"Depth: {row['depth_pct']:.1f}%<br>" +
-                        f"Duration: {duration} days<br>" +
-                        f"Mean Correlation: {row['mean_corr']:.3f}"
+                    for _, row in stress_corr.iterrows():
+                        peak = row['peak_date']
+                        trough = row['trough_date']
+                        midpoint = peak + (trough - peak) / 2
+                        midpoint_dates.append(midpoint)
+                        midpoint_corrs.append(row['mean_corr'])
+                        duration = int(row['duration_days']) if pd.notna(row['duration_days']) else (trough - peak).days
+                        hover_texts.append(
+                            f"<b>Drawdown #{int(row['dd_rank'])}</b><br>" +
+                            f"Period: {peak.strftime('%Y-%m-%d')} to {trough.strftime('%Y-%m-%d')}<br>" +
+                            f"Depth: {row['depth_pct']:.1f}%<br>" +
+                            f"Duration: {duration} days<br>" +
+                            f"Mean Correlation: {row['mean_corr']:.3f}"
+                        )
+
+                    # Sort by date
+                    sorted_data = sorted(zip(midpoint_dates, midpoint_corrs, hover_texts), key=lambda x: x[0])
+                    midpoint_dates = [x[0] for x in sorted_data]
+                    midpoint_corrs = [x[1] for x in sorted_data]
+                    hover_texts = [x[2] for x in sorted_data]
+
+                    # Add correlation line on secondary y-axis
+                    fig_stress.add_trace(go.Scatter(
+                        x=midpoint_dates,
+                        y=midpoint_corrs,
+                        mode='lines+markers',
+                        name='Stress Correlation',
+                        line=dict(color='red', width=2),
+                        marker=dict(size=12, color='red', symbol='circle'),
+                        hovertemplate='%{customdata}<extra></extra>',
+                        customdata=hover_texts,
+                        yaxis='y2'
+                    ))
+
+                    # Add normal correlation reference line on y2
+                    fig_stress.add_hline(
+                        y=normal_corr, line_dash="dash", line_color="steelblue", line_width=2,
+                        annotation_text=f"Normal: {normal_corr:.3f}",
+                        annotation_position="right",
+                        annotation_font_color="steelblue",
+                        yref="y2"
                     )
 
-                # Sort by date
-                sorted_data = sorted(zip(midpoint_dates, midpoint_corrs, hover_texts), key=lambda x: x[0])
-                midpoint_dates = [x[0] for x in sorted_data]
-                midpoint_corrs = [x[1] for x in sorted_data]
-                hover_texts = [x[2] for x in sorted_data]
-
-                # Add correlation line on secondary y-axis
-                fig_stress.add_trace(go.Scatter(
-                    x=midpoint_dates,
-                    y=midpoint_corrs,
-                    mode='lines+markers',
-                    name='Stress Correlation',
-                    line=dict(color='red', width=2),
-                    marker=dict(size=12, color='red', symbol='circle'),
-                    hovertemplate='%{customdata}<extra></extra>',
-                    customdata=hover_texts,
-                    yaxis='y2'
-                ))
-
-                # Add normal correlation reference line on y2
-                fig_stress.add_hline(
-                    y=normal_corr, line_dash="dash", line_color="steelblue", line_width=2,
-                    annotation_text=f"Normal: {normal_corr:.3f}",
-                    annotation_position="right",
-                    annotation_font_color="steelblue",
-                    yref="y2"
-                )
-
-                fig_stress.update_layout(
+                layout_args = dict(
                     title=f"{selected_etf} Price & Stress Correlation by Drawdown",
                     height=550,
                     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
@@ -294,8 +311,10 @@ if len(stress_corr) > 0:
                     hovermode='closest',
                     xaxis=dict(title="Date", gridcolor='lightgray'),
                     yaxis=dict(title=f"{selected_etf} Price ($)", gridcolor='lightgray'),
-                    yaxis2=dict(title="Mean Correlation", overlaying='y', side='right', range=[0, 1], showgrid=False)
                 )
+                if len(stress_corr) > 0:
+                    layout_args['yaxis2'] = dict(title="Mean Correlation", overlaying='y', side='right', range=[0, 1], showgrid=False)
+                fig_stress.update_layout(**layout_args)
 
                 st.plotly_chart(fig_stress, width='stretch')
 
@@ -310,7 +329,7 @@ if len(stress_corr) > 0:
 
         table_card = st.container(border=True)
         with table_card:
-            display_df = stress_corr.copy()
+            display_df = all_drawdowns.copy()
             display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
             display_df['trough_date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
             display_df = display_df.rename(columns={
@@ -340,11 +359,14 @@ if len(stress_corr) > 0:
         "" # Space
 
         # Insight
-        if stress_mean > normal_corr:
-            st.warning(f"⚠️ **Correlations increase {correlation_increase:.0f}% during drawdowns.** Diversification benefits are reduced when the portfolio is under stress.")
+        if len(stress_corr) > 0:
+            if stress_mean > normal_corr:
+                st.warning(f"⚠️ **Correlations increase {correlation_increase:.0f}% during drawdowns.** Diversification benefits are reduced when the portfolio is under stress.")
+            else:
+                st.success(f"✓ **Correlations remain stable during drawdowns.** The portfolio maintains diversification benefits during stress periods.")
         else:
-            st.success(f"✓ **Correlations remain stable during drawdowns.** The portfolio maintains diversification benefits during stress periods.")
+            st.info("No stress correlation data available for the selected drawdown periods.")
 
 else:
     with cols[1]:
-        st.warning(f"No stress correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
+        st.warning(f"No drawdown data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
