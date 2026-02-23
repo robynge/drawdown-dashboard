@@ -180,10 +180,11 @@ def calculate_correlation_from_returns(returns_df, weights_df=None):
 
     Args:
         returns_df: DataFrame with Date column (or index) and ticker columns
-        weights_df: Optional DataFrame with Ticker and Weight columns for weighted correlation
+        weights_df: Not used for matrix calculation (kept for API compatibility)
+                   Weighting is now only applied in statistics calculation
 
     Returns:
-        Correlation matrix DataFrame
+        Correlation matrix DataFrame (always unweighted - weighting affects stats only)
     """
     if len(returns_df) < 10:  # Need minimum data points
         return pd.DataFrame()
@@ -202,25 +203,9 @@ def calculate_correlation_from_returns(returns_df, weights_df=None):
 
     returns_filtered = returns_only[valid_cols]
 
-    # Calculate correlation (weighted or unweighted)
-    if weights_df is not None and len(weights_df) > 0:
-        # Weighted correlation: weight each return series by sqrt(weight)
-        weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
-        weighted_returns = returns_filtered.copy()
-        for col in weighted_returns.columns:
-            ticker_clean = col.split()[0] if isinstance(col, str) else col
-            weight = weights_dict.get(ticker_clean, weights_dict.get(col, 0))
-            if weight > 0:
-                weighted_returns[col] = weighted_returns[col] * np.sqrt(weight)
-            else:
-                weighted_returns[col] = np.nan
-        # Remove columns that became all NaN
-        weighted_returns = weighted_returns.dropna(axis=1, how='all')
-        if len(weighted_returns.columns) < 2:
-            return pd.DataFrame()
-        corr_matrix = weighted_returns.corr()
-    else:
-        corr_matrix = returns_filtered.corr()
+    # Always calculate unweighted correlation matrix
+    # Weighting is applied only in statistics (get_correlation_stats)
+    corr_matrix = returns_filtered.corr()
 
     # Remove stocks that have NO valid correlation with any other stock
     # (all off-diagonal values are NaN)
@@ -392,13 +377,10 @@ with st.spinner("Loading correlations..."):
         filtered_returns = pd.DataFrame()
         if len(returns) > 0 and len(drawdown_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, drawdown_periods)
-            weights_to_use = current_weights if use_weighted_corr else None
-            corr_matrix = calculate_correlation_from_returns(filtered_returns, weights_to_use)
-            corr_matrix_unweighted = calculate_correlation_from_returns(filtered_returns, None)
+            corr_matrix = calculate_correlation_from_returns(filtered_returns)
             total_days = len(filtered_returns)
         else:
             corr_matrix = pd.DataFrame()
-            corr_matrix_unweighted = pd.DataFrame()
             total_days = 0
         period_info = f"{len(drawdown_periods)} drawdown periods"
         num_periods = len(drawdown_periods)
@@ -408,13 +390,10 @@ with st.spinner("Loading correlations..."):
         filtered_returns = pd.DataFrame()
         if len(returns) > 0 and len(recovery_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, recovery_periods)
-            weights_to_use = current_weights if use_weighted_corr else None
-            corr_matrix = calculate_correlation_from_returns(filtered_returns, weights_to_use)
-            corr_matrix_unweighted = calculate_correlation_from_returns(filtered_returns, None)
+            corr_matrix = calculate_correlation_from_returns(filtered_returns)
             total_days = len(filtered_returns)
         else:
             corr_matrix = pd.DataFrame()
-            corr_matrix_unweighted = pd.DataFrame()
             total_days = 0
         period_info = f"{len(recovery_periods)} recovery periods"
         num_periods = len(recovery_periods)
