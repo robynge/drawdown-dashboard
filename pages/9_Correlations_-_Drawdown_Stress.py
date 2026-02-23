@@ -38,8 +38,8 @@ start_date, end_date = get_current_dates()
 Analyze how portfolio correlations change during drawdown periods (stress correlations).
 """
 
-st.markdown("**Analysis Period:** 2021-01-01 to 2026-02-21 (Full Data)")
-st.caption("Stress correlations are calculated across all top 10 drawdowns in the full historical period.")
+st.markdown("**Analysis Period:** 2021-01-01 to 2026-02-21")
+st.caption("Includes top 1 drawdown from 2021-2023 + top 10 drawdowns from 2024-2026 (11 total).")
 
 "" # Space
 
@@ -79,8 +79,31 @@ with cols[0]:
         lookback_days = lookback_options[selected_lookback]
 
 # Load data
-stress_corr = load_stress_correlations(selected_etf)
+stress_corr_full = load_stress_correlations(selected_etf)
 corr_matrix = load_correlation_matrix(selected_etf, lookback_days)
+
+# Filter drawdowns: Top 1 from 2021-2023 + Top 10 from 2024-2026 = 11 total
+stress_corr = pd.DataFrame()
+if len(stress_corr_full) > 0:
+    # Period cutoff
+    period_cutoff = pd.Timestamp('2024-01-01')
+
+    # Split by period based on peak_date
+    period_2021_2023 = stress_corr_full[stress_corr_full['peak_date'] < period_cutoff].copy()
+    period_2024_2026 = stress_corr_full[stress_corr_full['peak_date'] >= period_cutoff].copy()
+
+    # Sort by depth and take top N from each period
+    if len(period_2021_2023) > 0:
+        period_2021_2023 = period_2021_2023.sort_values('depth_pct', ascending=True).head(1)
+    if len(period_2024_2026) > 0:
+        period_2024_2026 = period_2024_2026.sort_values('depth_pct', ascending=True).head(10)
+
+    # Combine
+    stress_corr = pd.concat([period_2021_2023, period_2024_2026], ignore_index=True)
+
+    # Re-rank by depth
+    stress_corr = stress_corr.sort_values('depth_pct', ascending=True).reset_index(drop=True)
+    stress_corr['dd_rank'] = range(1, len(stress_corr) + 1)
 
 # Calculate normal correlation baseline
 normal_corr = 0
@@ -187,7 +210,7 @@ if len(stress_corr) > 0:
                         line_width=0
                     )
 
-                # Add ETF price line
+                # Add ETF price line (no hover info - only show drawdown/correlation on hover)
                 fig_stress.add_trace(
                     go.Scatter(
                         x=etf_prices_filtered['Date'],
@@ -195,7 +218,7 @@ if len(stress_corr) > 0:
                         mode='lines',
                         name=f'{selected_etf} Price',
                         line=dict(color='black', width=2),
-                        hovertemplate=f'<b>{selected_etf}</b><br>Date: %{{x|%Y-%m-%d}}<br>Price: $%{{y:.2f}}<extra></extra>'
+                        hoverinfo='skip'
                     ),
                     secondary_y=False
                 )
@@ -256,7 +279,7 @@ if len(stress_corr) > 0:
                     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                     plot_bgcolor='white',
                     paper_bgcolor='white',
-                    hovermode='x unified'
+                    hovermode='closest'
                 )
 
                 fig_stress.update_xaxes(title_text="Date", gridcolor='lightgray')
@@ -265,7 +288,7 @@ if len(stress_corr) > 0:
 
                 st.plotly_chart(fig_stress, width='stretch')
 
-                st.markdown("<small>*Colored regions show top 10 drawdown periods (colors match table order: #1=red, #2=orange, #3=yellow, etc.). Red line connects mean correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline.*</small>", unsafe_allow_html=True)
+                st.markdown("<small>*Colored regions show drawdown periods (top 1 from 2021-2023 + top 10 from 2024-2026). Red line connects mean correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline.*</small>", unsafe_allow_html=True)
             else:
                 st.warning(f"No price data available for {selected_etf}")
 
