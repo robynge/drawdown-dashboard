@@ -15,16 +15,20 @@ env/
 
 # Data cache
 data/cache/
+data/precomputed/
 
-# Keep transformed data parquet files (needed for Pages 3 and 4 to work)
-# ARK files: ~16MB, R3000 file: ~7MB - acceptable for git
-
-# Keep precomputed/cache data (needed for Streamlit Cloud)
-# !input/ark_etfs/precomputed/
-# !input/russell_3000/precomputed/
-# !input/russell_3000/*_cache.parquet
-# !input/ark_etfs/*_cache.parquet
-# !input/precomputed/
+# Large data files - excluded from git to reduce repo size
+input/ark_etfs/*.xlsx
+input/ark_etfs/*.parquet
+input/ark_etfs/*.csv
+input/ark_etfs/precomputed/
+input/russell_3000/*.xlsx
+input/russell_3000/*.parquet
+input/russell_3000/*.csv
+input/russell_3000/precomputed/
+input/precomputed/
+input/spx/*.jpg
+output/*.csv
 
 # IDE
 .vscode/
