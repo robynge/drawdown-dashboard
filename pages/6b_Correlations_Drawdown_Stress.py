@@ -38,7 +38,8 @@ start_date, end_date = get_current_dates()
 Analyze how portfolio correlations change during drawdown periods (stress correlations).
 """
 
-st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+st.markdown("**Analysis Period:** 2021-01-01 to 2026-02-21 (Full Data)")
+st.caption("Stress correlations are calculated across all top 10 drawdowns in the full historical period.")
 
 "" # Space
 
@@ -162,11 +163,8 @@ if len(stress_corr) > 0:
             etf_prices = load_etf_prices(selected_etf)
 
             if len(etf_prices) > 0:
-                # Filter to analysis period
-                etf_prices_filtered = etf_prices[
-                    (etf_prices['Date'] >= start_date) &
-                    (etf_prices['Date'] <= end_date)
-                ].copy()
+                # Use full price history (not filtered by analysis period)
+                etf_prices_filtered = etf_prices.copy()
 
                 # Create figure with secondary y-axis
                 fig_stress = make_subplots(specs=[[{"secondary_y": True}]])
@@ -267,7 +265,7 @@ if len(stress_corr) > 0:
 
                 st.plotly_chart(fig_stress, width='stretch')
 
-                st.markdown("<small>*Colored regions show drawdown periods. Red line connects mean correlation at midpoint of each drawdown. Blue dashed line = normal correlation.*</small>", unsafe_allow_html=True)
+                st.markdown("<small>*Colored regions show top 10 drawdown periods (colors match table order: #1=red, #2=orange, #3=yellow, etc.). Red line connects mean correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline.*</small>", unsafe_allow_html=True)
             else:
                 st.warning(f"No price data available for {selected_etf}")
 
