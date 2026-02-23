@@ -175,11 +175,12 @@ def calculate_holdings_returns(etf):
     return returns
 
 
-def calculate_correlation_from_returns(returns_df):
+def calculate_correlation_from_returns(returns_df, weights_df=None):
     """Calculate correlation matrix from returns DataFrame.
 
     Args:
         returns_df: DataFrame with Date column (or index) and ticker columns
+        weights_df: Optional DataFrame with Ticker and Weight columns for weighted correlation
 
     Returns:
         Correlation matrix DataFrame
@@ -199,8 +200,27 @@ def calculate_correlation_from_returns(returns_df):
     if len(valid_cols) < 2:
         return pd.DataFrame()
 
-    # Calculate correlation
-    corr_matrix = returns_only[valid_cols].corr()
+    returns_filtered = returns_only[valid_cols]
+
+    # Calculate correlation (weighted or unweighted)
+    if weights_df is not None and len(weights_df) > 0:
+        # Weighted correlation: weight each return series by sqrt(weight)
+        weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
+        weighted_returns = returns_filtered.copy()
+        for col in weighted_returns.columns:
+            ticker_clean = col.split()[0] if isinstance(col, str) else col
+            weight = weights_dict.get(ticker_clean, weights_dict.get(col, 0))
+            if weight > 0:
+                weighted_returns[col] = weighted_returns[col] * np.sqrt(weight)
+            else:
+                weighted_returns[col] = np.nan
+        # Remove columns that became all NaN
+        weighted_returns = weighted_returns.dropna(axis=1, how='all')
+        if len(weighted_returns.columns) < 2:
+            return pd.DataFrame()
+        corr_matrix = weighted_returns.corr()
+    else:
+        corr_matrix = returns_filtered.corr()
 
     # Remove stocks that have NO valid correlation with any other stock
     # (all off-diagonal values are NaN)
@@ -311,6 +331,8 @@ with cols[0]:
             default="120 Days",
             label_visibility="collapsed"
         )
+        if selected_lookback is None:
+            selected_lookback = "120 Days"
         lookback_days = lookback_options[selected_lookback]
 
         ""  # Space
@@ -326,6 +348,8 @@ with cols[0]:
             default="20 Days",
             label_visibility="collapsed"
         )
+        if selected_rolling is None:
+            selected_rolling = "20 Days"
         rolling_window = rolling_options[selected_rolling]
 
         ""  # Space
@@ -337,6 +361,8 @@ with cols[0]:
             default="Overall",
             label_visibility="collapsed"
         )
+        if correlation_mode is None:
+            correlation_mode = "Overall"
 
         ""  # Space
 
@@ -376,8 +402,9 @@ with st.spinner("Loading correlations..."):
         filtered_returns = pd.DataFrame()
         if len(returns) > 0 and len(drawdown_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, drawdown_periods)
-            corr_matrix = calculate_correlation_from_returns(filtered_returns)
-            corr_matrix_unweighted = corr_matrix  # Same for both
+            weights_to_use = current_weights if use_weighted_corr else None
+            corr_matrix = calculate_correlation_from_returns(filtered_returns, weights_to_use)
+            corr_matrix_unweighted = calculate_correlation_from_returns(filtered_returns, None)
             total_days = len(filtered_returns)
         else:
             corr_matrix = pd.DataFrame()
@@ -391,8 +418,9 @@ with st.spinner("Loading correlations..."):
         filtered_returns = pd.DataFrame()
         if len(returns) > 0 and len(recovery_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, recovery_periods)
-            corr_matrix = calculate_correlation_from_returns(filtered_returns)
-            corr_matrix_unweighted = corr_matrix  # Same for both
+            weights_to_use = current_weights if use_weighted_corr else None
+            corr_matrix = calculate_correlation_from_returns(filtered_returns, weights_to_use)
+            corr_matrix_unweighted = calculate_correlation_from_returns(filtered_returns, None)
             total_days = len(filtered_returns)
         else:
             corr_matrix = pd.DataFrame()
