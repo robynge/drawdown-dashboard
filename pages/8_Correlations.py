@@ -530,6 +530,36 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
     ""  # Space
 
+    # Correlation Matrix Data Table & Download
+    st.subheader("Correlation Matrix Data")
+
+    data_card = st.container(border=True)
+    with data_card:
+        # Clean column names for display
+        display_corr = corr_matrix.copy()
+        display_corr.columns = [c.split()[0] if isinstance(c, str) else c for c in display_corr.columns]
+        display_corr.index = [c.split()[0] if isinstance(c, str) else c for c in display_corr.index]
+
+        # Display table
+        st.dataframe(
+            display_corr.style.format("{:.3f}").background_gradient(cmap='RdBu_r', vmin=-1, vmax=1),
+            use_container_width=True,
+            height=400
+        )
+
+        ""  # Space
+
+        # Download button
+        csv_data = display_corr.to_csv()
+        st.download_button(
+            label="Download Correlation Matrix (CSV)",
+            data=csv_data,
+            file_name=f"{selected_etf}_correlation_matrix_{correlation_mode.lower()}.csv",
+            mime="text/csv"
+        )
+
+    ""  # Space
+
     # Correlation Time Series (only for Overall mode)
     if correlation_mode == "Overall":
         st.subheader("Correlation Time Series")
