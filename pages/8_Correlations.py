@@ -529,36 +529,6 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
     ""  # Space
 
-    # Correlation Matrix Data Table & Download
-    st.subheader("Correlation Matrix Data")
-
-    data_card = st.container(border=True)
-    with data_card:
-        # Clean column names for display
-        display_corr = corr_matrix.copy()
-        display_corr.columns = [c.split()[0] if isinstance(c, str) else c for c in display_corr.columns]
-        display_corr.index = [c.split()[0] if isinstance(c, str) else c for c in display_corr.index]
-
-        # Display table
-        st.dataframe(
-            display_corr.round(3),
-            use_container_width=True,
-            height=400
-        )
-
-        ""  # Space
-
-        # Download button
-        csv_data = display_corr.to_csv()
-        st.download_button(
-            label="Download Correlation Matrix (CSV)",
-            data=csv_data,
-            file_name=f"{selected_etf}_correlation_matrix_{correlation_mode.lower()}.csv",
-            mime="text/csv"
-        )
-
-    ""  # Space
-
     # Correlation Time Series (only for Overall mode)
     if correlation_mode == "Overall":
         st.subheader("Correlation Time Series")
@@ -800,6 +770,48 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                     st.warning("Could not merge correlation and price data.")
             else:
                 st.warning(f"No price data available for {selected_etf}")
+
+    ""  # Space
+
+    # Correlation Matrix Data Table & Download (at bottom of page)
+    st.subheader("Correlation Matrix Data")
+
+    data_card = st.container(border=True)
+    with data_card:
+        # Show current selections
+        st.markdown("**Current Selection:**")
+        weight_label = "Weighted" if use_weighted_corr else "Unweighted"
+        st.markdown(f"- **ETF:** {selected_etf}")
+        st.markdown(f"- **Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+        st.markdown(f"- **Lookback Period:** {lookback_days} days")
+        st.markdown(f"- **Rolling Window:** {rolling_window} days")
+        st.markdown(f"- **Correlation Mode:** {correlation_mode}")
+        st.markdown(f"- **Correlation Type:** {weight_label}")
+
+        ""  # Space
+
+        # Clean column names for display
+        display_corr = corr_matrix.copy()
+        display_corr.columns = [c.split()[0] if isinstance(c, str) else c for c in display_corr.columns]
+        display_corr.index = [c.split()[0] if isinstance(c, str) else c for c in display_corr.index]
+
+        # Display table
+        st.dataframe(
+            display_corr.round(3),
+            use_container_width=True,
+            height=400
+        )
+
+        ""  # Space
+
+        # Download button
+        csv_data = display_corr.to_csv()
+        st.download_button(
+            label="Download Correlation Matrix (CSV)",
+            data=csv_data,
+            file_name=f"{selected_etf}_correlation_matrix_{correlation_mode.lower()}_{lookback_days}d.csv",
+            mime="text/csv"
+        )
 
 else:
     # More specific error messages for debugging
