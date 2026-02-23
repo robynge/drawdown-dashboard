@@ -92,28 +92,86 @@ def filter_returns_by_periods(returns_df, periods):
     """Filter returns DataFrame to only include dates within specified periods.
 
     Args:
-        returns_df: DataFrame with 'Date' column and ticker columns
+        returns_df: DataFrame with Date as index (or column) and ticker columns
         periods: List of (start_date, end_date) tuples
 
     Returns:
-        Filtered DataFrame
+        Filtered DataFrame with Date as column
     """
-    if len(periods) == 0:
+    if len(periods) == 0 or len(returns_df) == 0:
         return pd.DataFrame()
 
-    mask = pd.Series(False, index=returns_df.index)
+    # Ensure Date is a column
+    if returns_df.index.name == 'Date' or (hasattr(returns_df.index, 'name') and returns_df.index.name is None and isinstance(returns_df.index[0], pd.Timestamp)):
+        df = returns_df.reset_index()
+        if df.columns[0] != 'Date':
+            df = df.rename(columns={df.columns[0]: 'Date'})
+    else:
+        df = returns_df.copy()
+
+    date_col = 'Date'
+    if date_col not in df.columns:
+        # Try first column
+        date_col = df.columns[0]
+
+    # Ensure dates are datetime
+    df[date_col] = pd.to_datetime(df[date_col])
+
+    mask = pd.Series(False, index=df.index)
     for start_date, end_date in periods:
-        period_mask = (returns_df['Date'] >= start_date) & (returns_df['Date'] <= end_date)
+        start_ts = pd.Timestamp(start_date)
+        end_ts = pd.Timestamp(end_date)
+        period_mask = (df[date_col] >= start_ts) & (df[date_col] <= end_ts)
         mask = mask | period_mask
 
-    return returns_df[mask].copy()
+    result = df[mask].copy()
+    return result
+
+
+@st.cache_data
+def calculate_holdings_returns(etf):
+    """Calculate daily returns for all holdings from price data.
+
+    Returns DataFrame with Date index and ticker columns containing daily returns.
+    """
+    files_hash = get_ark_files_hash()
+    holdings = load_ark_holdings(files_hash, etf)
+
+    if len(holdings) == 0:
+        return pd.DataFrame()
+
+    # Filter to stocks only (exclude non-stock tickers)
+    holdings = holdings[holdings['Ticker'].notna()].copy()
+
+    # Find price column
+    price_col = None
+    for col in ['YFinance Close Price', 'Close Price (USD)', 'Stock_Price']:
+        if col in holdings.columns:
+            price_col = col
+            break
+
+    if price_col is None:
+        return pd.DataFrame()
+
+    # Get prices - pivot to have dates as rows, tickers as columns
+    prices = holdings.pivot_table(
+        index='Date',
+        columns='Ticker',
+        values=price_col,
+        aggfunc='last'
+    )
+
+    # Calculate returns
+    returns = prices.pct_change()
+
+    return returns
 
 
 def calculate_correlation_from_returns(returns_df):
     """Calculate correlation matrix from returns DataFrame.
 
     Args:
-        returns_df: DataFrame with 'Date' column and ticker columns
+        returns_df: DataFrame with Date column (or index) and ticker columns
 
     Returns:
         Correlation matrix DataFrame
@@ -121,8 +179,11 @@ def calculate_correlation_from_returns(returns_df):
     if len(returns_df) < 10:  # Need minimum data points
         return pd.DataFrame()
 
-    # Drop Date column and calculate correlations
-    ticker_cols = [col for col in returns_df.columns if col != 'Date']
+    # Drop Date column if present and calculate correlations
+    ticker_cols = [col for col in returns_df.columns if col not in ['Date', 'index']]
+    if len(ticker_cols) == 0:
+        return pd.DataFrame()
+
     returns_only = returns_df[ticker_cols]
 
     # Filter columns with enough data (at least 50% non-NaN)
@@ -272,8 +333,11 @@ with st.spinner("Loading correlations..."):
     etf_drawdowns = load_etf_drawdowns(selected_etf)
     drawdown_periods, recovery_periods = get_period_dates(etf_drawdowns)
 
-    # Load returns for all modes (needed for period-based calculations)
-    returns = load_correlation_returns(selected_etf, lookback_days)
+    # Load returns - use full historical data for Drawdown/Recovery modes
+    if correlation_mode in ["Drawdown", "Recovery"]:
+        returns = calculate_holdings_returns(selected_etf)  # Full history from holdings
+    else:
+        returns = load_correlation_returns(selected_etf, lookback_days)
 
     # Calculate correlation matrix based on mode
     if correlation_mode == "Overall":
