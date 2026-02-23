@@ -523,68 +523,143 @@ if corr_matrix is not None and len(corr_matrix) > 0:
     # =========================================================================
     # S&P 500 Top 50 Correlation Matrix (Comparison)
     # =========================================================================
-    st.subheader("S&P 500 Top 50 Correlation Matrix (Comparison)")
+    st.subheader("S&P 500 Top 50 Correlation Analysis")
 
-    sp500_card = st.container(border=True)
-    with sp500_card:
-        sp500_corr = load_sp500_correlation_matrix(lookback_days)
+    sp500_cols = st.columns([1, 3])
 
-        if len(sp500_corr) > 0:
-            # Calculate S&P 500 stats
-            n = len(sp500_corr.columns)
-            triu_i, triu_j = np.triu_indices(n, k=1)
-            sp500_corr_values = sp500_corr.values[triu_i, triu_j]
-            valid_sp500_corrs = sp500_corr_values[~np.isnan(sp500_corr_values)]
-
-            sp500_mean = np.mean(valid_sp500_corrs)
-            sp500_median = np.median(valid_sp500_corrs)
-
-            # Compare with ARK
-            compare_cols = st.columns(2)
-            with compare_cols[0]:
-                st.markdown(f"**{selected_etf} Holdings**")
-                st.metric("Mean Correlation", f"{stats['mean']:.3f}")
-                st.metric("Median Correlation", f"{stats['median']:.3f}")
-                st.caption(f"{len(corr_matrix)} holdings")
-
-            with compare_cols[1]:
-                st.markdown("**S&P 500 Top 50**")
-                st.metric("Mean Correlation", f"{sp500_mean:.3f}",
-                          delta=f"{sp500_mean - stats['mean']:+.3f} vs {selected_etf}")
-                st.metric("Median Correlation", f"{sp500_median:.3f}",
-                          delta=f"{sp500_median - stats['median']:+.3f} vs {selected_etf}")
-                st.caption(f"{len(sp500_corr)} holdings")
+    with sp500_cols[0]:
+        sp500_controls = st.container(border=True)
+        with sp500_controls:
+            st.markdown("##### Lookback Period")
+            sp500_lookback_options = {
+                "60 Days": 60,
+                "120 Days": 120,
+                "250 Days": 250
+            }
+            sp500_selected_lookback = st.pills(
+                "SP500 Lookback",
+                options=list(sp500_lookback_options.keys()),
+                default="120 Days",
+                label_visibility="collapsed",
+                key="sp500_lookback"
+            )
+            sp500_lookback_days = sp500_lookback_options[sp500_selected_lookback]
 
             "" # Space
 
-            # S&P 500 Heatmap
-            fig_sp500 = go.Figure(data=go.Heatmap(
-                z=sp500_corr.values,
-                x=sp500_corr.columns.tolist(),
-                y=sp500_corr.columns.tolist(),
-                colorscale='RdBu_r',
-                zmid=0,
-                zmin=-1,
-                zmax=1,
-                text=np.round(sp500_corr.values, 2),
-                texttemplate='%{text}',
-                textfont={"size": 6},
-                hovertemplate='%{x} - %{y}<br>Correlation: %{z:.3f}<extra></extra>',
-                colorbar=dict(title="Correlation")
-            ))
+            st.markdown("##### Correlation Type")
+            st.markdown("Unweighted (Equal)")
+            st.caption("All pairs weighted equally")
 
-            fig_sp500.update_layout(
-                title=f"S&P 500 Top 50 Correlation Matrix ({selected_lookback})",
-                height=800,
-                xaxis=dict(tickangle=45, side='bottom', dtick=1, tickfont=dict(size=8)),
-                yaxis=dict(autorange='reversed', dtick=1, tickfont=dict(size=8)),
-                plot_bgcolor='white',
-                paper_bgcolor='white'
-            )
+    # Load S&P 500 correlation matrix
+    sp500_corr = load_sp500_correlation_matrix(sp500_lookback_days)
 
-            st.plotly_chart(fig_sp500, width='stretch')
+    if len(sp500_corr) > 0:
+        # Calculate S&P 500 stats
+        n = len(sp500_corr.columns)
+        triu_i, triu_j = np.triu_indices(n, k=1)
+        sp500_corr_values = sp500_corr.values[triu_i, triu_j]
+        valid_sp500_corrs = sp500_corr_values[~np.isnan(sp500_corr_values)]
 
-            st.markdown("<small>*S&P 500 Top 50 by market cap. Lower correlation = better diversification.*</small>", unsafe_allow_html=True)
+        sp500_mean = np.mean(valid_sp500_corrs)
+        sp500_median = np.median(valid_sp500_corrs)
+        sp500_std = np.std(valid_sp500_corrs)
+        sp500_min = np.min(valid_sp500_corrs)
+        sp500_max = np.max(valid_sp500_corrs)
+
+        # Find highest and lowest pairs
+        sorted_indices = np.argsort(valid_sp500_corrs)
+        tickers = sp500_corr.columns.tolist()
+
+        def get_sp500_pair(flat_idx):
+            # Map back to original indices
+            valid_mask = ~np.isnan(sp500_corr_values)
+            valid_indices = np.where(valid_mask)[0]
+            orig_idx = valid_indices[flat_idx]
+            i, j = triu_i[orig_idx], triu_j[orig_idx]
+            return (tickers[i], tickers[j], sp500_corr_values[orig_idx])
+
+        sp500_highest = [get_sp500_pair(idx) for idx in sorted_indices[-5:][::-1]]
+        sp500_lowest = [get_sp500_pair(idx) for idx in sorted_indices[:5]]
+
+        # Summary Statistics in left panel
+        with sp500_cols[0]:
+            "" # Space
+
+            sp500_stats_card = st.container(border=True)
+            with sp500_stats_card:
+                st.markdown("##### Summary Statistics")
+
+                st.markdown(f"**Holdings:** {len(sp500_corr)}")
+                st.markdown(f"**Pairs:** {len(valid_sp500_corrs)}")
+
+                "" # Space
+
+                st.markdown("**Correlation**")
+                st.markdown(f"Mean: **{sp500_mean:.3f}**")
+                st.markdown(f"Median: **{sp500_median:.3f}**")
+                st.markdown(f"Std: **{sp500_std:.3f}**")
+                st.markdown(f"Range: **{sp500_min:.3f}** to **{sp500_max:.3f}**")
+
+                "" # Space
+
+                # Comparison with selected ARK ETF
+                st.markdown(f"**vs {selected_etf}**")
+                delta_mean = sp500_mean - stats['mean']
+                delta_median = sp500_median - stats['median']
+                st.markdown(f"Mean Δ: **{delta_mean:+.3f}**")
+                st.markdown(f"Median Δ: **{delta_median:+.3f}**")
+
+    with sp500_cols[1]:
+        if len(sp500_corr) > 0:
+            sp500_heatmap_card = st.container(border=True)
+            with sp500_heatmap_card:
+                # S&P 500 Heatmap
+                fig_sp500 = go.Figure(data=go.Heatmap(
+                    z=sp500_corr.values,
+                    x=sp500_corr.columns.tolist(),
+                    y=sp500_corr.columns.tolist(),
+                    colorscale='RdBu_r',
+                    zmid=0,
+                    zmin=-1,
+                    zmax=1,
+                    text=np.round(sp500_corr.values, 2),
+                    texttemplate='%{text}',
+                    textfont={"size": 6},
+                    hovertemplate='%{x} - %{y}<br>Correlation: %{z:.3f}<extra></extra>',
+                    colorbar=dict(
+                        title="Correlation",
+                        tickvals=[-1, -0.5, 0, 0.5, 1],
+                        ticktext=["-1.0", "-0.5", "0.0", "0.5", "1.0"]
+                    )
+                ))
+
+                fig_sp500.update_layout(
+                    title=f"S&P 500 Top 50 Correlation Matrix ({sp500_selected_lookback})",
+                    height=750,
+                    xaxis=dict(tickangle=45, side='bottom', dtick=1, tickfont=dict(size=8)),
+                    yaxis=dict(autorange='reversed', dtick=1, tickfont=dict(size=8)),
+                    plot_bgcolor='white',
+                    paper_bgcolor='white'
+                )
+
+                st.plotly_chart(fig_sp500, width='stretch')
+
+                st.markdown("<small>*S&P 500 Top 50 by market cap. Lower average correlation = better diversification potential.*</small>", unsafe_allow_html=True)
+
+                "" # Space
+
+                # Highest and Lowest Correlations
+                corr_pair_cols = st.columns(2)
+                with corr_pair_cols[0]:
+                    st.markdown("##### Highest Correlations")
+                    for t1, t2, corr in sp500_highest:
+                        st.markdown(f"{t1} - {t2}: **{corr:.3f}**")
+
+                with corr_pair_cols[1]:
+                    st.markdown("##### Lowest Correlations")
+                    for t1, t2, corr in sp500_lowest:
+                        st.markdown(f"{t1} - {t2}: **{corr:.3f}**")
         else:
             st.warning("S&P 500 Top 50 correlation data not found. Run `python convert_to_parquet.py` to generate.")
 
