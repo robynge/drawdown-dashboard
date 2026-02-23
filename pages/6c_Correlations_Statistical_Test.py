@@ -19,8 +19,8 @@ from session_utils import init_session_state, get_current_dates, get_current_per
 from precomputed_loader import load_correlation_returns, load_current_weights, check_precomputed_exists
 
 st.set_page_config(
-    page_title="Correlation Test",
-    page_icon="📈",
+    page_title="Correlations - Statistical Test",
+    page_icon="📊",
     layout="wide"
 )
 
@@ -31,7 +31,7 @@ with st.sidebar:
 start_date, end_date = get_current_dates()
 
 """
-# Correlation Change Test
+# Correlations - Statistical Test
 
 Bootstrap permutation test to determine if portfolio correlation has significantly changed.
 """

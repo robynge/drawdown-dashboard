@@ -1,7 +1,7 @@
-"""Concentration vs Performance Analysis Page - Using Precomputed Data
+"""Concentration & Performance Analysis Page - Using Precomputed Data
 
-Analyze the relationship between portfolio concentration (HHI) and relative performance (ARK vs QQQ).
-Includes regime analysis and regression tests.
+Analyze portfolio concentration (HHI) and its relationship with ARK's relative performance vs QQQ.
+Includes HHI metrics, drawdown visualization, regime analysis, and regression tests.
 """
 import streamlit as st
 import pandas as pd
@@ -19,14 +19,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import ARK_ETFS, OUTPUT_DIR
 from precomputed_loader import (
     load_concentration_performance,
+    load_hhi_timeseries,
+    load_etf_drawdowns,
     filter_by_period,
+    filter_drawdowns_by_period,
     check_precomputed_exists
 )
 from chart_config import CHART_CONFIG
-from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
+from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector, is_latest_period
 
 st.set_page_config(
-    page_title="Concentration vs Performance",
+    page_title="Concentration & Performance",
     page_icon="📈",
     layout="wide"
 )
@@ -38,9 +41,9 @@ with st.sidebar:
 start_date, end_date = get_current_dates()
 
 """
-# Concentration vs Performance Analysis
+# Concentration & Performance Analysis
 
-Analyze how portfolio concentration (HHI) relates to ARK's relative performance vs QQQ.
+Analyze portfolio concentration (HHI) and its relationship with ARK's relative performance vs QQQ.
 """
 
 st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
@@ -171,6 +174,28 @@ selected_etf = st.pills(
 
 "" # Space
 
+@st.cache_data
+def get_cached_qqq_prices(_files_hash):
+    """Load and cache QQQ prices"""
+    qqq_file = OUTPUT_DIR / 'QQQ_prices.csv'
+    if qqq_file.exists():
+        df = pd.read_csv(qqq_file)
+        df['Date'] = pd.to_datetime(df['Date'])
+        return df
+    return pd.DataFrame()
+
+
+@st.cache_data
+def get_cached_etf_prices(_files_hash, etf):
+    """Load and cache ETF prices"""
+    etf_file = OUTPUT_DIR / f'{etf}_prices.csv'
+    if etf_file.exists():
+        df = pd.read_csv(etf_file)
+        df['Date'] = pd.to_datetime(df['Date'])
+        return df
+    return pd.DataFrame()
+
+
 # Load precomputed data
 with st.spinner("Loading data..."):
     # Load precomputed concentration performance data (fast)
@@ -183,11 +208,232 @@ with st.spinner("Loading data..."):
     # Filter by analysis period
     spread_data = filter_by_period(spread_data_full, start_date, end_date)
 
+    # Load HHI data for additional metrics
+    hhi_data_full = load_hhi_timeseries(selected_etf)
+    hhi_data = filter_by_period(hhi_data_full, start_date, end_date) if len(hhi_data_full) > 0 else pd.DataFrame()
+
+    # Load ETF and QQQ prices
+    etf_prices = get_cached_etf_prices(0, selected_etf)
+    qqq_prices = get_cached_qqq_prices(0)
+
 if len(spread_data) > 0:
     # =========================================================================
-    # Section 1: Spread Time Series
+    # Section 0: Current Concentration Metrics
     # =========================================================================
-    st.subheader("1. Relative Performance (Spread)")
+    if len(hhi_data) > 0:
+        st.subheader("Current Concentration Metrics")
+
+        latest_hhi = hhi_data.iloc[-1]
+
+        metric_cols = st.columns(4)
+
+        with metric_cols[0]:
+            st.metric(
+                "HHI",
+                f"{latest_hhi['HHI']:.4f}",
+                help="Herfindahl-Hirschman Index: Sum of squared weights. Higher = more concentrated."
+            )
+
+        with metric_cols[1]:
+            st.metric(
+                "Effective Positions",
+                f"{latest_hhi['Effective_Positions']:.1f}",
+                help="1/HHI: Equivalent number of equal-weighted positions."
+            )
+
+        with metric_cols[2]:
+            st.metric(
+                "Top 5 Concentration",
+                f"{latest_hhi['Top5_Concentration']*100:.1f}%",
+                help="Combined weight of top 5 positions."
+            )
+
+        with metric_cols[3]:
+            st.metric(
+                "Total Positions",
+                f"{latest_hhi['Num_Positions']:.0f}",
+                help="Number of positions in the portfolio."
+            )
+
+        "" # Space
+
+    # =========================================================================
+    # Section 0b: Price & Concentration with Drawdowns
+    # =========================================================================
+    if len(etf_prices) > 0 and len(hhi_data) > 0:
+        st.subheader("Price & Concentration")
+
+        # Filter ETF prices to analysis period
+        price_df = etf_prices[
+            (etf_prices['Date'] >= start_date) &
+            (etf_prices['Date'] <= end_date)
+        ].copy()
+
+        # Toggle for showing drawdowns
+        show_drawdowns = st.toggle("Show Drawdowns", value=True)
+
+        price_card = st.container(border=True)
+        with price_card:
+            # Load precomputed drawdowns
+            etf_dd_data = load_etf_drawdowns(selected_etf)
+            etf_dd_data = filter_drawdowns_by_period(etf_dd_data, start_date, end_date)
+
+            # Create figure
+            fig_price = go.Figure()
+
+            # Add drawdown shaded regions (if enabled)
+            if show_drawdowns and len(etf_dd_data) > 0:
+                top_10_dd = etf_dd_data[etf_dd_data['rank'] != 'Current'].head(10)
+
+                # Color palette for drawdowns
+                dd_colors = ['rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
+                             'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
+                             'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
+                             'rgba(255, 228, 181, 0.3)']
+
+                for idx, (_, row) in enumerate(top_10_dd.iterrows()):
+                    fig_price.add_vrect(
+                        x0=row['peak_date'],
+                        x1=row['trough_date'],
+                        fillcolor=dd_colors[idx % len(dd_colors)],
+                        layer="below",
+                        line_width=0
+                    )
+
+            # ETF price line
+            fig_price.add_trace(go.Scatter(
+                x=price_df['Date'],
+                y=price_df['Close'],
+                mode='lines',
+                name=f'{selected_etf} Price',
+                line=dict(color='black', width=2),
+                hovertemplate=f'<b>{selected_etf}</b><br>Date: %{{x|%Y-%m-%d}}<br>Price: $%{{y:.2f}}<extra></extra>'
+            ))
+
+            # QQQ price line (actual prices, Y-axis aligned so first day overlaps)
+            qqq_axis_range = None
+            if len(qqq_prices) > 0:
+                # Filter QQQ to match ETF date range
+                qqq_filtered = qqq_prices[
+                    (qqq_prices['Date'] >= price_df['Date'].min()) &
+                    (qqq_prices['Date'] <= price_df['Date'].max())
+                ].copy()
+
+                if len(qqq_filtered) > 0:
+                    # Get first day prices and ETF price range
+                    first_etf_price = price_df['Close'].iloc[0]
+                    first_qqq_price = qqq_filtered['Close'].iloc[0]
+                    etf_min = price_df['Close'].min()
+                    etf_max = price_df['Close'].max()
+
+                    # Calculate ETF percentage range from first price
+                    etf_min_pct = etf_min / first_etf_price
+                    etf_max_pct = etf_max / first_etf_price
+
+                    # Apply same percentage range to QQQ
+                    qqq_axis_range = [first_qqq_price * etf_min_pct, first_qqq_price * etf_max_pct]
+
+                    fig_price.add_trace(go.Scatter(
+                        x=qqq_filtered['Date'],
+                        y=qqq_filtered['Close'],
+                        mode='lines',
+                        name='QQQ Price',
+                        line=dict(color='orange', width=2),
+                        hovertemplate='<b>QQQ</b><br>Date: %{x|%Y-%m-%d}<br>Price: $%{y:.2f}<extra></extra>',
+                        yaxis='y3'
+                    ))
+
+            # Add current drawdown line and shaded area (only for latest period, if enabled and current drawdown exists)
+            current_dd_rows = etf_dd_data[etf_dd_data['rank'] == 'Current'] if len(etf_dd_data) > 0 else pd.DataFrame()
+            if is_latest_period() and show_drawdowns and len(current_dd_rows) > 0:
+                current_dd = current_dd_rows.iloc[0]
+                peak_price = current_dd['peak_price']
+                peak_date = current_dd['peak_date']
+                current_price = current_dd['trough_price']
+                current_dd_pct = current_dd['depth_pct']
+
+                fig_price.add_shape(
+                    type="line",
+                    x0=peak_date,
+                    x1=price_df['Date'].max(),
+                    y0=peak_price,
+                    y1=peak_price,
+                    line=dict(color='red', width=2, dash='dash'),
+                    layer='above'
+                )
+
+                fig_price.add_shape(
+                    type="rect",
+                    x0=peak_date,
+                    x1=price_df['Date'].max(),
+                    y0=current_price,
+                    y1=peak_price,
+                    fillcolor='rgba(128,128,128,0.25)',
+                    line=dict(width=0),
+                    layer='below'
+                )
+
+                fig_price.add_annotation(
+                    text=f"<b>Current Drawdown</b><br>" +
+                         f"Depth: {current_dd_pct:.2f}%<br>" +
+                         f"Peak: {peak_date.strftime('%Y-%m-%d')} ${peak_price:.2f}<br>" +
+                         f"Current: {price_df['Date'].max().strftime('%Y-%m-%d')} ${current_price:.2f}",
+                    x=price_df['Date'].max(),
+                    y=(peak_price + current_price) / 2,
+                    showarrow=False,
+                    xanchor='left',
+                    yanchor='middle',
+                    xshift=10,
+                    font=dict(size=10, color='black'),
+                    align='left',
+                    bgcolor='rgba(255,255,255,0.8)',
+                    bordercolor='rgba(0,0,0,0.3)',
+                    borderwidth=1,
+                    borderpad=4
+                )
+
+            # HHI line on secondary y-axis
+            fig_price.add_trace(go.Scatter(
+                x=hhi_data['Date'],
+                y=hhi_data['HHI'],
+                mode='lines',
+                name=f'{selected_etf} HHI',
+                line=dict(color='steelblue', width=2, dash='dot'),
+                hovertemplate=f'<b>{selected_etf} HHI</b><br>Date: %{{x|%Y-%m-%d}}<br>HHI: %{{y:.4f}}<extra></extra>',
+                yaxis='y2'
+            ))
+
+            chart_title = f"{selected_etf} vs QQQ with HHI"
+            if show_drawdowns:
+                chart_title = f"{selected_etf} vs QQQ with Drawdowns & HHI"
+
+            fig_price.update_layout(
+                title=chart_title,
+                xaxis_title="Date",
+                yaxis_title=f"{selected_etf} Price ($)",
+                hovermode='x unified',
+                height=650,
+                showlegend=True,
+                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                xaxis=dict(gridcolor='lightgray', showgrid=True, domain=[0, 0.86], rangeslider=dict(visible=True)),
+                yaxis=dict(gridcolor='lightgray', showgrid=True),
+                yaxis2=dict(title=f'{selected_etf} HHI', overlaying='y', side='right', position=0.97, showgrid=False),
+                yaxis3=dict(title='QQQ Price', overlaying='y', side='right', position=0.91, showgrid=False, range=qqq_axis_range),
+                margin=dict(l=0, r=70, t=40, b=0)
+            )
+
+            st.plotly_chart(fig_price, width='stretch', config=CHART_CONFIG)
+
+            st.markdown("<small>*Colored regions show top 10 historical drawdowns. Gray region shows current drawdown. QQQ Y-axis scaled so first day aligns with ETF.*</small>", unsafe_allow_html=True)
+
+        "" # Space
+
+    # =========================================================================
+    # Section 1: Relative Performance (Spread)
+    # =========================================================================
+    st.subheader("Relative Performance (Spread)")
 
     spread_card = st.container(border=True)
     with spread_card:
@@ -288,7 +534,7 @@ if len(spread_data) > 0:
     # =========================================================================
     # Section 2: HHI Regime Analysis
     # =========================================================================
-    st.subheader("2. HHI Regime Analysis")
+    st.subheader("HHI Regime Analysis")
 
     regime_card = st.container(border=True)
     with regime_card:
@@ -421,7 +667,7 @@ if len(spread_data) > 0:
     # =========================================================================
     # Section 3: Regression Analysis
     # =========================================================================
-    st.subheader("3. Regression Analysis")
+    st.subheader("Regression Analysis")
 
     reg_card = st.container(border=True)
     with reg_card:
@@ -554,7 +800,7 @@ if len(spread_data) > 0:
     # =========================================================================
     # Section 4: Download Data
     # =========================================================================
-    st.subheader("4. Download Data")
+    st.subheader("Download Data")
 
     download_card = st.container(border=True)
     with download_card:

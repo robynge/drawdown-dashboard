@@ -1,4 +1,4 @@
-"""Correlations - Drawdown Stress Analysis Page"""
+"""Correlations - Drawdown Stress Page"""
 import streamlit as st
 import pandas as pd
 import numpy as np
