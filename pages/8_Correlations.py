@@ -195,12 +195,20 @@ def calculate_correlation_from_returns(returns_df):
 
     returns_only = returns_df[ticker_cols]
 
-    # Filter columns with enough data (at least 50% non-NaN)
-    valid_cols = returns_only.columns[returns_only.notna().sum() >= len(returns_only) * 0.5]
+    # Filter columns with enough data (at least 30% non-NaN during the periods)
+    valid_cols = returns_only.columns[returns_only.notna().sum() >= len(returns_only) * 0.3]
     if len(valid_cols) < 2:
         return pd.DataFrame()
 
-    return returns_only[valid_cols].corr()
+    # Calculate correlation with min_periods to require sufficient overlap
+    min_periods = max(20, int(len(returns_only) * 0.2))
+    corr_matrix = returns_only[valid_cols].corr(min_periods=min_periods)
+
+    # Remove rows/columns that are all NaN (no valid correlations with other stocks)
+    valid_mask = corr_matrix.notna().sum() > 1
+    corr_matrix = corr_matrix.loc[valid_mask, valid_mask]
+
+    return corr_matrix
 
 
 def get_correlation_stats(corr_matrix, weights_df=None):
