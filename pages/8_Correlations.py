@@ -366,6 +366,7 @@ with st.spinner("Loading correlations..."):
 
     elif correlation_mode == "Drawdown":
         # Filter returns to drawdown periods only
+        filtered_returns = pd.DataFrame()
         if len(returns) > 0 and len(drawdown_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, drawdown_periods)
             corr_matrix = calculate_correlation_from_returns(filtered_returns)
@@ -380,6 +381,7 @@ with st.spinner("Loading correlations..."):
 
     else:  # Recovery
         # Filter returns to recovery periods only
+        filtered_returns = pd.DataFrame()
         if len(returns) > 0 and len(recovery_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, recovery_periods)
             corr_matrix = calculate_correlation_from_returns(filtered_returns)
@@ -760,6 +762,12 @@ else:
         with st.expander("Diagnostic Info"):
             st.code(f"Drawdown periods: {len(drawdown_periods)}")
             st.code(f"Returns shape: {returns.shape if len(returns) > 0 else 'empty'}")
+            st.code(f"Filtered returns shape: {filtered_returns.shape if len(filtered_returns) > 0 else 'empty'}")
+            if len(returns) > 0:
+                st.code(f"Returns columns (first 5): {list(returns.columns[:5])}")
+                st.code(f"Returns date range: {returns.index.min()} to {returns.index.max()}")
+            if len(drawdown_periods) > 0:
+                st.code(f"First drawdown period: {drawdown_periods[0]}")
     else:  # Recovery
         if len(recovery_periods) == 0:
             st.warning(f"No recovery periods found for {selected_etf}. Ensure ETF drawdowns are precomputed.")
@@ -768,3 +776,9 @@ else:
         with st.expander("Diagnostic Info"):
             st.code(f"Recovery periods: {len(recovery_periods)}")
             st.code(f"Returns shape: {returns.shape if len(returns) > 0 else 'empty'}")
+            st.code(f"Filtered returns shape: {filtered_returns.shape if len(filtered_returns) > 0 else 'empty'}")
+            if len(returns) > 0:
+                st.code(f"Returns columns (first 5): {list(returns.columns[:5])}")
+                st.code(f"Returns date range: {returns.index.min()} to {returns.index.max()}")
+            if len(recovery_periods) > 0:
+                st.code(f"First recovery period: {recovery_periods[0]}")
