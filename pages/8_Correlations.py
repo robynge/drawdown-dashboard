@@ -541,7 +541,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
         # Display table
         st.dataframe(
-            display_corr.style.format("{:.3f}").background_gradient(cmap='RdBu_r', vmin=-1, vmax=1),
+            display_corr.round(3),
             use_container_width=True,
             height=400
         )
