@@ -774,7 +774,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
     ""  # Space
 
     # Correlation Matrix Data Table & Download (at bottom of page)
-    st.subheader("Correlation Matrix Data")
+    st.subheader("Data Download")
 
     data_card = st.container(border=True)
     with data_card:
