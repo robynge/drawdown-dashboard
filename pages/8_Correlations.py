@@ -170,7 +170,7 @@ def calculate_holdings_returns(etf):
     )
 
     # Calculate returns
-    returns = prices.pct_change()
+    returns = prices.pct_change(fill_method=None)
 
     return returns
 
@@ -502,7 +502,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 paper_bgcolor='white'
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
             if correlation_mode == "Drawdown":
                 st.markdown("<small>*Drawdown correlation: calculated using returns only during drawdown periods (peak → trough). Shows how holdings correlate when ETF is declining.*</small>", unsafe_allow_html=True)
@@ -658,7 +658,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
                 # Calculate ETF returns
                 etf_prices = etf_prices.copy()
-                etf_prices['Return'] = etf_prices['Close'].pct_change()
+                etf_prices['Return'] = etf_prices['Close'].pct_change(fill_method=None)
 
                 # Merge correlation data with ETF returns
                 corr_perf = pd.merge(
@@ -798,7 +798,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
         # Display table
         st.dataframe(
             display_corr.round(3),
-            use_container_width=True,
+            width='stretch',
             height=400
         )
 
