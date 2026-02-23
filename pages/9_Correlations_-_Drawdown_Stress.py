@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import sys
 from pathlib import Path
 
@@ -204,95 +203,86 @@ if len(stress_corr) > 0:
             etf_prices = load_etf_prices(selected_etf)
 
             if len(etf_prices) > 0:
-                # Use full price history (not filtered by analysis period)
-                etf_prices_filtered = etf_prices.copy()
+                # Use full price history
+                price_df = etf_prices.copy()
 
-                # Create figure with secondary y-axis
-                fig_stress = make_subplots(specs=[[{"secondary_y": True}]])
+                # Create figure (same pattern as working ETF analysis)
+                fig_stress = go.Figure()
 
-                # Drawdown colors (0.5 opacity for better visibility)
+                # Drawdown colors
                 dd_colors = [
-                    'rgba(255, 99, 71, 0.5)', 'rgba(255, 165, 0, 0.5)', 'rgba(255, 215, 0, 0.5)',
-                    'rgba(144, 238, 144, 0.5)', 'rgba(173, 216, 230, 0.5)', 'rgba(221, 160, 221, 0.5)',
-                    'rgba(255, 192, 203, 0.5)', 'rgba(176, 224, 230, 0.5)', 'rgba(240, 230, 140, 0.5)',
-                    'rgba(255, 228, 181, 0.5)'
+                    'rgba(255, 99, 71, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 215, 0, 0.3)',
+                    'rgba(144, 238, 144, 0.3)', 'rgba(173, 216, 230, 0.3)', 'rgba(221, 160, 221, 0.3)',
+                    'rgba(255, 192, 203, 0.3)', 'rgba(176, 224, 230, 0.3)', 'rgba(240, 230, 140, 0.3)',
+                    'rgba(255, 228, 181, 0.3)'
                 ]
 
-                # Add drawdown shaded regions using add_shape for better compatibility
+                # Add drawdown shaded regions (same as ETF analysis)
                 for idx, (_, row) in enumerate(stress_corr.iterrows()):
-                    fig_stress.add_shape(
-                        type="rect",
+                    fig_stress.add_vrect(
                         x0=row['peak_date'],
                         x1=row['trough_date'],
-                        y0=0,
-                        y1=1,
-                        yref="paper",
                         fillcolor=dd_colors[idx % len(dd_colors)],
                         layer="below",
                         line_width=0
                     )
 
-                # Add ETF price line (no hover info - only show drawdown/correlation on hover)
-                fig_stress.add_trace(
-                    go.Scatter(
-                        x=etf_prices_filtered['Date'],
-                        y=etf_prices_filtered['Close'],
-                        mode='lines',
-                        name=f'{selected_etf} Price',
-                        line=dict(color='black', width=2),
-                        hoverinfo='skip'
-                    ),
-                    secondary_y=False
-                )
+                # Add ETF price line
+                fig_stress.add_trace(go.Scatter(
+                    x=price_df['Date'],
+                    y=price_df['Close'],
+                    mode='lines',
+                    name=f'{selected_etf} Price',
+                    line=dict(color='black', width=2),
+                    hoverinfo='skip'
+                ))
 
-                # Calculate midpoints and add correlation points
+                # Calculate midpoints for correlation points
                 midpoint_dates = []
                 midpoint_corrs = []
                 hover_texts = []
 
                 for _, row in stress_corr.iterrows():
-                    # Calculate midpoint date
                     peak = row['peak_date']
                     trough = row['trough_date']
                     midpoint = peak + (trough - peak) / 2
                     midpoint_dates.append(midpoint)
                     midpoint_corrs.append(row['mean_corr'])
+                    duration = int(row['duration_days']) if pd.notna(row['duration_days']) else (trough - peak).days
                     hover_texts.append(
                         f"<b>Drawdown #{int(row['dd_rank'])}</b><br>" +
                         f"Period: {peak.strftime('%Y-%m-%d')} to {trough.strftime('%Y-%m-%d')}<br>" +
                         f"Depth: {row['depth_pct']:.1f}%<br>" +
-                        f"Duration: {row['duration_days']} days<br>" +
+                        f"Duration: {duration} days<br>" +
                         f"Mean Correlation: {row['mean_corr']:.3f}"
                     )
 
-                # Sort by date for proper line connection
+                # Sort by date
                 sorted_data = sorted(zip(midpoint_dates, midpoint_corrs, hover_texts), key=lambda x: x[0])
                 midpoint_dates = [x[0] for x in sorted_data]
                 midpoint_corrs = [x[1] for x in sorted_data]
                 hover_texts = [x[2] for x in sorted_data]
 
-                # Add correlation line connecting midpoints
-                fig_stress.add_trace(
-                    go.Scatter(
-                        x=midpoint_dates,
-                        y=midpoint_corrs,
-                        mode='lines+markers',
-                        name='Stress Correlation',
-                        line=dict(color='red', width=2),
-                        marker=dict(size=12, color='red', symbol='circle'),
-                        hovertemplate='%{customdata}<extra></extra>',
-                        customdata=hover_texts
-                    ),
-                    secondary_y=True
-                )
+                # Add correlation line on secondary y-axis
+                fig_stress.add_trace(go.Scatter(
+                    x=midpoint_dates,
+                    y=midpoint_corrs,
+                    mode='lines+markers',
+                    name='Stress Correlation',
+                    line=dict(color='red', width=2),
+                    marker=dict(size=12, color='red', symbol='circle'),
+                    hovertemplate='%{customdata}<extra></extra>',
+                    customdata=hover_texts,
+                    yaxis='y2'
+                ))
 
-                # Add normal correlation reference line
+                # Add normal correlation reference line on y2
                 fig_stress.add_hline(
                     y=normal_corr, line_dash="dash", line_color="steelblue", line_width=2,
-                    secondary_y=True,
                     annotation_text=f"Normal: {normal_corr:.3f}",
                     annotation_position="right",
-                    annotation_font_color="steelblue"
+                    annotation_font_color="steelblue",
+                    yref="y2"
                 )
 
                 fig_stress.update_layout(
@@ -301,16 +291,15 @@ if len(stress_corr) > 0:
                     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                     plot_bgcolor='white',
                     paper_bgcolor='white',
-                    hovermode='closest'
+                    hovermode='closest',
+                    xaxis=dict(title="Date", gridcolor='lightgray'),
+                    yaxis=dict(title=f"{selected_etf} Price ($)", gridcolor='lightgray'),
+                    yaxis2=dict(title="Mean Correlation", overlaying='y', side='right', range=[0, 1], showgrid=False)
                 )
-
-                fig_stress.update_xaxes(title_text="Date", gridcolor='lightgray')
-                fig_stress.update_yaxes(title_text=f"{selected_etf} Price ($)", gridcolor='lightgray', secondary_y=False)
-                fig_stress.update_yaxes(title_text="Mean Correlation", range=[0, 1], showgrid=False, secondary_y=True)
 
                 st.plotly_chart(fig_stress, width='stretch')
 
-                st.markdown("<small>*Colored regions show drawdown periods (top 1 from 2021-2023 + available from 2024-2026). Red line connects mean correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline.*</small>", unsafe_allow_html=True)
+                st.markdown("<small>*Colored regions show drawdown periods. Red line connects mean correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline.*</small>", unsafe_allow_html=True)
             else:
                 st.warning(f"No price data available for {selected_etf}")
 
