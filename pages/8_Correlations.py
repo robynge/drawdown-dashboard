@@ -468,31 +468,30 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             corr_type_label = "Weighted" if use_weighted_corr else "Unweighted"
             mode_label = f" - {correlation_mode}" if correlation_mode != "Overall" else ""
 
-            # Adjust layout for matrix size - adaptive tick interval
+            # Adjust layout for matrix size - show ALL tickers, adapt font/height
             if n_tickers <= 30:
-                dtick = 1
                 tick_font_size = 10
                 chart_height = 700
-            elif n_tickers <= 60:
-                dtick = 2
+            elif n_tickers <= 50:
                 tick_font_size = 8
                 chart_height = 800
-            elif n_tickers <= 100:
-                dtick = 3
-                tick_font_size = 7
-                chart_height = 900
-            else:
-                dtick = max(5, n_tickers // 20)
+            elif n_tickers <= 80:
                 tick_font_size = 6
                 chart_height = 1000
+            elif n_tickers <= 120:
+                tick_font_size = 5
+                chart_height = 1200
+            else:
+                tick_font_size = 4
+                chart_height = max(1400, n_tickers * 10)
 
             fig.update_layout(
                 title=f"{selected_etf} Holdings Correlation Matrix ({n_tickers} tickers, {corr_type_label}{mode_label})",
                 xaxis_title="",
                 yaxis_title="",
                 height=chart_height,
-                xaxis=dict(tickangle=45, side='bottom', dtick=dtick, tickfont=dict(size=tick_font_size)),
-                yaxis=dict(autorange='reversed', dtick=dtick, tickfont=dict(size=tick_font_size)),
+                xaxis=dict(tickangle=45, side='bottom', dtick=1, tickfont=dict(size=tick_font_size)),
+                yaxis=dict(autorange='reversed', dtick=1, tickfont=dict(size=tick_font_size)),
                 plot_bgcolor='white',
                 paper_bgcolor='white'
             )
