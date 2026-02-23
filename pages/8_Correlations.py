@@ -349,10 +349,6 @@ with st.spinner("Loading correlations..."):
     # Load returns - use full historical data for Drawdown/Recovery modes
     if correlation_mode in ["Drawdown", "Recovery"]:
         returns = calculate_holdings_returns(selected_etf)  # Full history from holdings
-        # Filter to current holdings only
-        if len(returns) > 0 and len(current_tickers) > 0:
-            available_tickers = [t for t in returns.columns if t in current_tickers or t.split()[0] in current_tickers]
-            returns = returns[available_tickers]
     else:
         returns = load_correlation_returns(selected_etf, lookback_days)
 
@@ -440,9 +436,11 @@ if corr_matrix is not None and len(corr_matrix) > 0:
         with heatmap_card:
             # Clean ticker names for display
             clean_labels = [t.split()[0] if isinstance(t, str) else t for t in corr_matrix.columns]
+            n_tickers = len(clean_labels)
+            is_large_matrix = n_tickers > 50
 
-            # Create heatmap
-            fig = go.Figure(data=go.Heatmap(
+            # Create heatmap - adjust for matrix size
+            heatmap_kwargs = dict(
                 z=corr_matrix.values,
                 x=clean_labels,
                 y=clean_labels,
@@ -450,31 +448,41 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 zmid=0,
                 zmin=-1,
                 zmax=1,
-                text=np.round(corr_matrix.values, 2),
-                texttemplate='%{text}',
-                textfont={"size": 8},
                 hovertemplate='%{x} - %{y}<br>Correlation: %{z:.3f}<extra></extra>',
                 colorbar=dict(
                     title="Correlation",
                     tickvals=[-1, -0.5, 0, 0.5, 1],
                     ticktext=["-1.0", "-0.5", "0.0", "0.5", "1.0"]
                 )
-            ))
+            )
+
+            # Only show text in cells for small matrices
+            if not is_large_matrix:
+                heatmap_kwargs['text'] = np.round(corr_matrix.values, 2)
+                heatmap_kwargs['texttemplate'] = '%{text}'
+                heatmap_kwargs['textfont'] = {"size": 8}
+
+            fig = go.Figure(data=go.Heatmap(**heatmap_kwargs))
 
             corr_type_label = "Weighted" if use_weighted_corr else "Unweighted"
             mode_label = f" - {correlation_mode}" if correlation_mode != "Overall" else ""
+
+            # Adjust layout for matrix size
+            chart_height = 900 if is_large_matrix else 700
+            tick_font_size = 6 if is_large_matrix else 10
+
             fig.update_layout(
-                title=f"{selected_etf} Holdings Correlation Matrix ({selected_lookback}, {corr_type_label}{mode_label})",
+                title=f"{selected_etf} Holdings Correlation Matrix ({n_tickers} tickers, {corr_type_label}{mode_label})",
                 xaxis_title="",
                 yaxis_title="",
-                height=700,
-                xaxis=dict(tickangle=45, side='bottom', dtick=1),
-                yaxis=dict(autorange='reversed', dtick=1),
+                height=chart_height,
+                xaxis=dict(tickangle=45, side='bottom', dtick=1, tickfont=dict(size=tick_font_size)),
+                yaxis=dict(autorange='reversed', dtick=1, tickfont=dict(size=tick_font_size)),
                 plot_bgcolor='white',
                 paper_bgcolor='white'
             )
 
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, use_container_width=True)
 
             if correlation_mode == "Drawdown":
                 st.markdown("<small>*Drawdown correlation: calculated using returns only during drawdown periods (peak → trough). Shows how holdings correlate when ETF is declining.*</small>", unsafe_allow_html=True)
