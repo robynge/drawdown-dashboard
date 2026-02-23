@@ -32,6 +32,10 @@ with st.sidebar:
 View all input data files used in the analysis.
 """
 
+st.caption("*This page displays raw input data files. Data is not filtered by the selected analysis period.*")
+
+"" # Space
+
 # Add CSS for left alignment
 st.markdown("""
 <style>
