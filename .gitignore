@@ -22,6 +22,8 @@ input/ark_etfs/*.xlsx
 input/russell_3000/*.xlsx
 input/spx/*.jpg
 
+# Keep output price CSV files (needed for app)
+
 # IDE
 .vscode/
 .idea/
