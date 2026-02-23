@@ -156,15 +156,11 @@ def calculate_holdings_returns(etf):
     # Filter to stocks only (exclude non-stock tickers)
     holdings = holdings[holdings['Ticker'].notna()].copy()
 
-    # Find price column (must have actual data, not just exist)
-    price_col = None
-    for col in ['YFinance Close Price', 'Close Price (USD)', 'Stock_Price']:
-        if col in holdings.columns and holdings[col].notna().any():
-            price_col = col
-            break
-
-    if price_col is None:
+    # Use Stock_Price column
+    if 'Stock_Price' not in holdings.columns:
         return pd.DataFrame()
+
+    price_col = 'Stock_Price'
 
     # Get prices - pivot to have dates as rows, tickers as columns
     prices = holdings.pivot_table(
