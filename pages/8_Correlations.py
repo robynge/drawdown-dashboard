@@ -739,13 +739,27 @@ else:
     # More specific error messages for debugging
     if correlation_mode == "Overall":
         st.warning(f"No precomputed correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
+        # Show diagnostic info
+        with st.expander("Diagnostic Info"):
+            corr_path = ARK_PRECOMPUTED_DIR / f'{selected_etf}_correlation_matrix_{lookback_days}d.parquet'
+            st.code(f"Expected file: {corr_path}")
+            st.code(f"File exists: {corr_path.exists()}")
+            dd_path = ARK_PRECOMPUTED_DIR / f'{selected_etf}_etf_drawdowns.parquet'
+            st.code(f"Drawdowns file: {dd_path}")
+            st.code(f"Drawdowns exists: {dd_path.exists()}")
     elif correlation_mode == "Drawdown":
         if len(drawdown_periods) == 0:
             st.warning(f"No drawdown periods found for {selected_etf}. Ensure ETF drawdowns are precomputed.")
         else:
             st.warning(f"Could not calculate drawdown correlations for {selected_etf}. Check that holdings have price data.")
+        with st.expander("Diagnostic Info"):
+            st.code(f"Drawdown periods: {len(drawdown_periods)}")
+            st.code(f"Returns shape: {returns.shape if len(returns) > 0 else 'empty'}")
     else:  # Recovery
         if len(recovery_periods) == 0:
             st.warning(f"No recovery periods found for {selected_etf}. Ensure ETF drawdowns are precomputed.")
         else:
             st.warning(f"Could not calculate recovery correlations for {selected_etf}. Check that holdings have price data.")
+        with st.expander("Diagnostic Info"):
+            st.code(f"Recovery periods: {len(recovery_periods)}")
+            st.code(f"Returns shape: {returns.shape if len(returns) > 0 else 'empty'}")
