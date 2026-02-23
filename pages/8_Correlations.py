@@ -320,25 +320,6 @@ with cols[0]:
 
         ""  # Space
 
-        st.markdown("##### Lookback Period")
-        lookback_options = {
-            "60 Days": 60,
-            "120 Days": 120,
-            "250 Days": 250
-        }
-        selected_lookback = st.pills(
-            "Lookback",
-            options=list(lookback_options.keys()),
-            default="120 Days",
-            label_visibility="collapsed",
-            key="lookback_selector"
-        )
-        if selected_lookback is None:
-            selected_lookback = "120 Days"
-        lookback_days = lookback_options[selected_lookback]
-
-        ""  # Space
-
         st.markdown("##### Correlation Mode")
         correlation_mode = st.pills(
             "Mode",
@@ -349,6 +330,29 @@ with cols[0]:
         )
         if correlation_mode is None:
             correlation_mode = "Overall"
+
+        # Lookback Period only shown for Overall mode
+        if correlation_mode == "Overall":
+            ""  # Space
+
+            st.markdown("##### Lookback Period")
+            lookback_options = {
+                "60 Days": 60,
+                "120 Days": 120,
+                "250 Days": 250
+            }
+            selected_lookback = st.pills(
+                "Lookback",
+                options=list(lookback_options.keys()),
+                default="120 Days",
+                label_visibility="collapsed",
+                key="lookback_selector"
+            )
+            if selected_lookback is None:
+                selected_lookback = "120 Days"
+            lookback_days = lookback_options[selected_lookback]
+        else:
+            lookback_days = 120  # Default for non-Overall modes (not used)
 
         ""  # Space
 
