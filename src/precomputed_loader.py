@@ -473,3 +473,38 @@ def check_precomputed_exists() -> bool:
         True if precomputed data exists, False otherwise
     """
     return ARK_PRECOMPUTED_DIR.exists() and any(ARK_PRECOMPUTED_DIR.glob('*.parquet'))
+
+
+def load_sp500_correlation_matrix(lookback_days: int = 120) -> pd.DataFrame:
+    """Load precomputed S&P 500 Top 50 correlation matrix
+
+    Args:
+        lookback_days: Number of days used for correlation calculation (60, 120, or 250)
+
+    Returns:
+        DataFrame with correlation matrix (tickers as both index and columns)
+    """
+    path = ARK_PRECOMPUTED_DIR / f'SP500_top50_correlation_matrix_{lookback_days}d.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    return pd.read_parquet(path)
+
+
+def load_stress_correlations(etf: str) -> pd.DataFrame:
+    """Load precomputed stress correlations for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+
+    Returns:
+        DataFrame with stress correlation data for each drawdown period
+        Columns: dd_rank, peak_date, trough_date, depth_pct, duration_days,
+                 num_tickers, num_pairs, mean_corr, median_corr, min_corr, max_corr, std_corr
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_stress_correlations.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['peak_date', 'trough_date'])

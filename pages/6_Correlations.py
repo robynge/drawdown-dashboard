@@ -17,6 +17,8 @@ from precomputed_loader import (
     load_rolling_correlations,
     load_correlation_returns,
     load_current_weights,
+    load_sp500_correlation_matrix,
+    load_stress_correlations,
     filter_by_period,
     check_precomputed_exists
 )
@@ -515,6 +517,198 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 st.warning("Could not merge correlation and price data.")
         else:
             st.warning(f"No price data available for {selected_etf}")
+
+    "" # Space
+
+    # =========================================================================
+    # S&P 500 Top 50 Correlation Matrix (Comparison)
+    # =========================================================================
+    st.subheader("S&P 500 Top 50 Correlation Matrix (Comparison)")
+
+    sp500_card = st.container(border=True)
+    with sp500_card:
+        sp500_corr = load_sp500_correlation_matrix(lookback_days)
+
+        if len(sp500_corr) > 0:
+            # Calculate S&P 500 stats
+            n = len(sp500_corr.columns)
+            triu_i, triu_j = np.triu_indices(n, k=1)
+            sp500_corr_values = sp500_corr.values[triu_i, triu_j]
+            valid_sp500_corrs = sp500_corr_values[~np.isnan(sp500_corr_values)]
+
+            sp500_mean = np.mean(valid_sp500_corrs)
+            sp500_median = np.median(valid_sp500_corrs)
+
+            # Compare with ARK
+            compare_cols = st.columns(2)
+            with compare_cols[0]:
+                st.markdown(f"**{selected_etf} Holdings**")
+                st.metric("Mean Correlation", f"{stats['mean']:.3f}")
+                st.metric("Median Correlation", f"{stats['median']:.3f}")
+                st.caption(f"{len(corr_matrix)} holdings")
+
+            with compare_cols[1]:
+                st.markdown("**S&P 500 Top 50**")
+                st.metric("Mean Correlation", f"{sp500_mean:.3f}",
+                          delta=f"{sp500_mean - stats['mean']:+.3f} vs {selected_etf}")
+                st.metric("Median Correlation", f"{sp500_median:.3f}",
+                          delta=f"{sp500_median - stats['median']:+.3f} vs {selected_etf}")
+                st.caption(f"{len(sp500_corr)} holdings")
+
+            "" # Space
+
+            # S&P 500 Heatmap
+            fig_sp500 = go.Figure(data=go.Heatmap(
+                z=sp500_corr.values,
+                x=sp500_corr.columns.tolist(),
+                y=sp500_corr.columns.tolist(),
+                colorscale='RdBu_r',
+                zmid=0,
+                zmin=-1,
+                zmax=1,
+                text=np.round(sp500_corr.values, 2),
+                texttemplate='%{text}',
+                textfont={"size": 6},
+                hovertemplate='%{x} - %{y}<br>Correlation: %{z:.3f}<extra></extra>',
+                colorbar=dict(title="Correlation")
+            ))
+
+            fig_sp500.update_layout(
+                title=f"S&P 500 Top 50 Correlation Matrix ({selected_lookback})",
+                height=800,
+                xaxis=dict(tickangle=45, side='bottom', dtick=1, tickfont=dict(size=8)),
+                yaxis=dict(autorange='reversed', dtick=1, tickfont=dict(size=8)),
+                plot_bgcolor='white',
+                paper_bgcolor='white'
+            )
+
+            st.plotly_chart(fig_sp500, width='stretch')
+
+            st.markdown("<small>*S&P 500 Top 50 by market cap. Lower correlation = better diversification.*</small>", unsafe_allow_html=True)
+        else:
+            st.warning("S&P 500 Top 50 correlation data not found. Run `python convert_to_parquet.py` to generate.")
+
+    "" # Space
+
+    # =========================================================================
+    # Stress Correlations (Correlations During Drawdowns)
+    # =========================================================================
+    st.subheader("Stress Correlations (During Drawdowns)")
+
+    stress_card = st.container(border=True)
+    with stress_card:
+        stress_corr = load_stress_correlations(selected_etf)
+
+        if len(stress_corr) > 0:
+            st.markdown("""
+            **Stress correlations** measure how correlated holdings become during drawdown periods.
+            Typically, correlations **increase** during market stress, reducing diversification benefits when they're needed most.
+            """)
+
+            "" # Space
+
+            # Compare normal vs stress correlations
+            normal_corr = stats['mean']
+            stress_mean = stress_corr['mean_corr'].mean()
+
+            metric_cols = st.columns(3)
+            with metric_cols[0]:
+                st.metric("Normal Correlation", f"{normal_corr:.3f}",
+                          help=f"Average pairwise correlation over {selected_lookback}")
+
+            with metric_cols[1]:
+                st.metric("Stress Correlation", f"{stress_mean:.3f}",
+                          delta=f"{stress_mean - normal_corr:+.3f}",
+                          delta_color="inverse",
+                          help="Average correlation during drawdown periods")
+
+            with metric_cols[2]:
+                correlation_increase = ((stress_mean / normal_corr) - 1) * 100 if normal_corr > 0 else 0
+                st.metric("Correlation Increase", f"{correlation_increase:+.1f}%",
+                          help="How much correlations increase during stress")
+
+            "" # Space
+
+            # Stress correlation by drawdown
+            st.markdown("#### Correlation by Drawdown Event")
+
+            # Create visualization
+            fig_stress = go.Figure()
+
+            # Add bar for each drawdown
+            fig_stress.add_trace(go.Bar(
+                x=[f"DD #{int(r['dd_rank'])}" for _, r in stress_corr.iterrows()],
+                y=stress_corr['mean_corr'],
+                marker_color=['red' if c > normal_corr else 'steelblue' for c in stress_corr['mean_corr']],
+                text=[f"{c:.3f}" for c in stress_corr['mean_corr']],
+                textposition='outside',
+                hovertemplate='<b>Drawdown #%{customdata[0]}</b><br>' +
+                              'Depth: %{customdata[1]:.1f}%<br>' +
+                              'Duration: %{customdata[2]} days<br>' +
+                              'Mean Correlation: %{y:.3f}<br>' +
+                              'Tickers: %{customdata[3]}<extra></extra>',
+                customdata=stress_corr[['dd_rank', 'depth_pct', 'duration_days', 'num_tickers']].values
+            ))
+
+            # Add normal correlation line
+            fig_stress.add_hline(y=normal_corr, line_dash="dash", line_color="gray",
+                                  annotation_text=f"Normal: {normal_corr:.3f}",
+                                  annotation_position="right")
+
+            fig_stress.update_layout(
+                title=f"{selected_etf} Mean Correlation During Each Drawdown",
+                xaxis_title="Drawdown",
+                yaxis_title="Mean Pairwise Correlation",
+                height=400,
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                showlegend=False
+            )
+            fig_stress.update_xaxes(gridcolor='lightgray')
+            fig_stress.update_yaxes(gridcolor='lightgray', range=[0, 1])
+
+            st.plotly_chart(fig_stress, width='stretch')
+
+            "" # Space
+
+            # Detailed table
+            st.markdown("#### Detailed Stress Correlation Data")
+
+            display_df = stress_corr.copy()
+            display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
+            display_df['trough_date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
+            display_df = display_df.rename(columns={
+                'dd_rank': 'Rank',
+                'peak_date': 'Peak',
+                'trough_date': 'Trough',
+                'depth_pct': 'Depth %',
+                'duration_days': 'Days',
+                'num_tickers': 'Tickers',
+                'mean_corr': 'Mean ρ',
+                'median_corr': 'Median ρ',
+                'max_corr': 'Max ρ',
+                'min_corr': 'Min ρ'
+            })
+
+            # Format numeric columns
+            for col in ['Depth %', 'Mean ρ', 'Median ρ', 'Max ρ', 'Min ρ']:
+                if col in display_df.columns:
+                    display_df[col] = display_df[col].apply(lambda x: f"{x:.3f}" if pd.notna(x) else "")
+
+            st.dataframe(
+                display_df[['Rank', 'Peak', 'Trough', 'Depth %', 'Days', 'Tickers', 'Mean ρ', 'Median ρ', 'Max ρ', 'Min ρ']],
+                hide_index=True,
+                width='stretch'
+            )
+
+            # Insight
+            if stress_mean > normal_corr:
+                st.warning(f"⚠️ **Correlations increase {correlation_increase:.0f}% during drawdowns.** Diversification benefits are reduced when the portfolio is under stress.")
+            else:
+                st.success(f"✓ **Correlations remain stable during drawdowns.** The portfolio maintains diversification benefits during stress periods.")
+
+        else:
+            st.warning(f"No stress correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
 
 else:
     st.warning(f"No precomputed correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")

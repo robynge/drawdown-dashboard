@@ -1214,8 +1214,159 @@ def precompute_position_changes():
             print(f"    Saved {len(result_df)} position change records")
 
 
+def precompute_sp500_correlations():
+    """Precompute S&P 500 Top 50 correlation matrices"""
+    ensure_dirs()
+
+    # Load S&P 500 Top 50 prices
+    sp500_file = OUTPUT_DIR / 'SP500_top50_prices.csv'
+    if not sp500_file.exists():
+        print("  S&P 500 Top 50 prices not found. Run fetch_sp500_prices.py first.")
+        return
+
+    prices = pd.read_csv(sp500_file)
+    prices['Date'] = pd.to_datetime(prices['Date'])
+    prices = prices.set_index('Date')
+
+    lookback_periods = [60, 120, 250]
+
+    for lookback_days in lookback_periods:
+        print(f"  Processing {lookback_days}d lookback...")
+
+        latest_date = prices.index.max()
+        lookback_start = latest_date - pd.Timedelta(days=lookback_days)
+
+        # Filter to lookback period
+        prices_lookback = prices[prices.index >= lookback_start].copy()
+
+        # Drop tickers with too many missing values
+        min_data_points = len(prices_lookback) * 0.5
+        prices_lookback = prices_lookback.dropna(axis=1, thresh=int(min_data_points))
+
+        if len(prices_lookback.columns) < 2:
+            continue
+
+        # Calculate returns and correlation
+        returns = prices_lookback.pct_change().dropna()
+        corr_matrix = returns.corr()
+
+        # Save correlation matrix
+        output_path = ARK_PRECOMPUTED_DIR / f'SP500_top50_correlation_matrix_{lookback_days}d.parquet'
+        corr_matrix.to_parquet(output_path)
+        print(f"    Saved {output_path.name} ({len(corr_matrix)} tickers)")
+
+
+def precompute_stress_correlations():
+    """Precompute stress correlations (correlations during drawdowns) for each ARK ETF"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from config import ARK_ETFS
+    from data_loader import load_ark_holdings, get_ark_files_hash
+    from precomputed_loader import load_etf_drawdowns
+
+    ensure_dirs()
+    files_hash = get_ark_files_hash()
+
+    for etf in ARK_ETFS:
+        print(f"  Processing {etf}...")
+
+        # Load drawdowns
+        drawdowns = load_etf_drawdowns(etf)
+        if len(drawdowns) == 0:
+            print(f"    No drawdowns found for {etf}")
+            continue
+
+        # Filter to historical drawdowns only (exclude Current)
+        historical_dds = drawdowns[drawdowns['rank'] != 'Current'].head(10)
+
+        if len(historical_dds) == 0:
+            print(f"    No historical drawdowns for {etf}")
+            continue
+
+        # Load holdings
+        holdings = load_ark_holdings(files_hash, etf)
+        holdings_filtered = _filter_non_stocks(holdings)
+
+        if len(holdings_filtered) == 0:
+            continue
+
+        stress_results = []
+
+        for _, dd_row in historical_dds.iterrows():
+            dd_rank = dd_row['rank']
+            peak_date = dd_row['peak_date']
+            trough_date = dd_row['trough_date']
+            depth_pct = dd_row['depth_pct']
+
+            # Filter holdings to drawdown period
+            dd_holdings = holdings_filtered[
+                (holdings_filtered['Date'] >= peak_date) &
+                (holdings_filtered['Date'] <= trough_date)
+            ].copy()
+
+            if len(dd_holdings) == 0:
+                continue
+
+            # Pivot to get price matrix
+            price_matrix = dd_holdings.pivot_table(
+                index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
+            )
+
+            # Need at least 5 days of data
+            if len(price_matrix) < 5:
+                continue
+
+            # Drop tickers with too many missing values (>50% missing)
+            min_data_points = len(price_matrix) * 0.5
+            price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
+
+            if len(price_matrix.columns) < 2:
+                continue
+
+            # Calculate returns and correlation
+            returns = price_matrix.pct_change().dropna()
+            if len(returns) < 3:
+                continue
+
+            corr_matrix = returns.corr()
+
+            # Get upper triangle correlations
+            n = len(corr_matrix.columns)
+            triu_i, triu_j = np.triu_indices(n, k=1)
+            corr_values = corr_matrix.values[triu_i, triu_j]
+            valid_corrs = corr_values[~np.isnan(corr_values)]
+
+            if len(valid_corrs) == 0:
+                continue
+
+            # Calculate stress correlation stats
+            stress_results.append({
+                'dd_rank': dd_rank,
+                'peak_date': peak_date,
+                'trough_date': trough_date,
+                'depth_pct': depth_pct,
+                'duration_days': (trough_date - peak_date).days,
+                'num_tickers': len(corr_matrix.columns),
+                'num_pairs': len(valid_corrs),
+                'mean_corr': np.mean(valid_corrs),
+                'median_corr': np.median(valid_corrs),
+                'min_corr': np.min(valid_corrs),
+                'max_corr': np.max(valid_corrs),
+                'std_corr': np.std(valid_corrs)
+            })
+
+        if stress_results:
+            stress_df = pd.DataFrame(stress_results)
+            output_path = ARK_PRECOMPUTED_DIR / f'{etf}_stress_correlations.parquet'
+            stress_df.to_parquet(output_path, index=False)
+            print(f"    Saved {len(stress_df)} drawdown periods")
+        else:
+            print(f"    No stress correlations computed for {etf}")
+
+
 def generate_metadata():
-    """Step 14: Generate metadata.json with version, timestamps, and hashes"""
+    """Generate metadata.json with version, timestamps, and hashes"""
     import sys
     sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
@@ -1325,11 +1476,19 @@ if __name__ == '__main__':
     precompute_peer_group_drawdowns()
     print()
 
-    print("Step 19/20: IWV Total MV Drawdowns")
+    print("Step 19/22: IWV Total MV Drawdowns")
     precompute_iwv_total_mv_drawdowns()
     print()
 
-    print("Step 20/20: Generate Metadata")
+    print("Step 20/22: S&P 500 Top 50 Correlations")
+    precompute_sp500_correlations()
+    print()
+
+    print("Step 21/22: Stress Correlations")
+    precompute_stress_correlations()
+    print()
+
+    print("Step 22/22: Generate Metadata")
     generate_metadata()
     print()
 
