@@ -195,20 +195,13 @@ def calculate_correlation_from_returns(returns_df):
 
     returns_only = returns_df[ticker_cols]
 
-    # Filter columns with enough data (at least 30% non-NaN during the periods)
-    valid_cols = returns_only.columns[returns_only.notna().sum() >= len(returns_only) * 0.3]
+    # Filter columns that have at least some data (at least 1 non-NaN value)
+    valid_cols = returns_only.columns[returns_only.notna().sum() > 0]
     if len(valid_cols) < 2:
         return pd.DataFrame()
 
-    # Calculate correlation with min_periods to require sufficient overlap
-    min_periods = max(20, int(len(returns_only) * 0.2))
-    corr_matrix = returns_only[valid_cols].corr(min_periods=min_periods)
-
-    # Remove rows/columns that are all NaN (no valid correlations with other stocks)
-    valid_mask = corr_matrix.notna().sum() > 1
-    corr_matrix = corr_matrix.loc[valid_mask, valid_mask]
-
-    return corr_matrix
+    # Calculate correlation - NaN between non-overlapping stocks is fine
+    return returns_only[valid_cols].corr()
 
 
 def get_correlation_stats(corr_matrix, weights_df=None):
@@ -475,17 +468,31 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             corr_type_label = "Weighted" if use_weighted_corr else "Unweighted"
             mode_label = f" - {correlation_mode}" if correlation_mode != "Overall" else ""
 
-            # Adjust layout for matrix size
-            chart_height = 900 if is_large_matrix else 700
-            tick_font_size = 6 if is_large_matrix else 10
+            # Adjust layout for matrix size - adaptive tick interval
+            if n_tickers <= 30:
+                dtick = 1
+                tick_font_size = 10
+                chart_height = 700
+            elif n_tickers <= 60:
+                dtick = 2
+                tick_font_size = 8
+                chart_height = 800
+            elif n_tickers <= 100:
+                dtick = 3
+                tick_font_size = 7
+                chart_height = 900
+            else:
+                dtick = max(5, n_tickers // 20)
+                tick_font_size = 6
+                chart_height = 1000
 
             fig.update_layout(
                 title=f"{selected_etf} Holdings Correlation Matrix ({n_tickers} tickers, {corr_type_label}{mode_label})",
                 xaxis_title="",
                 yaxis_title="",
                 height=chart_height,
-                xaxis=dict(tickangle=45, side='bottom', dtick=1, tickfont=dict(size=tick_font_size)),
-                yaxis=dict(autorange='reversed', dtick=1, tickfont=dict(size=tick_font_size)),
+                xaxis=dict(tickangle=45, side='bottom', dtick=dtick, tickfont=dict(size=tick_font_size)),
+                yaxis=dict(autorange='reversed', dtick=dtick, tickfont=dict(size=tick_font_size)),
                 plot_bgcolor='white',
                 paper_bgcolor='white'
             )
