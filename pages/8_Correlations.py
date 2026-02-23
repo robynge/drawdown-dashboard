@@ -342,9 +342,17 @@ with st.spinner("Loading correlations..."):
     etf_drawdowns = load_etf_drawdowns(selected_etf)
     drawdown_periods, recovery_periods = get_period_dates(etf_drawdowns)
 
+    # Load current weights first (needed for filtering)
+    current_weights = load_current_weights(selected_etf)
+    current_tickers = set(current_weights['Ticker'].tolist()) if len(current_weights) > 0 else set()
+
     # Load returns - use full historical data for Drawdown/Recovery modes
     if correlation_mode in ["Drawdown", "Recovery"]:
         returns = calculate_holdings_returns(selected_etf)  # Full history from holdings
+        # Filter to current holdings only
+        if len(returns) > 0 and len(current_tickers) > 0:
+            available_tickers = [t for t in returns.columns if t in current_tickers or t.split()[0] in current_tickers]
+            returns = returns[available_tickers]
     else:
         returns = load_correlation_returns(selected_etf, lookback_days)
 
@@ -389,9 +397,6 @@ with st.spinner("Loading correlations..."):
             total_days = 0
         period_info = f"{len(recovery_periods)} recovery periods"
         num_periods = len(recovery_periods)
-
-    # Load current weights
-    current_weights = load_current_weights(selected_etf)
 
     # Load rolling correlations (only for Overall mode)
     rolling_corr = load_rolling_correlations(selected_etf, lookback_days, rolling_window) if correlation_mode == "Overall" else pd.DataFrame()
