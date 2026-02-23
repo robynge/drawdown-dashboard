@@ -728,4 +728,16 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 st.warning(f"No price data available for {selected_etf}")
 
 else:
-    st.warning(f"No precomputed correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
+    # More specific error messages for debugging
+    if correlation_mode == "Overall":
+        st.warning(f"No precomputed correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
+    elif correlation_mode == "Drawdown":
+        if len(drawdown_periods) == 0:
+            st.warning(f"No drawdown periods found for {selected_etf}. Ensure ETF drawdowns are precomputed.")
+        else:
+            st.warning(f"Could not calculate drawdown correlations for {selected_etf}. Check that holdings have price data.")
+    else:  # Recovery
+        if len(recovery_periods) == 0:
+            st.warning(f"No recovery periods found for {selected_etf}. Ensure ETF drawdowns are precomputed.")
+        else:
+            st.warning(f"Could not calculate recovery correlations for {selected_etf}. Check that holdings have price data.")
