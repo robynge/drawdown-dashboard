@@ -1,0 +1,2953 @@
+ticker,max_drawdown,num_drawdowns,gics_industry_group
+2392595D,-20.71,1,Equity Real Estate Investment Trusts (REITs)
+2450449D,-14.35,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+2551003D,-27.46,2,Consumer Services
+2566642D,-22.79,3,Capital Goods
+2607128D,-10.29,1,Energy
+9982165D,-16.02,1,Capital Goods
+A,-35.79,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+AA,-52.4,10,Materials
+AAL,-51.39,9,Transportation
+AAMI,-26.57,7,Financial Services
+AAN,-40.84,2,Consumer Discretionary Distribution & Retail
+AAON,-49.0,6,Capital Goods
+AAP,-64.94,5,Consumer Discretionary Distribution & Retail
+AAPL,-33.43,8,Technology Hardware & Equipment
+AAT,-39.69,5,Equity Real Estate Investment Trusts (REITs)
+ABBV,-21.46,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+ABCB,-29.96,7,Banks
+ABG,-31.06,17,Consumer Discretionary Distribution & Retail
+ABM,-31.22,6,Commercial & Professional Services
+ABNB,-37.16,6,Consumer Services
+ABR,-52.3,4,Financial Services
+ABT,-24.37,4,Health Care Equipment & Services
+ABUS,-36.84,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+ACA,-36.67,12,Capital Goods
+ACAD,-54.31,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+ACCD,-79.03,2,Health Care Equipment & Services
+ACCO,-50.38,3,Commercial & Professional Services
+ACDC,-69.71,7,Energy
+ACEL,-26.02,8,Consumer Services
+ACET,-68.99,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+ACGL,-22.43,5,Insurance
+ACHC,-86.63,3,Health Care Equipment & Services
+ACHR,-52.42,10,Capital Goods
+ACI,-30.35,2,Consumer Staples Distribution & Retail
+ACIW,-33.24,2,Software & Services
+ACLS,-72.64,7,Semiconductors & Semiconductor Equipment
+ACLX,-50.44,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+ACM,-29.04,9,Capital Goods
+ACMR,-58.42,12,Semiconductors & Semiconductor Equipment
+ACN,-41.6,9,Software & Services
+ACNB,-34.53,12,Banks
+ACRE,-66.63,5,Financial Services
+ACRS,-29.86,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+ACT,-15.79,2,Financial Services
+ACTG,-50.0,7,Financial Services
+ACVA,-78.03,6,Commercial & Professional Services
+ADAM,-38.25,7,Financial Services
+ADBE,-57.56,1,Software & Services
+ADC,-13.83,7,Equity Real Estate Investment Trusts (REITs)
+ADEA,-34.82,9,Software & Services
+ADI,-32.49,7,Semiconductors & Semiconductor Equipment
+ADM,-42.86,8,"Food, Beverage & Tobacco"
+ADMA,-42.92,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+ADNT,-71.66,8,Automobiles & Components
+ADP,-28.4,4,Commercial & Professional Services
+ADPT,-51.35,16,"Pharmaceuticals, Biotechnology & Life Sciences"
+ADSK,-27.15,6,Software & Services
+ADT,-17.54,11,Consumer Services
+ADTN,-41.05,8,Technology Hardware & Equipment
+ADUS,-33.91,8,Health Care Equipment & Services
+ADV,-84.34,3,Media & Entertainment
+AEE,-9.11,6,Utilities
+AEHR,-72.83,7,Semiconductors & Semiconductor Equipment
+AEIS,-39.92,7,Technology Hardware & Equipment
+AEO,-64.47,5,Consumer Discretionary Distribution & Retail
+AEP,-13.94,12,Utilities
+AES,-55.76,7,Utilities
+AESI,-67.63,5,Energy
+AFCG,-78.6,3,Financial Services
+AFG,-20.33,8,Insurance
+AFL,-14.9,5,Insurance
+AFRM,-55.85,11,Financial Services
+AGCO,-38.18,4,Capital Goods
+AGEN,-91.89,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+AGIO,-63.76,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+AGL,-96.03,3,Health Care Equipment & Services
+AGM,-28.27,9,Financial Services
+AGNC,-23.83,2,Financial Services
+AGO,-22.4,7,Insurance
+AGR,-12.29,2,Utilities
+AGS,-16.75,3,Consumer Services
+AGTI,-17.14,2,Health Care Equipment & Services
+AGX,-43.86,13,Capital Goods
+AGYS,-53.61,7,Software & Services
+AHCO,-36.81,9,Health Care Equipment & Services
+AHH,-51.91,1,Equity Real Estate Investment Trusts (REITs)
+AI,-76.36,8,Software & Services
+AIG,-18.05,5,Insurance
+AIN,-57.45,1,Capital Goods
+AIR,-35.72,6,Capital Goods
+AIRC,-15.98,2,Equity Real Estate Investment Trusts (REITs)
+AIT,-26.55,5,Capital Goods
+AIV,-20.61,7,Equity Real Estate Investment Trusts (REITs)
+AIZ,-21.41,4,Insurance
+AJG,-31.8,2,Insurance
+AKAM,-46.84,8,Software & Services
+AKR,-32.94,7,Equity Real Estate Investment Trusts (REITs)
+AKRO,-41.28,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+AKTSQ,-84.8,2,Technology Hardware & Equipment
+AL,-22.43,4,Capital Goods
+ALB,-65.44,8,Materials
+ALDX,-79.66,14,"Pharmaceuticals, Biotechnology & Life Sciences"
+ALE,-10.73,2,Utilities
+ALEC,-88.81,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+ALEX,-23.8,4,Equity Real Estate Investment Trusts (REITs)
+ALG,-32.11,6,Capital Goods
+ALGM,-50.14,10,Semiconductors & Semiconductor Equipment
+ALGN,-62.19,2,Health Care Equipment & Services
+ALGT,-61.16,11,Transportation
+ALHC,-50.33,11,Health Care Equipment & Services
+ALIT,-85.56,3,Commercial & Professional Services
+ALK,-50.63,5,Transportation
+ALKS,-29.33,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+ALKT,-60.11,5,Software & Services
+ALL,-14.11,8,Insurance
+ALLE,-22.72,7,Capital Goods
+ALLK,-69.04,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+ALLO,-83.08,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+ALLY,-33.15,10,Financial Services
+ALNT,-53.04,4,Capital Goods
+ALNY,-32.57,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+ALPN,-16.08,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+ALRM,-39.75,1,Software & Services
+ALRS,-34.24,7,Financial Services
+ALSN,-34.13,4,Capital Goods
+ALT,-75.52,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+ALTG,-69.98,7,Capital Goods
+ALTR,-18.64,6,Software & Services
+ALX,-24.66,6,Equity Real Estate Investment Trusts (REITs)
+ALXO,-97.69,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+AM,-13.98,8,Energy
+AMAL,-33.75,5,Banks
+AMAT,-50.21,5,Semiconductors & Semiconductor Equipment
+AMBA,-51.41,11,Semiconductors & Semiconductor Equipment
+AMBP,-40.8,7,Materials
+AMC,-80.0,3,Media & Entertainment
+AMCR,-31.64,3,Materials
+AMCX,-71.27,6,Media & Entertainment
+AMD,-63.0,4,Semiconductors & Semiconductor Equipment
+AME,-23.29,4,Capital Goods
+AMED,-14.9,5,Health Care Equipment & Services
+AMG,-26.98,4,Financial Services
+AMGN,-23.35,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+AMH,-26.65,6,Equity Real Estate Investment Trusts (REITs)
+AMK,-8.82,2,Financial Services
+AMKR,-66.19,10,Semiconductors & Semiconductor Equipment
+AMLX,-91.72,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+AMN,-80.92,2,Health Care Equipment & Services
+AMNB,-10.97,1,Banks
+AMP,-26.59,5,Financial Services
+AMPH,-67.5,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+AMPL,-49.38,3,Software & Services
+AMPS,-62.17,6,Utilities
+AMPY,-71.11,6,Energy
+AMR,-77.51,7,Materials
+AMRC,-77.67,10,Capital Goods
+AMRK,-57.95,6,Consumer Discretionary Distribution & Retail
+AMRX,-24.65,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+AMSF,-35.76,5,Insurance
+AMT,-30.61,6,Equity Real Estate Investment Trusts (REITs)
+AMTB,-37.95,6,Banks
+AMWD,-53.74,4,Capital Goods
+AMWL,-77.6,1,Health Care Equipment & Services
+AMZN,-30.88,5,Consumer Discretionary Distribution & Retail
+AN,-20.21,11,Consumer Discretionary Distribution & Retail
+ANAB,-69.32,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+ANDE,-47.84,5,Consumer Staples Distribution & Retail
+ANET,-50.42,13,Technology Hardware & Equipment
+ANF,-65.89,4,Consumer Discretionary Distribution & Retail
+ANGO,-35.32,11,Health Care Equipment & Services
+ANIK,-71.83,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+ANIP,-23.45,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+ANSS,-21.38,4,Software & Services
+AON,-20.34,7,Insurance
+AORT,-30.0,8,Health Care Equipment & Services
+AOS,-35.17,5,Capital Goods
+AOSL,-66.94,9,Semiconductors & Semiconductor Equipment
+APA,-61.82,7,Energy
+APAM,-30.37,5,Financial Services
+APD,-31.74,5,Materials
+APG,-21.23,4,Capital Goods
+APGE,-58.75,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+APH,-24.77,10,Technology Hardware & Equipment
+APLD,-71.95,19,Software & Services
+APLE,-37.02,4,Equity Real Estate Investment Trusts (REITs)
+APLS,-77.43,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+APO,-39.15,9,Financial Services
+APOG,-63.19,7,Capital Goods
+APP,-57.0,13,Software & Services
+APPF,-44.79,6,Software & Services
+APPN,-45.46,11,Software & Services
+APPS,-82.56,14,Software & Services
+APTV,-46.86,7,Automobiles & Components
+AR,-31.77,10,Energy
+ARAY,-79.59,1,Health Care Equipment & Services
+ARCB,-62.62,5,Transportation
+ARCH,-35.24,2,Materials
+ARCT,-86.71,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+ARDX,-66.32,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+ARE,-65.34,2,Equity Real Estate Investment Trusts (REITs)
+ARES,-40.45,4,Financial Services
+ARI,-33.0,2,Financial Services
+ARIS,-41.28,12,Energy
+ARKO,-56.34,7,Consumer Discretionary Distribution & Retail
+ARLO,-50.82,8,Technology Hardware & Equipment
+ARMK,-28.02,6,Consumer Services
+AROC,-30.78,10,Energy
+AROW,-30.64,7,Banks
+ARQT,-42.22,13,"Pharmaceuticals, Biotechnology & Life Sciences"
+ARR,-35.47,5,Financial Services
+ARRY,-76.53,6,Capital Goods
+ARTNA,-17.33,2,Utilities
+ARVN,-88.4,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+ARW,-34.14,8,Technology Hardware & Equipment
+ARWR,-74.7,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+ASAN,-69.26,4,Software & Services
+ASB,-32.8,10,Banks
+ASC,-63.6,3,Energy
+ASGN,-61.81,1,Software & Services
+ASH,-54.02,3,Materials
+ASIX,-56.5,6,Materials
+ASLE,-63.51,4,Capital Goods
+ASO,-54.63,4,Consumer Discretionary Distribution & Retail
+ASPN,-91.08,5,Materials
+ASRT,-33.86,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+ASTE,-35.41,11,Capital Goods
+ASTH,-67.48,8,Health Care Equipment & Services
+ASTS,-59.88,21,Telecommunication Services
+ASUR,-39.06,7,Commercial & Professional Services
+ATEC,-70.32,11,Health Care Equipment & Services
+ATEN,-31.32,6,Software & Services
+ATEX,-57.35,4,Telecommunication Services
+ATGE,-42.14,6,Consumer Services
+ATI,-38.02,8,Capital Goods
+ATKR,-73.13,6,Capital Goods
+ATMU,-28.85,4,Capital Goods
+ATNI,-64.37,6,Telecommunication Services
+ATO,-9.92,5,Utilities
+ATR,-35.78,4,Materials
+ATRA,-76.08,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+ATRC,-47.43,9,Health Care Equipment & Services
+ATRI,-21.6,5,Health Care Equipment & Services
+ATRO,-33.3,6,Capital Goods
+ATSG,-29.8,5,Transportation
+ATXS,-77.53,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+AUB,-45.24,5,Banks
+AUPH,-48.34,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+AUR,-63.0,15,Software & Services
+AURA,-58.26,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+AVA,-16.21,6,Utilities
+AVAV,-52.52,7,Capital Goods
+AVB,-28.64,3,Equity Real Estate Investment Trusts (REITs)
+AVD,-74.35,3,Materials
+AVDX,-48.16,3,Financial Services
+AVGO,-41.48,10,Semiconductors & Semiconductor Equipment
+AVIR,-44.08,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+AVNS,-59.94,3,Health Care Equipment & Services
+AVNT,-48.32,5,Materials
+AVNW,-64.27,6,Technology Hardware & Equipment
+AVO,-32.6,10,"Food, Beverage & Tobacco"
+AVPT,-49.17,9,Software & Services
+AVT,-28.05,4,Technology Hardware & Equipment
+AVTR,-61.62,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+AVXL,-77.12,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+AVY,-31.38,3,Materials
+AWI,-22.17,6,Capital Goods
+AWK,-19.27,7,Utilities
+AWR,-19.35,7,Utilities
+AX,-34.92,5,Banks
+AXGN,-53.8,10,Health Care Equipment & Services
+AXL,-64.53,5,Automobiles & Components
+AXON,-54.11,9,Capital Goods
+AXP,-28.99,4,Financial Services
+AXS,-17.47,8,Insurance
+AXSM,-32.69,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+AXTA,-36.09,2,Materials
+AYI,-33.75,5,Capital Goods
+AZEK,-27.67,7,Capital Goods
+AZO,-25.48,7,Consumer Discretionary Distribution & Retail
+AZPN,-22.1,4,Software & Services
+AZTA,-62.92,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+AZZ,-23.66,11,Capital Goods
+BA,-45.75,4,Capital Goods
+BAC,-28.01,12,Banks
+BAH,-57.04,7,Commercial & Professional Services
+BALL,-36.45,5,Materials
+BANC,-32.13,8,Banks
+BAND,-49.82,7,Telecommunication Services
+BANF,-22.32,8,Banks
+BANR,-25.9,9,Banks
+BASE,-54.99,2,Software & Services
+BATRA,-16.63,7,Media & Entertainment
+BATRK,-18.72,5,Media & Entertainment
+BAX,-60.2,3,Health Care Equipment & Services
+BBBY,-89.78,11,Consumer Discretionary Distribution & Retail
+BBIO,-44.75,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+BBSI,-32.26,3,Commercial & Professional Services
+BBT,-27.32,12,Banks
+BBUC,-26.56,8,Capital Goods
+BBW,-37.92,10,Consumer Discretionary Distribution & Retail
+BBWI,-70.96,5,Consumer Discretionary Distribution & Retail
+BBY,-45.62,8,Consumer Discretionary Distribution & Retail
+BC,-56.56,5,Consumer Durables & Apparel
+BCBP,-45.3,3,Banks
+BCC,-56.68,8,Capital Goods
+BCML,-18.95,8,Banks
+BCO,-29.04,6,Commercial & Professional Services
+BCPC,-23.5,9,Materials
+BCRX,-46.01,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+BDC,-33.73,6,Technology Hardware & Equipment
+BDN,-57.73,5,Equity Real Estate Investment Trusts (REITs)
+BDX,-33.7,8,Health Care Equipment & Services
+BE,-46.82,13,Capital Goods
+BEAM,-67.74,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+BECN,-22.07,7,Capital Goods
+BELFB,-33.43,11,Technology Hardware & Equipment
+BEN,-43.2,5,Financial Services
+BEPC,-27.48,6,Utilities
+BERY,-16.87,7,Materials
+BF/A,-58.22,2,"Food, Beverage & Tobacco"
+BF/B,-58.29,1,"Food, Beverage & Tobacco"
+BFAM,-37.36,4,Consumer Services
+BFC,-15.73,15,Banks
+BFH,-36.88,12,Financial Services
+BFLY,-53.01,5,Health Care Equipment & Services
+BFS,-29.43,3,Equity Real Estate Investment Trusts (REITs)
+BFST,-28.0,7,Banks
+BG,-39.71,9,"Food, Beverage & Tobacco"
+BGC,-34.73,8,Financial Services
+BGS,-67.09,3,"Food, Beverage & Tobacco"
+BHB,-28.41,8,Banks
+BHE,-37.24,10,Technology Hardware & Equipment
+BHF,-31.14,5,Insurance
+BHILQ,-42.59,4,"Food, Beverage & Tobacco"
+BHR,-52.2,8,Equity Real Estate Investment Trusts (REITs)
+BHRB,-31.48,6,Banks
+BHVN,-86.96,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+BIGGQ,-78.35,1,Consumer Discretionary Distribution & Retail
+BIIB,-57.65,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+BILL,-63.37,3,Software & Services
+BIO,-42.14,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+BIPC,-25.93,5,Utilities
+BIRD,-61.54,1,Consumer Durables & Apparel
+BIRK,-41.56,4,Consumer Durables & Apparel
+BJ,-26.65,5,Consumer Staples Distribution & Retail
+BJRI,-38.67,8,Consumer Services
+BK,-17.58,8,Financial Services
+BKD,-43.55,8,Health Care Equipment & Services
+BKE,-34.38,5,Consumer Discretionary Distribution & Retail
+BKH,-13.92,7,Utilities
+BKNG,-23.6,6,Consumer Services
+BKR,-28.35,11,Energy
+BKU,-31.76,7,Banks
+BL,-39.24,2,Software & Services
+BLBD,-45.95,7,Capital Goods
+BLD,-42.41,10,Consumer Durables & Apparel
+BLDR,-55.07,3,Capital Goods
+BLFS,-27.55,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+BLFY,-32.72,4,Banks
+BLK,-24.15,6,Financial Services
+BLKB,-47.09,2,Software & Services
+BLMN,-80.08,4,Consumer Services
+BLNK,-82.09,11,Capital Goods
+BLUE,-90.6,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+BLX,-22.26,10,Financial Services
+BMBL,-78.69,1,Media & Entertainment
+BMEA,-92.87,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+BMI,-43.18,6,Technology Hardware & Equipment
+BMRC,-34.43,9,Banks
+BMRN,-48.02,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+BMY,-32.5,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+BNL,-22.32,3,Equity Real Estate Investment Trusts (REITs)
+BOC,-30.87,4,Media & Entertainment
+BOH,-25.7,3,Banks
+BOKF,-26.58,11,Banks
+BOOM,-71.63,5,Energy
+BOOT,-48.93,10,Consumer Discretionary Distribution & Retail
+BORR,-77.0,9,Energy
+BOX,-36.99,4,Software & Services
+BPMC,-34.26,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+BPOP,-23.23,7,Banks
+BR,-30.33,5,Commercial & Professional Services
+BRBR,-75.46,4,Household & Personal Products
+BRCC,-89.12,5,"Food, Beverage & Tobacco"
+BRK/B,-14.95,1,Financial Services
+BRKL,-29.01,9,Banks
+BRKR,-68.87,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+BRO,-42.7,3,Insurance
+BRSL,-47.3,4,Consumer Services
+BRSP,-44.08,6,Financial Services
+BRX,-24.07,3,Equity Real Estate Investment Trusts (REITs)
+BRY,-75.31,7,Energy
+BRZE,-70.32,1,Software & Services
+BSRR,-29.66,6,Banks
+BSX,-30.18,6,Health Care Equipment & Services
+BSY,-45.86,3,Software & Services
+BTAI,-74.01,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+BTBT,-72.74,9,Software & Services
+BTU,-65.4,11,Energy
+BURL,-26.98,6,Consumer Discretionary Distribution & Retail
+BUSE,-32.42,7,Banks
+BV,-37.32,4,Commercial & Professional Services
+BW,-46.8,6,Capital Goods
+BWA,-34.15,4,Automobiles & Components
+BWB,-22.19,11,Banks
+BWIN,-66.07,5,Insurance
+BWMN,-56.21,8,Capital Goods
+BWXT,-33.04,6,Capital Goods
+BX,-39.68,10,Financial Services
+BXC,-59.52,8,Capital Goods
+BXMT,-24.15,7,Financial Services
+BXP,-36.63,4,Equity Real Estate Investment Trusts (REITs)
+BY,-27.48,10,Banks
+BYD,-25.58,6,Consumer Services
+BYND,-95.14,3,"Food, Beverage & Tobacco"
+BZH,-49.79,11,Consumer Durables & Apparel
+C,-31.31,13,Banks
+CABA,-95.9,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+CABO,-87.29,1,Media & Entertainment
+CAC,-28.5,7,Banks
+CACC,-32.74,4,Financial Services
+CACI,-42.88,5,Commercial & Professional Services
+CADE,-32.76,9,Banks
+CAG,-51.02,3,"Food, Beverage & Tobacco"
+CAH,-18.92,2,Health Care Equipment & Services
+CAKE,-37.03,5,Consumer Services
+CAL,-78.1,4,Consumer Discretionary Distribution & Retail
+CALM,-39.21,4,"Food, Beverage & Tobacco"
+CALX,-37.73,7,Technology Hardware & Equipment
+CANOQ,-96.56,3,Health Care Equipment & Services
+CAR,-68.41,4,Transportation
+CARE,-31.75,10,Banks
+CARG,-37.88,9,Media & Entertainment
+CARM,-64.93,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+CARR,-39.08,6,Capital Goods
+CARS,-51.47,7,Media & Entertainment
+CART,-35.37,8,Consumer Staples Distribution & Retail
+CASH,-21.67,6,Banks
+CASS,-24.06,3,Financial Services
+CASY,-14.42,5,Consumer Staples Distribution & Retail
+CAT,-34.29,3,Capital Goods
+CATC,-18.12,2,Banks
+CATY,-30.7,10,Banks
+CAVA,-71.11,6,Consumer Services
+CB,-14.63,8,Insurance
+CBAN,-21.42,9,Banks
+CBL,-30.15,7,Equity Real Estate Investment Trusts (REITs)
+CBOE,-14.99,3,Financial Services
+CBRE,-22.56,7,Real Estate Management & Development
+CBRL,-69.6,3,Consumer Services
+CBSH,-28.56,5,Banks
+CBT,-49.82,5,Materials
+CBU,-28.79,11,Banks
+CBZ,-58.27,4,Commercial & Professional Services
+CC,-70.78,6,Materials
+CCB,-28.58,6,Banks
+CCBG,-16.85,11,Banks
+CCC,-55.45,5,Software & Services
+CCI,-34.83,4,Equity Real Estate Investment Trusts (REITs)
+CCK,-22.26,4,Materials
+CCL,-42.33,8,Consumer Services
+CCNE,-30.7,11,Banks
+CCO,-57.07,4,Media & Entertainment
+CCOI,-80.46,4,Telecommunication Services
+CCRN,-67.98,2,Health Care Equipment & Services
+CCS,-52.19,9,Consumer Durables & Apparel
+CCSI,-52.82,12,Software & Services
+CDE,-40.17,12,Materials
+CDLX,-93.95,9,Media & Entertainment
+CDMO,-30.72,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+CDNA,-65.96,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+CDNS,-29.05,5,Software & Services
+CDP,-25.23,6,Equity Real Estate Investment Trusts (REITs)
+CDRE,-29.96,9,Capital Goods
+CDW,-51.63,1,Technology Hardware & Equipment
+CDXS,-78.66,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+CE,-79.33,3,Materials
+CECO,-47.93,9,Capital Goods
+CEG,-50.79,8,Utilities
+CELC,-61.99,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+CELH,-77.86,8,"Food, Beverage & Tobacco"
+CENT,-38.77,5,Household & Personal Products
+CENTA,-35.68,5,Household & Personal Products
+CENX,-42.77,12,Materials
+CERE,-9.96,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+CERS,-52.07,11,Health Care Equipment & Services
+CERT,-62.06,2,Health Care Equipment & Services
+CEVA,-51.53,10,Semiconductors & Semiconductor Equipment
+CF,-29.59,7,Materials
+CFB,-24.46,5,Banks
+CFFN,-29.94,10,Banks
+CFG,-29.28,8,Banks
+CFLT,-57.74,6,Software & Services
+CFR,-27.06,8,Banks
+CG,-38.94,6,Financial Services
+CGEM,-80.41,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+CGNX,-56.02,6,Technology Hardware & Equipment
+CHCO,-18.92,10,Banks
+CHCT,-52.33,2,Equity Real Estate Investment Trusts (REITs)
+CHD,-27.92,10,Household & Personal Products
+CHDN,-41.17,6,Consumer Services
+CHE,-36.64,4,Health Care Equipment & Services
+CHEF,-26.03,6,Consumer Staples Distribution & Retail
+CHGG,-95.88,5,Consumer Services
+CHH,-45.89,8,Consumer Services
+CHPT,-77.34,9,Capital Goods
+CHRD,-56.23,5,Energy
+CHRS,-78.66,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+CHRW,-23.76,6,Transportation
+CHTR,-57.21,6,Media & Entertainment
+CHUY,-36.83,2,Consumer Services
+CHX,-42.76,4,Energy
+CI,-33.38,2,Health Care Equipment & Services
+CIEN,-45.51,10,Technology Hardware & Equipment
+CIM,-37.12,7,Financial Services
+CINF,-20.95,5,Insurance
+CIO,-36.09,7,Equity Real Estate Investment Trusts (REITs)
+CIVB,-24.92,6,Banks
+CIVI,-68.94,10,Energy
+CL,-31.07,5,Household & Personal Products
+CLB,-60.23,5,Energy
+CLBK,-32.63,6,Banks
+CLDT,-44.4,7,Equity Real Estate Investment Trusts (REITs)
+CLDX,-70.84,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+CLF,-74.46,6,Materials
+CLFD,-41.84,7,Technology Hardware & Equipment
+CLH,-30.86,3,Commercial & Professional Services
+CLNE,-65.26,9,Energy
+CLSK,-71.28,12,Software & Services
+CLVT,-77.97,1,Commercial & Professional Services
+CLW,-70.4,6,Materials
+CLX,-42.6,5,Household & Personal Products
+CMA,-30.68,5,Banks
+CMAXQ,-87.25,5,Health Care Equipment & Services
+CMBM,-70.22,2,Technology Hardware & Equipment
+CMC,-38.09,3,Materials
+CMCL,-45.96,8,Materials
+CMCO,-72.3,5,Capital Goods
+CMCSA,-46.95,1,Media & Entertainment
+CME,-12.61,3,Financial Services
+CMG,-56.51,4,Consumer Services
+CMI,-30.81,4,Capital Goods
+CMP,-68.81,9,Materials
+CMPR,-61.17,10,Commercial & Professional Services
+CMPX,-65.07,18,"Pharmaceuticals, Biotechnology & Life Sciences"
+CMRC,-67.22,1,Software & Services
+CMRE,-51.31,8,Transportation
+CMS,-9.86,9,Utilities
+CMT,-35.12,7,Materials
+CMTG,-83.94,9,Financial Services
+CMTL,-81.65,6,Technology Hardware & Equipment
+CNA,-15.04,9,Insurance
+CNC,-68.65,3,Health Care Equipment & Services
+CNDT,-69.0,8,Commercial & Professional Services
+CNH,-33.19,7,Capital Goods
+CNK,-39.12,4,Media & Entertainment
+CNM,-38.74,11,Capital Goods
+CNMD,-66.84,1,Health Care Equipment & Services
+CNNE,-37.03,3,Financial Services
+CNO,-16.24,7,Insurance
+CNOB,-27.94,13,Banks
+CNP,-18.14,6,Utilities
+CNR,-52.21,12,Energy
+CNS,-44.43,6,Financial Services
+CNSL,-7.84,2,Telecommunication Services
+CNX,-33.37,4,Energy
+CNXC,-68.88,2,Commercial & Professional Services
+CNXN,-27.06,4,Technology Hardware & Equipment
+COCO,-33.0,11,"Food, Beverage & Tobacco"
+CODI,-81.07,1,Financial Services
+COF,-28.24,6,Financial Services
+COGT,-67.32,15,"Pharmaceuticals, Biotechnology & Life Sciences"
+COHR,-54.85,13,Technology Hardware & Equipment
+COHU,-62.48,5,Semiconductors & Semiconductor Equipment
+COIN,-65.19,10,Financial Services
+COKE,-27.51,5,"Food, Beverage & Tobacco"
+COLB,-35.3,9,Banks
+COLD,-66.77,2,Equity Real Estate Investment Trusts (REITs)
+COLL,-41.07,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+COLM,-46.83,4,Consumer Durables & Apparel
+COMM,-69.65,12,Technology Hardware & Equipment
+COMP,-43.36,13,Real Estate Management & Development
+COO,-42.17,6,Health Care Equipment & Services
+COOP,-20.08,4,Financial Services
+COP,-38.09,4,Energy
+COR,-12.04,4,Health Care Equipment & Services
+CORT,-69.59,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+COST,-21.07,5,Consumer Staples Distribution & Retail
+COTY,-77.3,1,Household & Personal Products
+COUR,-71.64,2,Consumer Services
+CPAY,-34.54,7,Financial Services
+CPB,-49.74,4,"Food, Beverage & Tobacco"
+CPE,-12.78,1,Energy
+CPF,-26.51,8,Banks
+CPK,-14.39,7,Utilities
+CPNG,-49.93,7,Consumer Discretionary Distribution & Retail
+CPRI,-75.54,7,Consumer Durables & Apparel
+CPRT,-40.84,6,Commercial & Professional Services
+CPRX,-27.29,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+CPS,-41.87,5,Automobiles & Components
+CPT,-23.18,3,Equity Real Estate Investment Trusts (REITs)
+CR,-28.21,6,Capital Goods
+CRAI,-23.93,12,Commercial & Professional Services
+CRBU,-91.12,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+CRC,-45.63,7,Energy
+CRCT,-45.65,5,Consumer Durables & Apparel
+CRDO,-61.05,13,Semiconductors & Semiconductor Equipment
+CRGY,-56.45,12,Energy
+CRI,-73.1,5,Consumer Durables & Apparel
+CRK,-51.11,11,Energy
+CRL,-63.52,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+CRM,-48.36,4,Software & Services
+CRMD,-59.06,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+CRMT,-74.45,7,Consumer Discretionary Distribution & Retail
+CRNC,-88.75,15,Software & Services
+CRNX,-57.88,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+CROX,-54.04,4,Consumer Durables & Apparel
+CRS,-28.81,6,Capital Goods
+CRSR,-66.09,1,Technology Hardware & Equipment
+CRUS,-46.85,5,Semiconductors & Semiconductor Equipment
+CRVL,-62.07,8,Health Care Equipment & Services
+CRWD,-44.44,10,Software & Services
+CSCO,-18.01,3,Technology Hardware & Equipment
+CSGP,-47.83,2,Real Estate Management & Development
+CSGS,-27.19,5,Commercial & Professional Services
+CSL,-38.58,5,Capital Goods
+CSR,-29.56,6,Equity Real Estate Investment Trusts (REITs)
+CSTL,-57.74,6,Health Care Equipment & Services
+CSTM,-66.35,6,Materials
+CSTR,-10.87,2,Banks
+CSV,-15.66,8,Consumer Services
+CSW,-46.34,5,Capital Goods
+CSX,-30.46,4,Transportation
+CTAS,-20.04,2,Commercial & Professional Services
+CTBI,-25.06,8,Banks
+CTEV,-74.82,1,Health Care Equipment & Services
+CTKB,-73.55,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+CTLP,-35.07,7,Financial Services
+CTLT,-10.43,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+CTO,-27.85,6,Equity Real Estate Investment Trusts (REITs)
+CTOS,-55.57,5,Capital Goods
+CTRA,-24.3,6,Energy
+CTRE,-24.02,6,Equity Real Estate Investment Trusts (REITs)
+CTS,-40.72,8,Technology Hardware & Equipment
+CTSH,-27.82,4,Software & Services
+CTVA,-20.9,5,Materials
+CUBE,-35.18,3,Equity Real Estate Investment Trusts (REITs)
+CUBI,-36.05,5,Banks
+CUTRQ,-73.28,3,Health Care Equipment & Services
+CUZ,-24.11,6,Equity Real Estate Investment Trusts (REITs)
+CVBF,-31.62,7,Banks
+CVCO,-33.24,11,Consumer Durables & Apparel
+CVGI,-87.96,5,Capital Goods
+CVGW,-37.45,3,"Food, Beverage & Tobacco"
+CVI,-57.74,7,Energy
+CVLG,-41.54,10,Transportation
+CVLT,-58.37,9,Software & Services
+CVNA,-43.02,17,Consumer Discretionary Distribution & Retail
+CVRX,-84.42,5,Health Care Equipment & Services
+CVS,-46.23,6,Health Care Equipment & Services
+CVX,-20.64,6,Energy
+CW,-27.29,3,Capital Goods
+CWCO,-35.46,4,Utilities
+CWEN,-23.34,7,Utilities
+CWEN/A,-23.12,6,Utilities
+CWH,-66.67,5,Consumer Discretionary Distribution & Retail
+CWK,-48.97,15,Real Estate Management & Development
+CWST,-31.18,7,Commercial & Professional Services
+CWT,-24.54,7,Utilities
+CXM,-56.86,2,Software & Services
+CXT,-36.25,6,Technology Hardware & Equipment
+CXW,-32.62,4,Commercial & Professional Services
+CYH,-61.58,9,Health Care Equipment & Services
+CYRX,-75.04,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+CYTK,-72.39,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+CZFS,-37.83,7,Banks
+CZNC,-26.78,7,Banks
+CZR,-60.99,3,Consumer Services
+D,-18.5,4,Utilities
+DAKT,-42.0,9,Technology Hardware & Equipment
+DAL,-48.05,10,Transportation
+DAN,-47.29,8,Automobiles & Components
+DAR,-45.27,4,"Food, Beverage & Tobacco"
+DASH,-34.74,5,Consumer Services
+DAWN,-67.21,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+DAY,-39.69,5,Commercial & Professional Services
+DBI,-80.73,5,Consumer Discretionary Distribution & Retail
+DBRG,-67.17,6,Financial Services
+DBX,-37.39,3,Software & Services
+DCGO,-87.77,7,Health Care Equipment & Services
+DCI,-24.39,6,Capital Goods
+DCO,-23.46,8,Capital Goods
+DCOM,-35.3,9,Banks
+DCPH,-18.32,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+DD,-38.43,5,Materials
+DDD,-77.72,9,Capital Goods
+DDOG,-48.41,6,Software & Services
+DDS,-42.06,7,Consumer Discretionary Distribution & Retail
+DE,-18.91,8,Capital Goods
+DEA,-44.78,6,Equity Real Estate Investment Trusts (REITs)
+DECK,-64.35,6,Consumer Durables & Apparel
+DEI,-49.11,8,Equity Real Estate Investment Trusts (REITs)
+DENN,-73.88,4,Consumer Services
+DFH,-61.17,4,Consumer Durables & Apparel
+DFIN,-45.24,7,Financial Services
+DFS,-27.66,4,Financial Services
+DG,-57.55,4,Consumer Staples Distribution & Retail
+DGICA,-19.7,4,Insurance
+DGII,-35.17,10,Technology Hardware & Equipment
+DGX,-12.9,10,Health Care Equipment & Services
+DH,-80.9,3,Health Care Equipment & Services
+DHC,-51.31,10,Equity Real Estate Investment Trusts (REITs)
+DHI,-41.59,7,Consumer Durables & Apparel
+DHIL,-31.0,2,Financial Services
+DHR,-37.8,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+DHT,-30.06,5,Energy
+DIN,-63.05,8,Consumer Services
+DINO,-59.33,6,Energy
+DIOD,-60.08,5,Semiconductors & Semiconductor Equipment
+DIS,-33.46,3,Media & Entertainment
+DJCO,-38.01,14,Software & Services
+DK,-65.41,6,Energy
+DKNG,-52.29,4,Consumer Services
+DKS,-33.12,6,Consumer Discretionary Distribution & Retail
+DLB,-30.07,5,Software & Services
+DLR,-30.45,4,Equity Real Estate Investment Trusts (REITs)
+DLTR,-59.2,7,Consumer Staples Distribution & Retail
+DLX,-44.53,7,Commercial & Professional Services
+DM,-67.32,6,Capital Goods
+DMRC,-89.19,8,Software & Services
+DNA,-83.0,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+DNB,-38.12,3,Commercial & Professional Services
+DNLI,-63.68,13,"Pharmaceuticals, Biotechnology & Life Sciences"
+DNMRQ,-64.15,3,Materials
+DNOW,-30.76,8,Capital Goods
+DNUT,-85.19,9,Consumer Services
+DO,-16.05,4,Energy
+DOC,-31.75,3,Equity Real Estate Investment Trusts (REITs)
+DOCN,-44.87,9,Software & Services
+DOCS,-59.92,6,Health Care Equipment & Services
+DOCU,-57.44,3,Software & Services
+DOLE,-28.1,7,"Food, Beverage & Tobacco"
+DOMO,-75.11,11,Software & Services
+DORM,-26.38,8,Automobiles & Components
+DOUG,-64.26,1,Real Estate Management & Development
+DOV,-26.81,5,Capital Goods
+DOW,-65.58,2,Materials
+DOX,-24.39,7,Software & Services
+DPZ,-27.36,4,Consumer Services
+DRH,-33.24,6,Equity Real Estate Investment Trusts (REITs)
+DRI,-25.06,6,Consumer Services
+DRS,-32.8,7,Capital Goods
+DRVN,-32.43,8,Consumer Services
+DSGN,-62.8,19,"Pharmaceuticals, Biotechnology & Life Sciences"
+DSGR,-40.83,10,Capital Goods
+DT,-46.38,4,Software & Services
+DTE,-10.94,2,Utilities
+DTM,-23.56,9,Energy
+DUK,-12.42,6,Utilities
+DUOL,-78.85,7,Consumer Services
+DV,-77.91,3,Media & Entertainment
+DVA,-41.43,8,Health Care Equipment & Services
+DVAX,-37.52,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+DVN,-50.83,8,Energy
+DX,-22.82,6,Financial Services
+DXC,-50.43,2,Software & Services
+DXCM,-60.95,2,Health Care Equipment & Services
+DXLG,-78.61,3,Consumer Discretionary Distribution & Retail
+DXPE,-32.99,7,Capital Goods
+DY,-32.58,6,Capital Goods
+DYN,-85.52,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+EA,-30.62,2,Media & Entertainment
+EAF,-75.37,15,Capital Goods
+EAT,-45.92,6,Consumer Services
+EB,-79.93,6,Media & Entertainment
+EBAY,-20.56,8,Consumer Discretionary Distribution & Retail
+EBC,-25.95,10,Banks
+EBF,-27.62,2,Commercial & Professional Services
+EBS,-45.45,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+EBTC,-30.63,5,Banks
+ECL,-16.37,4,Materials
+ECPG,-49.21,4,Financial Services
+ECVT,-52.2,6,Materials
+ED,-18.06,4,Utilities
+EDIT,-91.15,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+EE,-28.94,7,Energy
+EEFT,-41.91,2,Financial Services
+EFC,-19.65,9,Financial Services
+EFR,-54.26,10,Energy
+EFSC,-25.42,9,Banks
+EFX,-43.0,3,Commercial & Professional Services
+EG,-25.09,8,Insurance
+EGBN,-47.33,3,Banks
+EGHT,-57.75,5,Software & Services
+EGP,-24.23,5,Equity Real Estate Investment Trusts (REITs)
+EGRX,-48.69,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+EGY,-58.56,8,Energy
+EHAB,-44.03,3,Health Care Equipment & Services
+EHC,-26.22,3,Health Care Equipment & Services
+EHTH,-49.88,2,Insurance
+EIG,-33.03,2,Insurance
+EIX,-45.31,6,Utilities
+EL,-68.3,5,Household & Personal Products
+ELAN,-56.1,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+ELF,-77.09,5,Household & Personal Products
+ELME,-88.17,3,Equity Real Estate Investment Trusts (REITs)
+ELS,-23.37,4,Equity Real Estate Investment Trusts (REITs)
+ELV,-51.15,3,Health Care Equipment & Services
+ELVN,-49.54,18,"Pharmaceuticals, Biotechnology & Life Sciences"
+EMBC,-55.66,9,Health Care Equipment & Services
+EME,-36.19,7,Capital Goods
+EMN,-50.45,4,Materials
+EMR,-29.91,6,Capital Goods
+ENFN,-19.33,7,Software & Services
+ENOV,-66.36,1,Health Care Equipment & Services
+ENPH,-80.85,3,Semiconductors & Semiconductor Equipment
+ENR,-56.79,8,Household & Personal Products
+ENS,-28.74,6,Capital Goods
+ENSG,-23.57,5,Health Care Equipment & Services
+ENTA,-75.6,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+ENTG,-57.05,9,Semiconductors & Semiconductor Equipment
+ENV,-13.24,2,Software & Services
+ENVA,-26.25,6,Financial Services
+ENVX,-70.18,8,Capital Goods
+EOG,-26.27,5,Energy
+EOLS,-74.79,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+EOSE,-48.42,9,Capital Goods
+EPAC,-30.56,2,Capital Goods
+EPAM,-54.8,4,Software & Services
+EPC,-61.37,4,Household & Personal Products
+EPM,-48.48,2,Energy
+EPR,-20.0,8,Equity Real Estate Investment Trusts (REITs)
+EPRT,-17.51,10,Equity Real Estate Investment Trusts (REITs)
+EQBK,-28.82,7,Banks
+EQC,-8.13,5,Equity Real Estate Investment Trusts (REITs)
+EQH,-23.49,8,Financial Services
+EQIX,-26.29,5,Equity Real Estate Investment Trusts (REITs)
+EQR,-24.82,1,Equity Real Estate Investment Trusts (REITs)
+EQT,-27.93,10,Energy
+ERAS,-67.68,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+ERII,-42.95,4,Capital Goods
+ES,-20.69,8,Utilities
+ESAB,-22.72,5,Capital Goods
+ESE,-17.56,6,Capital Goods
+ESGR,-10.97,3,Insurance
+ESI,-40.33,7,Materials
+ESNT,-18.75,12,Financial Services
+ESQ,-20.85,6,Banks
+ESRT,-46.11,7,Equity Real Estate Investment Trusts (REITs)
+ESS,-22.11,6,Equity Real Estate Investment Trusts (REITs)
+ESTC,-57.28,1,Software & Services
+ETD,-35.31,4,Consumer Durables & Apparel
+ETN,-34.7,5,Capital Goods
+ETNB,-64.92,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+ETR,-10.1,2,Utilities
+ETRN,-13.94,2,Energy
+ETSY,-49.68,7,Consumer Discretionary Distribution & Retail
+ETWO,-62.67,4,Software & Services
+EU,-75.7,9,Energy
+EVC,-68.49,13,Media & Entertainment
+EVCM,-34.29,5,Software & Services
+EVER,-41.97,9,Media & Entertainment
+EVGO,-73.49,14,Consumer Discretionary Distribution & Retail
+EVH,-91.68,3,Health Care Equipment & Services
+EVLV,-61.95,6,Technology Hardware & Equipment
+EVR,-48.17,4,Financial Services
+EVRG,-10.31,2,Utilities
+EVRI,-46.04,2,Consumer Services
+EVTC,-35.94,3,Financial Services
+EVVAQ,-68.19,5,Energy
+EW,-37.53,9,Health Care Equipment & Services
+EWBC,-36.14,7,Banks
+EWCZ,-80.39,7,Consumer Services
+EWTX,-68.81,15,"Pharmaceuticals, Biotechnology & Life Sciences"
+EXAS,-45.72,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+EXC,-11.59,5,Utilities
+EXE,-24.37,10,Energy
+EXEL,-25.34,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+EXFY,-48.59,2,Software & Services
+EXLS,-39.77,2,Commercial & Professional Services
+EXP,-38.57,11,Materials
+EXPD,-21.74,5,Transportation
+EXPE,-33.84,11,Consumer Services
+EXPI,-53.43,5,Real Estate Management & Development
+EXPO,-43.38,7,Commercial & Professional Services
+EXR,-30.87,6,Equity Real Estate Investment Trusts (REITs)
+EXTR,-41.47,7,Technology Hardware & Equipment
+EYE,-59.34,12,Consumer Discretionary Distribution & Retail
+EYPT,-86.1,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+F,-40.27,9,Automobiles & Components
+FA,-40.05,3,Commercial & Professional Services
+FAF,-23.39,6,Insurance
+FANG,-43.47,4,Energy
+FARO,-40.14,5,Technology Hardware & Equipment
+FAST,-22.31,7,Capital Goods
+FATE,-91.86,13,"Pharmaceuticals, Biotechnology & Life Sciences"
+FBIN,-50.57,7,Capital Goods
+FBIZ,-21.21,12,Banks
+FBK,-30.83,8,Banks
+FBMS,-20.34,6,Banks
+FBNC,-26.79,6,Banks
+FBP,-24.14,8,Banks
+FBRT,-30.6,5,Financial Services
+FC,-67.84,5,Commercial & Professional Services
+FCBC,-32.7,7,Banks
+FCEL,-91.93,5,Capital Goods
+FCF,-27.46,10,Banks
+FCFS,-24.12,5,Financial Services
+FCN,-34.34,8,Commercial & Professional Services
+FCNCA,-33.63,8,Banks
+FCPT,-25.24,3,Equity Real Estate Investment Trusts (REITs)
+FCX,-46.86,4,Materials
+FDBC,-36.3,4,Banks
+FDMT,-93.0,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+FDP,-23.01,7,"Food, Beverage & Tobacco"
+FDS,-57.8,6,Financial Services
+FDX,-36.82,3,Transportation
+FE,-14.8,4,Utilities
+FEAM,-51.25,3,Materials
+FELE,-23.72,7,Capital Goods
+FERG,-33.88,3,Capital Goods
+FFBC,-27.32,11,Banks
+FFIC,-40.11,11,Banks
+FFIN,-30.64,5,Banks
+FFIV,-34.73,3,Technology Hardware & Equipment
+FFWM,-58.1,6,Banks
+FG,-44.79,7,Insurance
+FGEN,-67.32,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+FHB,-25.3,9,Banks
+FHN,-27.73,11,Banks
+FIBK,-32.73,12,Banks
+FICO,-44.96,5,Software & Services
+FIGS,-47.08,9,Consumer Durables & Apparel
+FIP,-68.38,8,Transportation
+FIS,-44.12,6,Financial Services
+FISI,-28.99,11,Banks
+FISV,-75.56,4,Financial Services
+FITB,-31.21,7,Banks
+FIVE,-74.13,4,Consumer Discretionary Distribution & Retail
+FIVN,-79.93,1,Software & Services
+FIX,-46.12,8,Capital Goods
+FIZZ,-40.08,4,"Food, Beverage & Tobacco"
+FL,-68.36,4,Consumer Discretionary Distribution & Retail
+FLG,-74.98,11,Banks
+FLGT,-47.83,3,Health Care Equipment & Services
+FLIC,-29.01,5,Banks
+FLNC,-85.93,13,Capital Goods
+FLNG,-29.46,2,Energy
+FLO,-60.49,3,"Food, Beverage & Tobacco"
+FLR,-47.63,5,Capital Goods
+FLS,-39.01,10,Capital Goods
+FLWS,-72.41,4,Consumer Discretionary Distribution & Retail
+FLYW,-70.81,6,Financial Services
+FMAO,-36.1,9,Banks
+FMBH,-28.32,7,Banks
+FMC,-81.96,5,Materials
+FMNB,-25.92,5,Banks
+FN,-37.47,9,Technology Hardware & Equipment
+FNA,-67.15,2,Health Care Equipment & Services
+FNB,-33.6,9,Banks
+FND,-57.54,5,Consumer Discretionary Distribution & Retail
+FNF,-23.32,7,Insurance
+FNKO,-83.03,5,Consumer Durables & Apparel
+FNLC,-27.14,10,Banks
+FOLD,-60.39,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+FOR,-54.72,8,Real Estate Management & Development
+FORM,-62.75,11,Semiconductors & Semiconductor Equipment
+FORR,-75.49,2,Commercial & Professional Services
+FOUR,-56.93,5,Financial Services
+FOX,-19.21,4,Media & Entertainment
+FOXA,-18.6,4,Media & Entertainment
+FOXF,-81.0,3,Automobiles & Components
+FPI,-24.86,5,Equity Real Estate Investment Trusts (REITs)
+FR,-25.73,4,Equity Real Estate Investment Trusts (REITs)
+FRBA,-20.71,5,Banks
+FRGE,-85.49,7,Financial Services
+FRME,-24.57,10,Banks
+FRPH,-31.25,7,Real Estate Management & Development
+FRPT,-70.26,10,"Food, Beverage & Tobacco"
+FRSH,-62.91,1,Software & Services
+FRST,-41.92,2,Banks
+FRT,-28.9,7,Equity Real Estate Investment Trusts (REITs)
+FSBC,-25.04,11,Banks
+FSLR,-59.97,9,Semiconductors & Semiconductor Equipment
+FSLY,-79.99,7,Software & Services
+FSRNQ,-98.74,1,Automobiles & Components
+FSS,-31.67,7,Capital Goods
+FTAI,-52.11,11,Capital Goods
+FTDR,-40.58,8,Consumer Services
+FTI,-28.94,9,Energy
+FTNT,-35.07,3,Software & Services
+FTRE,-89.92,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+FTV,-28.39,2,Capital Goods
+FUBO,-70.33,4,Media & Entertainment
+FUL,-43.82,4,Materials
+FULT,-31.2,8,Banks
+FWONA,-25.71,6,Media & Entertainment
+FWONK,-24.47,7,Media & Entertainment
+FWRD,-83.67,6,Transportation
+FWRG,-47.88,6,Consumer Services
+FYBR,-16.42,5,Telecommunication Services
+G,-32.12,5,Commercial & Professional Services
+GABC,-26.3,14,Banks
+GAP,-39.24,8,Consumer Discretionary Distribution & Retail
+GATX,-15.6,9,Capital Goods
+GBCI,-35.73,8,Banks
+GBIO,-93.09,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+GBX,-43.95,11,Capital Goods
+GCMG,-31.3,3,Financial Services
+GCO,-60.9,12,Consumer Discretionary Distribution & Retail
+GD,-22.96,9,Capital Goods
+GDDY,-56.14,7,Software & Services
+GDEN,-49.91,5,Consumer Services
+GDOT,-52.26,10,Financial Services
+GDYN,-70.64,5,Software & Services
+GE,-21.36,8,Capital Goods
+GEF,-32.07,8,Materials
+GEF/B,-30.13,7,Materials
+GEHC,-37.41,9,Health Care Equipment & Services
+GEN,-30.25,7,Software & Services
+GEO,-58.76,7,Commercial & Professional Services
+GERN,-78.98,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+GES,-33.95,2,Consumer Discretionary Distribution & Retail
+GEVO,-52.38,1,Energy
+GFF,-25.57,6,Capital Goods
+GFS,-49.74,8,Semiconductors & Semiconductor Equipment
+GGG,-21.79,3,Capital Goods
+GH,-44.34,12,Health Care Equipment & Services
+GHC,-19.83,8,Consumer Services
+GIC,-54.78,3,Capital Goods
+GIII,-43.1,9,Consumer Durables & Apparel
+GILD,-27.65,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+GIS,-42.85,4,"Food, Beverage & Tobacco"
+GKOS,-53.68,6,Health Care Equipment & Services
+GL,-61.71,6,Insurance
+GLDD,-39.75,11,Capital Goods
+GLNG,-29.97,6,Energy
+GLOB,-77.73,2,Software & Services
+GLPI,-21.04,4,Equity Real Estate Investment Trusts (REITs)
+GLUE,-64.29,15,"Pharmaceuticals, Biotechnology & Life Sciences"
+GLW,-27.98,6,Technology Hardware & Equipment
+GM,-29.44,12,Automobiles & Components
+GME,-62.42,9,Consumer Discretionary Distribution & Retail
+GMED,-44.4,3,Health Care Equipment & Services
+GMRE,-45.18,1,Equity Real Estate Investment Trusts (REITs)
+GMS,-35.74,3,Capital Goods
+GNE,-53.17,2,Utilities
+GNK,-51.24,5,Transportation
+GNL,-34.3,5,Equity Real Estate Investment Trusts (REITs)
+GNLX,-88.48,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+GNRC,-47.76,11,Capital Goods
+GNTX,-43.85,4,Automobiles & Components
+GNTY,-18.08,6,Banks
+GNW,-21.74,5,Insurance
+GO,-68.48,2,Consumer Staples Distribution & Retail
+GOGL,-58.91,6,Transportation
+GOGO,-76.3,10,Telecommunication Services
+GOLF,-25.75,7,Consumer Durables & Apparel
+GOOD,-41.22,3,Equity Real Estate Investment Trusts (REITs)
+GOOG,-29.43,4,Media & Entertainment
+GOOGL,-29.89,5,Media & Entertainment
+GPC,-35.4,6,Consumer Discretionary Distribution & Retail
+GPI,-30.21,8,Consumer Discretionary Distribution & Retail
+GPK,-59.28,2,Materials
+GPMT,-73.56,2,Financial Services
+GPN,-51.64,1,Financial Services
+GPOR,-21.77,10,Energy
+GPRE,-86.69,7,Energy
+GPRO,-85.93,4,Consumer Durables & Apparel
+GRBK,-36.15,12,Consumer Durables & Apparel
+GRC,-27.22,7,Capital Goods
+GRMN,-28.23,3,Consumer Durables & Apparel
+GRND,-59.89,6,Media & Entertainment
+GRWG,-73.9,6,Consumer Discretionary Distribution & Retail
+GS,-31.24,1,Financial Services
+GSAT,-50.72,12,Telecommunication Services
+GSBC,-24.48,12,Banks
+GSHD,-51.41,5,Insurance
+GT,-54.35,3,Automobiles & Components
+GTES,-33.82,12,Capital Goods
+GTLB,-60.55,1,Software & Services
+GTLS,-47.3,7,Capital Goods
+GTM,-62.99,2,Media & Entertainment
+GTN,-70.21,7,Media & Entertainment
+GTY,-23.12,3,Equity Real Estate Investment Trusts (REITs)
+GVA,-29.16,6,Capital Goods
+GWH,-47.29,3,Capital Goods
+GWRE,-51.89,7,Software & Services
+GWW,-24.8,3,Capital Goods
+GXO,-49.96,4,Transportation
+H,-37.35,12,Consumer Services
+HA,-21.74,1,Transportation
+HAE,-51.04,4,Health Care Equipment & Services
+HAFC,-25.21,10,Banks
+HAIN,-91.09,3,"Food, Beverage & Tobacco"
+HAL,-53.3,8,Energy
+HALO,-33.92,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+HAS,-30.48,4,Consumer Durables & Apparel
+HASI,-36.4,7,Financial Services
+HAYN,-10.73,3,Materials
+HAYW,-31.81,9,Capital Goods
+HBAN,-31.37,5,Banks
+HBCP,-21.73,9,Banks
+HBI,-54.32,7,Consumer Durables & Apparel
+HBNC,-31.13,9,Banks
+HBT,-18.67,8,Banks
+HCA,-28.6,6,Health Care Equipment & Services
+HCAT,-81.89,2,Health Care Equipment & Services
+HCC,-45.63,11,Materials
+HCI,-28.58,7,Insurance
+HCKT,-50.4,4,Software & Services
+HCP,-18.19,2,Software & Services
+HCSG,-27.36,8,Commercial & Professional Services
+HD,-22.95,6,Consumer Discretionary Distribution & Retail
+HDSN,-64.91,7,Capital Goods
+HE,-53.28,6,Utilities
+HEES,-35.68,6,Capital Goods
+HEI,-21.3,6,Capital Goods
+HEI/A,-17.94,7,Capital Goods
+HELE,-86.89,2,Consumer Durables & Apparel
+HES,-22.58,6,Energy
+HFWA,-23.13,8,Banks
+HGV,-34.62,3,Consumer Services
+HHH,-29.94,9,Real Estate Management & Development
+HI,-62.97,5,Capital Goods
+HIBB,-17.05,3,Consumer Discretionary Distribution & Retail
+HIFS,-26.72,11,Banks
+HIG,-14.09,7,Insurance
+HII,-46.11,4,Capital Goods
+HIMS,-65.84,9,Health Care Equipment & Services
+HIPO,-39.64,9,Insurance
+HIW,-30.52,4,Equity Real Estate Investment Trusts (REITs)
+HL,-39.6,12,Materials
+HLF,-66.73,7,Household & Personal Products
+HLI,-25.67,7,Financial Services
+HLIO,-54.32,8,Capital Goods
+HLIT,-44.33,10,Technology Hardware & Equipment
+HLLY,-44.32,1,Automobiles & Components
+HLMN,-42.29,5,Capital Goods
+HLNE,-43.48,8,Financial Services
+HLT,-26.39,11,Consumer Services
+HLVX,-92.99,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+HLX,-55.54,7,Energy
+HMN,-17.97,9,Insurance
+HNI,-33.43,7,Commercial & Professional Services
+HNRG,-52.28,13,Utilities
+HOG,-55.48,3,Automobiles & Components
+HOLX,-37.02,4,Health Care Equipment & Services
+HOMB,-21.94,7,Banks
+HON,-22.52,5,Capital Goods
+HONE,-33.28,6,Banks
+HOOD,-52.33,11,Financial Services
+HOPE,-36.52,10,Banks
+HOUS,-64.77,7,Real Estate Management & Development
+HOV,-63.12,9,Consumer Durables & Apparel
+HP,-65.46,6,Energy
+HPE,-48.77,9,Technology Hardware & Equipment
+HPP,-82.73,2,Equity Real Estate Investment Trusts (REITs)
+HPQ,-51.65,4,Technology Hardware & Equipment
+HQY,-32.96,4,Health Care Equipment & Services
+HR,-26.14,4,Equity Real Estate Investment Trusts (REITs)
+HRB,-49.38,1,Consumer Services
+HRI,-57.23,10,Capital Goods
+HRL,-42.1,3,"Food, Beverage & Tobacco"
+HRMY,-37.58,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+HROW,-61.38,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+HRT,-4.47,1,Commercial & Professional Services
+HRTX,-72.67,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+HSIC,-24.27,6,Health Care Equipment & Services
+HSII,-23.12,5,Commercial & Professional Services
+HST,-39.61,6,Equity Real Estate Investment Trusts (REITs)
+HSTM,-40.42,5,Health Care Equipment & Services
+HSY,-30.91,4,"Food, Beverage & Tobacco"
+HTB,-18.08,5,Banks
+HTBK,-24.79,6,Banks
+HTH,-22.01,5,Banks
+HTLD,-49.17,1,Transportation
+HTLF,-16.71,11,Banks
+HTO,-32.31,2,Utilities
+HTZ,-74.31,12,Transportation
+HUBB,-33.08,4,Capital Goods
+HUBG,-41.18,9,Transportation
+HUBS,-72.74,6,Software & Services
+HUM,-60.18,1,Health Care Equipment & Services
+HUMA,-90.63,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+HUN,-72.11,3,Materials
+HURN,-20.62,5,Commercial & Professional Services
+HVT,-52.99,5,Consumer Discretionary Distribution & Retail
+HWC,-24.56,9,Banks
+HWKN,-34.96,6,Materials
+HWM,-19.41,4,Capital Goods
+HXL,-38.36,6,Capital Goods
+HY,-67.59,5,Capital Goods
+HYLN,-70.31,19,Capital Goods
+HZO,-54.51,7,Consumer Discretionary Distribution & Retail
+IAC,-33.66,4,Media & Entertainment
+IART,-76.15,2,Health Care Equipment & Services
+IAS,-62.69,2,Media & Entertainment
+IAU,-78.97,6,Materials
+IBCP,-27.98,10,Banks
+IBKR,-38.74,8,Financial Services
+IBM,-20.36,5,Software & Services
+IBOC,-24.91,9,Banks
+IBP,-43.04,8,Consumer Durables & Apparel
+IBRX,-79.34,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+IBTX,-29.76,9,Banks
+ICE,-22.74,6,Financial Services
+ICFI,-56.56,3,Commercial & Professional Services
+ICHR,-69.09,7,Semiconductors & Semiconductor Equipment
+ICLR,-15.23,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+ICUI,-41.2,8,Health Care Equipment & Services
+ICVX,-4.28,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+IDA,-12.35,7,Utilities
+IDCC,-22.66,4,Software & Services
+IDT,-33.26,6,Telecommunication Services
+IDXX,-37.41,5,Health Care Equipment & Services
+IDYA,-69.23,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+IE,-62.77,10,Materials
+IESC,-49.23,16,Capital Goods
+IEX,-35.93,4,Capital Goods
+IFF,-43.86,5,Materials
+IGMS,-94.28,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+IHRT,-70.49,21,Media & Entertainment
+IIIN,-35.71,7,Capital Goods
+IIIV,-39.84,9,Software & Services
+IIPR,-67.41,7,Equity Real Estate Investment Trusts (REITs)
+ILMN,-54.69,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+IMAX,-21.67,9,Media & Entertainment
+IMGN,-2.11,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+IMKTA,-33.11,3,Consumer Staples Distribution & Retail
+IMMR,-56.81,7,Technology Hardware & Equipment
+IMVT,-69.6,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+IMXI,-61.85,3,Financial Services
+INCY,-33.83,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+INDB,-28.86,9,Banks
+INDI,-79.49,9,Semiconductors & Semiconductor Equipment
+INFA,-59.13,3,Software & Services
+INFN,-30.15,6,Technology Hardware & Equipment
+INGN,-56.39,8,Health Care Equipment & Services
+INGR,-31.64,3,"Food, Beverage & Tobacco"
+INMD,-49.87,2,Health Care Equipment & Services
+INN,-47.62,8,Equity Real Estate Investment Trusts (REITs)
+INOD,-53.75,12,Commercial & Professional Services
+INSE,-41.83,11,Consumer Services
+INSM,-28.56,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+INSP,-73.88,3,Health Care Equipment & Services
+INST,-26.65,3,Software & Services
+INSW,-55.84,5,Energy
+INTA,-67.92,5,Software & Services
+INTC,-63.41,7,Semiconductors & Semiconductor Equipment
+INTT,-32.95,2,Semiconductors & Semiconductor Equipment
+INTU,-46.24,8,Software & Services
+INVA,-23.53,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+INVH,-30.02,1,Equity Real Estate Investment Trusts (REITs)
+INVX,-49.66,12,Energy
+IONQ,-64.23,17,Technology Hardware & Equipment
+IONS,-52.36,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+IOSP,-46.33,5,Materials
+IOVA,-90.5,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+IP,-40.76,8,Materials
+IPAR,-48.7,1,Household & Personal Products
+IPG,-32.16,6,Media & Entertainment
+IPGP,-53.39,3,Technology Hardware & Equipment
+IPI,-38.52,12,Materials
+IPSC,-92.68,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+IQV,-47.12,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+IR,-36.64,6,Capital Goods
+IRBT,-95.25,5,Consumer Durables & Apparel
+IRDM,-60.97,3,Telecommunication Services
+IRM,-39.96,5,Equity Real Estate Investment Trusts (REITs)
+IRMD,-22.34,6,Health Care Equipment & Services
+IRON,-64.79,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+IRT,-31.3,5,Equity Real Estate Investment Trusts (REITs)
+IRTC,-53.83,8,Health Care Equipment & Services
+IRWD,-96.33,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+ISRG,-29.63,7,Health Care Equipment & Services
+IT,-72.45,3,Software & Services
+ITCI,-18.64,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+ITGR,-56.14,8,Health Care Equipment & Services
+ITOS,-72.14,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+ITRI,-32.91,7,Technology Hardware & Equipment
+ITT,-29.41,6,Capital Goods
+ITW,-21.58,8,Capital Goods
+IVR,-35.87,6,Financial Services
+IVT,-17.03,5,Equity Real Estate Investment Trusts (REITs)
+IVZ,-37.23,6,Financial Services
+J,-25.77,5,Commercial & Professional Services
+JACK,-83.09,3,Consumer Services
+JAMF,-66.0,3,Software & Services
+JANX,-81.78,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+JAZZ,-32.18,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+JBGS,-32.23,5,Equity Real Estate Investment Trusts (REITs)
+JBHT,-42.99,4,Transportation
+JBI,-62.71,2,Capital Goods
+JBIO,-95.41,16,"Pharmaceuticals, Biotechnology & Life Sciences"
+JBL,-36.87,4,Technology Hardware & Equipment
+JBLU,-57.66,11,Transportation
+JBSS,-44.15,3,"Food, Beverage & Tobacco"
+JBTM,-32.29,7,Capital Goods
+JCI,-21.48,4,Capital Goods
+JEF,-49.77,7,Financial Services
+JELD,-91.55,4,Capital Goods
+JHG,-35.85,12,Financial Services
+JJSF,-55.03,7,"Food, Beverage & Tobacco"
+JKHY,-23.54,10,Financial Services
+JLL,-28.16,9,Real Estate Management & Development
+JMSB,-45.38,8,Banks
+JNJ,-15.13,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+JNPR,-13.58,5,Technology Hardware & Equipment
+JOBY,-53.6,14,Transportation
+JOE,-35.92,5,Real Estate Management & Development
+JOUT,-57.86,2,Consumer Durables & Apparel
+JPM,-24.89,9,Banks
+JRVR,-67.68,8,Insurance
+JWN,-22.04,5,Consumer Discretionary Distribution & Retail
+JXN,-38.15,7,Financial Services
+K,-10.18,3,"Food, Beverage & Tobacco"
+KAI,-41.48,5,Capital Goods
+KALU,-50.39,5,Materials
+KALV,-53.87,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+KAMN,-6.87,1,Capital Goods
+KAR,-21.21,4,Commercial & Professional Services
+KBH,-44.05,10,Consumer Durables & Apparel
+KBR,-44.77,7,Commercial & Professional Services
+KD,-49.21,5,Software & Services
+KDP,-33.44,6,"Food, Beverage & Tobacco"
+KE,-51.01,3,Technology Hardware & Equipment
+KELYA,-67.74,1,Commercial & Professional Services
+KEX,-38.76,10,Transportation
+KEY,-33.75,9,Banks
+KEYS,-31.38,3,Technology Hardware & Equipment
+KFRC,-66.57,2,Commercial & Professional Services
+KFY,-25.09,5,Commercial & Professional Services
+KGS,-39.13,10,Energy
+KHC,-42.04,4,"Food, Beverage & Tobacco"
+KIDS,-53.94,6,Health Care Equipment & Services
+KIM,-27.46,6,Equity Real Estate Investment Trusts (REITs)
+KKR,-44.46,9,Financial Services
+KLAC,-35.39,7,Semiconductors & Semiconductor Equipment
+KLG,-36.69,4,"Food, Beverage & Tobacco"
+KLIC,-50.16,6,Semiconductors & Semiconductor Equipment
+KMB,-34.24,3,Household & Personal Products
+KMI,-19.25,6,Energy
+KMPR,-53.59,6,Insurance
+KMT,-43.84,3,Capital Goods
+KMX,-65.38,10,Consumer Discretionary Distribution & Retail
+KN,-38.0,11,Technology Hardware & Equipment
+KNF,-44.15,6,Materials
+KNSA,-34.14,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+KNSL,-35.29,1,Insurance
+KNTK,-52.34,6,Energy
+KNX,-36.73,4,Transportation
+KO,-16.71,3,"Food, Beverage & Tobacco"
+KOD,-81.1,18,"Pharmaceuticals, Biotechnology & Life Sciences"
+KODK,-34.41,14,Technology Hardware & Equipment
+KOP,-58.82,4,Materials
+KOS,-87.33,2,Energy
+KPTI,-52.4,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+KR,-20.27,4,Consumer Staples Distribution & Retail
+KRC,-34.99,7,Equity Real Estate Investment Trusts (REITs)
+KREF,-44.88,1,Financial Services
+KRG,-29.87,4,Equity Real Estate Investment Trusts (REITs)
+KRNY,-39.87,8,Banks
+KROS,-86.45,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+KRTX,-2.14,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+KRUS,-65.44,6,Consumer Services
+KRYS,-42.26,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+KSS,-79.11,11,Consumer Discretionary Distribution & Retail
+KTB,-45.39,7,Consumer Durables & Apparel
+KTOS,-36.31,10,Capital Goods
+KURA,-76.46,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+KVUE,-42.27,7,Household & Personal Products
+KW,-51.4,3,Real Estate Management & Development
+KWR,-54.13,5,Materials
+KYMR,-59.83,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+KZR,-42.86,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+L,-12.16,7,Insurance
+LAD,-31.03,8,Consumer Discretionary Distribution & Retail
+LADR,-20.23,8,Financial Services
+LAMR,-25.75,6,Equity Real Estate Investment Trusts (REITs)
+LAND,-43.09,3,Equity Real Estate Investment Trusts (REITs)
+LASR,-56.13,7,Technology Hardware & Equipment
+LAUR,-14.65,4,Consumer Services
+LAW,-60.58,8,Software & Services
+LAZ,-45.24,12,Financial Services
+LAZR,-98.26,1,Automobiles & Components
+LBAI,-24.9,1,Banks
+LBRDA,-54.87,7,Media & Entertainment
+LBRDK,-55.16,4,Media & Entertainment
+LBRT,-59.5,7,Energy
+LC,-52.21,11,Financial Services
+LCID,-77.63,5,Automobiles & Components
+LCII,-40.75,7,Automobiles & Components
+LDOS,-37.03,4,Commercial & Professional Services
+LEA,-48.53,6,Automobiles & Components
+LECO,-35.29,4,Capital Goods
+LEG,-75.16,8,Consumer Durables & Apparel
+LEN,-46.6,5,Consumer Durables & Apparel
+LEN/B,-43.34,5,Consumer Durables & Apparel
+LESL,-95.2,2,Consumer Discretionary Distribution & Retail
+LEU,-54.15,13,Energy
+LFST,-56.49,6,Health Care Equipment & Services
+LFUS,-45.43,3,Technology Hardware & Equipment
+LGIH,-68.94,4,Consumer Durables & Apparel
+LGND,-25.58,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+LGTY,-29.35,8,Software & Services
+LH,-17.36,7,Health Care Equipment & Services
+LHX,-26.33,3,Capital Goods
+LICYQ,-73.8,6,Commercial & Professional Services
+LII,-34.52,3,Capital Goods
+LILA,-57.06,5,Telecommunication Services
+LILAK,-57.17,4,Telecommunication Services
+LIN,-19.95,2,Materials
+LIND,-43.8,8,Consumer Services
+LION,-31.41,4,Media & Entertainment
+LITE,-50.63,14,Technology Hardware & Equipment
+LIVN,-47.23,7,Health Care Equipment & Services
+LKFN,-32.17,10,Banks
+LKQ,-47.26,2,Consumer Discretionary Distribution & Retail
+LLY,-34.83,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+LLYVA,-23.21,8,Media & Entertainment
+LLYVK,-22.88,7,Media & Entertainment
+LMAT,-27.86,5,Health Care Equipment & Services
+LMB,-55.92,9,Capital Goods
+LMND,-51.52,14,Insurance
+LMNR,-57.04,6,"Food, Beverage & Tobacco"
+LMT,-33.17,3,Capital Goods
+LNC,-26.2,14,Insurance
+LNG,-25.56,3,Energy
+LNN,-28.13,6,Capital Goods
+LNT,-10.98,5,Utilities
+LNTH,-59.46,6,Health Care Equipment & Services
+LNWO,-34.92,3,Consumer Services
+LOB,-53.86,6,Banks
+LOCO,-35.93,8,Consumer Services
+LOGC,-31.45,4,Consumer Discretionary Distribution & Retail
+LOPE,-31.62,7,Consumer Services
+LOVE,-70.21,7,Consumer Durables & Apparel
+LOW,-25.78,5,Consumer Discretionary Distribution & Retail
+LPG,-62.89,4,Energy
+LPLA,-33.18,6,Financial Services
+LPRO,-90.1,7,Financial Services
+LPSN,-87.38,2,Software & Services
+LPX,-37.97,6,Materials
+LQDA,-46.8,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+LQDT,-41.08,8,Commercial & Professional Services
+LRCX,-47.58,7,Semiconductors & Semiconductor Equipment
+LRN,-64.07,8,Consumer Services
+LSCC,-54.72,6,Semiconductors & Semiconductor Equipment
+LSTR,-38.51,3,Transportation
+LSXMA,-34.46,2,Media & Entertainment
+LSXMK,-34.7,2,Media & Entertainment
+LTC,-16.76,5,Equity Real Estate Investment Trusts (REITs)
+LTH,-26.0,5,Consumer Services
+LUCK,-26.75,2,Consumer Services
+LULU,-68.37,4,Consumer Durables & Apparel
+LUMN,-69.66,10,Telecommunication Services
+LUNA,-74.62,4,Technology Hardware & Equipment
+LUNG,-91.06,2,Health Care Equipment & Services
+LUV,-31.96,10,Transportation
+LVS,-44.43,4,Consumer Services
+LW,-63.37,1,"Food, Beverage & Tobacco"
+LWLG,-83.97,6,Technology Hardware & Equipment
+LXFR,-36.09,9,Capital Goods
+LXP,-30.98,6,Equity Real Estate Investment Trusts (REITs)
+LXRX,-91.83,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+LXU,-50.0,7,Materials
+LYB,-60.06,1,Materials
+LYEL,-87.3,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+LYFT,-55.23,10,Transportation
+LYTS,-40.74,7,Capital Goods
+LYV,-27.84,10,Media & Entertainment
+LZ,-59.01,9,Commercial & Professional Services
+LZB,-38.9,7,Consumer Durables & Apparel
+M,-53.48,6,Consumer Discretionary Distribution & Retail
+MA,-16.73,5,Financial Services
+MAA,-26.12,3,Equity Real Estate Investment Trusts (REITs)
+MAC,-40.12,7,Equity Real Estate Investment Trusts (REITs)
+MAN,-66.34,2,Commercial & Professional Services
+MANH,-56.21,6,Software & Services
+MAR,-30.66,5,Consumer Services
+MARA,-78.31,4,Software & Services
+MAS,-31.48,8,Capital Goods
+MASI,-33.17,7,Health Care Equipment & Services
+MASS,-81.05,9,Technology Hardware & Equipment
+MAT,-33.68,7,Consumer Durables & Apparel
+MATV,-76.01,9,Materials
+MATW,-48.86,5,Consumer Services
+MATX,-47.39,9,Transportation
+MAX,-66.26,7,Media & Entertainment
+MAXN,-87.46,1,Semiconductors & Semiconductor Equipment
+MBC,-50.83,3,Capital Goods
+MBCN,-36.86,7,Banks
+MBI,-51.89,11,Insurance
+MBIN,-44.51,6,Financial Services
+MBUU,-55.09,4,Consumer Durables & Apparel
+MBWM,-25.6,9,Banks
+MC,-39.83,12,Financial Services
+MCB,-38.42,9,Banks
+MCBC,-18.13,3,Banks
+MCBS,-30.26,7,Banks
+MCD,-18.2,6,Consumer Services
+MCFT,-38.68,5,Consumer Durables & Apparel
+MCHB,-47.69,4,Banks
+MCHP,-64.48,7,Semiconductors & Semiconductor Equipment
+MCK,-24.0,4,Health Care Equipment & Services
+MCO,-24.79,4,Financial Services
+MCRB,-64.11,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+MCRI,-23.34,5,Consumer Services
+MCS,-43.59,6,Media & Entertainment
+MCW,-49.57,3,Consumer Services
+MCY,-40.25,6,Insurance
+MD,-32.5,7,Health Care Equipment & Services
+MDB,-70.88,8,Software & Services
+MDGL,-31.74,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+MDLZ,-32.99,1,"Food, Beverage & Tobacco"
+MDRX,-44.89,1,Health Care Equipment & Services
+MDT,-14.62,5,Health Care Equipment & Services
+MDU,-22.62,7,Utilities
+MDXG,-49.03,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+MED,-85.19,2,Household & Personal Products
+MEDP,-39.38,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+MEG,-78.44,8,Commercial & Professional Services
+MEHCQ,-60.79,2,Health Care Equipment & Services
+MEI,-76.01,5,Technology Hardware & Equipment
+MET,-22.47,6,Insurance
+META,-34.21,5,Media & Entertainment
+METC,-74.37,9,Materials
+MFA,-37.97,7,Financial Services
+MGEE,-28.35,8,Utilities
+MGM,-46.02,8,Consumer Services
+MGNI,-57.49,9,Media & Entertainment
+MGNX,-95.06,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+MGPI,-77.74,2,"Food, Beverage & Tobacco"
+MGRC,-26.52,2,Capital Goods
+MGTX,-47.07,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+MGY,-31.92,6,Energy
+MHK,-39.77,5,Consumer Durables & Apparel
+MHO,-40.6,10,Consumer Durables & Apparel
+MIDD,-35.4,9,Capital Goods
+MIR,-31.9,9,Technology Hardware & Equipment
+MIRM,-27.78,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+MITK,-52.06,4,Software & Services
+MKC,-28.28,4,"Food, Beverage & Tobacco"
+MKL,-18.51,4,Insurance
+MKSI,-59.35,8,Semiconductors & Semiconductor Equipment
+MKTX,-45.9,4,Financial Services
+MLAB,-62.88,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+MLI,-28.2,2,Capital Goods
+MLKN,-55.25,4,Commercial & Professional Services
+MLM,-27.19,5,Materials
+MLNK,-36.76,4,Software & Services
+MLR,-53.47,7,Capital Goods
+MLYS,-45.76,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+MMC,-27.71,4,Insurance
+MMI,-41.31,1,Real Estate Management & Development
+MMM,-18.71,11,Capital Goods
+MMS,-30.94,6,Commercial & Professional Services
+MMSI,-28.38,7,Health Care Equipment & Services
+MNKD,-54.03,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+MNRO,-63.6,5,Consumer Discretionary Distribution & Retail
+MNST,-26.04,3,"Food, Beverage & Tobacco"
+MNTK,-84.64,1,Utilities
+MO,-19.15,4,"Food, Beverage & Tobacco"
+MOD,-51.61,12,Automobiles & Components
+MODG,-66.49,12,Consumer Durables & Apparel
+MODN,-16.7,1,Software & Services
+MODVQ,-98.26,5,Health Care Equipment & Services
+MOFG,-26.88,8,Banks
+MOG/A,-33.4,6,Capital Goods
+MOH,-67.94,4,Health Care Equipment & Services
+MONDQ,-99.26,8,Consumer Services
+MORF,-35.2,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+MORN,-52.82,5,Financial Services
+MOS,-37.95,2,Materials
+MOV,-56.88,5,Consumer Durables & Apparel
+MP,-48.87,11,Materials
+MPB,-27.29,6,Banks
+MPC,-45.9,4,Energy
+MPW,-41.6,10,Equity Real Estate Investment Trusts (REITs)
+MPWR,-51.94,6,Semiconductors & Semiconductor Equipment
+MQ,-53.34,5,Financial Services
+MRC,-38.05,10,Capital Goods
+MRCY,-27.24,11,Capital Goods
+MRK,-44.74,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+MRNA,-86.58,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+MRNS,-89.56,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+MRO,-13.91,5,Energy
+MRSN,-95.6,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+MRTN,-54.45,5,Transportation
+MRVI,-84.83,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+MRVL,-60.83,10,Semiconductors & Semiconductor Equipment
+MS,-29.24,6,Financial Services
+MSA,-34.86,4,Commercial & Professional Services
+MSBI,-47.64,5,Banks
+MSCI,-26.2,4,Financial Services
+MSEX,-30.29,8,Utilities
+MSFT,-27.38,7,Software & Services
+MSGE,-33.94,4,Media & Entertainment
+MSGS,-25.54,4,Media & Entertainment
+MSI,-27.9,3,Technology Hardware & Equipment
+MSM,-31.95,3,Capital Goods
+MSTR,-77.42,9,Software & Services
+MTB,-29.45,11,Banks
+MTCH,-30.76,3,Media & Entertainment
+MTD,-36.61,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+MTDR,-47.73,7,Energy
+MTG,-15.01,7,Financial Services
+MTH,-41.56,9,Consumer Durables & Apparel
+MTN,-45.81,2,Consumer Services
+MTRN,-48.09,5,Materials
+MTSI,-41.09,9,Semiconductors & Semiconductor Equipment
+MTTR,-32.82,3,Software & Services
+MTUS,-52.33,8,Materials
+MTW,-58.49,8,Capital Goods
+MTX,-42.71,6,Materials
+MTZ,-34.03,11,Capital Goods
+MU,-57.82,9,Semiconductors & Semiconductor Equipment
+MUR,-59.93,9,Energy
+MURA,-48.66,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+MUSA,-35.81,6,Consumer Discretionary Distribution & Retail
+MVBF,-36.89,7,Banks
+MVIS,-75.17,1,Technology Hardware & Equipment
+MVST,-77.28,5,Capital Goods
+MWA,-19.19,6,Capital Goods
+MXCT,-84.97,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+MXL,-63.95,11,Semiconductors & Semiconductor Equipment
+MYE,-60.68,8,Materials
+MYGN,-86.57,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+MYPS,-80.87,2,Media & Entertainment
+MYRG,-50.29,7,Capital Goods
+MZTI,-25.49,1,"Food, Beverage & Tobacco"
+NABL,-63.92,3,Software & Services
+NAPA,-46.38,1,"Food, Beverage & Tobacco"
+NARI,-43.57,6,Health Care Equipment & Services
+NAT,-51.54,3,Energy
+NATL,-34.74,7,Financial Services
+NAVI,-46.94,1,Financial Services
+NBHC,-33.8,7,Banks
+NBIX,-42.89,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+NBN,-27.58,8,Banks
+NBR,-76.08,12,Energy
+NBTB,-26.2,8,Banks
+NCLH,-46.68,8,Consumer Services
+NCNO,-57.86,3,Software & Services
+NDAQ,-20.73,5,Financial Services
+NDSN,-39.94,3,Capital Goods
+NE,-63.94,9,Energy
+NECB,-36.72,4,Banks
+NEE,-24.96,7,Utilities
+NEM,-36.95,7,Materials
+NEO,-73.99,8,Health Care Equipment & Services
+NEOG,-78.43,4,Health Care Equipment & Services
+NET,-45.0,14,Software & Services
+NEU,-27.19,3,Materials
+NEWT,-38.29,13,Financial Services
+NEXT,-60.0,9,Energy
+NFBK,-43.54,6,Banks
+NFE,-97.18,4,Energy
+NFG,-16.78,2,Utilities
+NFLX,-40.3,5,Media & Entertainment
+NG,-50.83,10,Materials
+NGM,-20.83,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+NGVT,-45.79,8,Materials
+NHC,-34.43,7,Health Care Equipment & Services
+NHI,-22.74,7,Equity Real Estate Investment Trusts (REITs)
+NI,-9.99,5,Utilities
+NIC,-18.07,11,Banks
+NJR,-14.49,3,Utilities
+NKE,-50.3,2,Consumer Durables & Apparel
+NKLAQ,-73.75,2,Capital Goods
+NKTX,-91.28,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+NLOP,-39.55,5,Equity Real Estate Investment Trusts (REITs)
+NLY,-21.22,12,Financial Services
+NMIH,-21.42,5,Financial Services
+NMRK,-36.86,7,Real Estate Management & Development
+NN,-47.78,13,Software & Services
+NNI,-18.93,4,Financial Services
+NNN,-23.91,6,Equity Real Estate Investment Trusts (REITs)
+NNOX,-82.39,3,Health Care Equipment & Services
+NOC,-20.3,5,Capital Goods
+NOG,-53.17,2,Energy
+NOV,-47.1,4,Energy
+NOVAQ,-100.0,1,Utilities
+NOVT,-46.71,2,Technology Hardware & Equipment
+NOW,-91.23,6,Software & Services
+NPK,-18.57,7,Capital Goods
+NPKI,-42.11,2,Capital Goods
+NPO,-33.83,10,Capital Goods
+NRC,-75.41,6,Health Care Equipment & Services
+NRDS,-54.06,6,Financial Services
+NRG,-26.22,8,Utilities
+NRGV,-75.11,11,Capital Goods
+NRIM,-25.04,11,Banks
+NRIX,-70.72,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+NSA,-43.96,6,Equity Real Estate Investment Trusts (REITs)
+NSC,-25.51,10,Transportation
+NSIT,-65.44,5,Technology Hardware & Equipment
+NSP,-73.32,2,Commercial & Professional Services
+NSSC,-65.83,4,Technology Hardware & Equipment
+NSTGQ,-94.13,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+NTAP,-43.47,5,Technology Hardware & Equipment
+NTB,-15.07,13,Banks
+NTCT,-26.43,12,Technology Hardware & Equipment
+NTGR,-44.82,8,Technology Hardware & Equipment
+NTLA,-80.85,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+NTNX,-55.63,7,Software & Services
+NTRA,-25.29,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+NTRS,-25.8,11,Financial Services
+NTST,-26.75,6,Equity Real Estate Investment Trusts (REITs)
+NU,-39.58,9,Banks
+NUE,-48.64,6,Materials
+NUS,-73.03,7,Household & Personal Products
+NUVB,-58.19,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+NUVL,-47.12,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+NVAX,-74.11,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+NVCR,-69.8,8,Health Care Equipment & Services
+NVDA,-36.89,9,Semiconductors & Semiconductor Equipment
+NVEC,-39.99,4,Semiconductors & Semiconductor Equipment
+NVEE,-46.33,1,Commercial & Professional Services
+NVR,-32.49,3,Consumer Durables & Apparel
+NVRI,-60.74,7,Commercial & Professional Services
+NVRO,-84.17,1,Health Care Equipment & Services
+NVST,-42.0,5,Health Care Equipment & Services
+NVT,-47.09,4,Capital Goods
+NVTAQ,-98.19,1,Health Care Equipment & Services
+NVTS,-78.96,11,Semiconductors & Semiconductor Equipment
+NWBI,-28.66,10,Banks
+NWE,-14.64,5,Utilities
+NWL,-73.26,4,Consumer Durables & Apparel
+NWLI,-1.2,4,Insurance
+NWN,-12.63,3,Utilities
+NWPX,-35.36,8,Capital Goods
+NWS,-22.12,9,Media & Entertainment
+NWSA,-21.98,9,Media & Entertainment
+NX,-71.0,2,Capital Goods
+NXDR,-53.58,8,Media & Entertainment
+NXDT,-66.71,2,Equity Real Estate Investment Trusts (REITs)
+NXRT,-40.95,7,Equity Real Estate Investment Trusts (REITs)
+NXST,-23.25,6,Media & Entertainment
+NXT,-48.61,8,Capital Goods
+NYT,-20.17,4,Media & Entertainment
+O,-20.15,7,Equity Real Estate Investment Trusts (REITs)
+OABI,-81.32,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+OBK,-28.22,10,Banks
+OBT,-33.12,8,Banks
+OC,-53.38,7,Capital Goods
+OCFC,-30.61,9,Banks
+OCUL,-61.57,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+ODC,-32.94,7,Household & Personal Products
+ODFL,-45.53,4,Transportation
+ODP,-78.61,7,Consumer Discretionary Distribution & Retail
+OEC,-83.77,1,Materials
+OFG,-25.75,6,Banks
+OFIX,-48.38,11,Health Care Equipment & Services
+OFLX,-65.88,2,Capital Goods
+OGE,-10.37,3,Utilities
+OGN,-72.47,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+OGS,-14.91,6,Utilities
+OHI,-16.41,7,Equity Real Estate Investment Trusts (REITs)
+OI,-44.26,4,Materials
+OII,-47.84,8,Energy
+OIS,-51.56,5,Energy
+OKE,-45.06,3,Energy
+OKTA,-38.48,5,Software & Services
+OLED,-54.91,6,Semiconductors & Semiconductor Equipment
+OLLI,-24.21,11,Consumer Discretionary Distribution & Retail
+OLMA,-81.59,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+OLN,-69.9,6,Materials
+OLO,-30.33,6,Software & Services
+OLP,-33.9,6,Equity Real Estate Investment Trusts (REITs)
+OLPX,-61.45,10,Household & Personal Products
+OM,-65.6,6,Health Care Equipment & Services
+OMC,-35.55,2,Media & Entertainment
+OMCL,-53.57,6,Health Care Equipment & Services
+OMER,-75.56,15,"Pharmaceuticals, Biotechnology & Life Sciences"
+OMF,-30.38,11,Financial Services
+OMI,-90.7,1,Health Care Equipment & Services
+ON,-61.49,5,Semiconductors & Semiconductor Equipment
+ONB,-26.58,9,Banks
+ONEW,-69.1,2,Consumer Discretionary Distribution & Retail
+ONIT,-34.46,7,Financial Services
+ONL,-73.66,4,Equity Real Estate Investment Trusts (REITs)
+ONTF,-46.27,4,Software & Services
+ONTO,-62.82,9,Semiconductors & Semiconductor Equipment
+OOMA,-41.8,4,Software & Services
+OPCH,-36.64,6,Health Care Equipment & Services
+OPEN,-88.03,1,Real Estate Management & Development
+OPITQ,-74.02,3,Equity Real Estate Investment Trusts (REITs)
+OPK,-44.87,9,Health Care Equipment & Services
+OPRX,-76.35,11,Health Care Equipment & Services
+ORA,-25.49,6,Utilities
+ORC,-32.78,6,Financial Services
+ORCL,-58.43,8,Software & Services
+ORGN,-43.97,5,Materials
+ORGO,-57.17,14,"Pharmaceuticals, Biotechnology & Life Sciences"
+ORI,-18.62,12,Insurance
+ORIC,-73.46,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+ORLY,-18.07,2,Consumer Discretionary Distribution & Retail
+ORRF,-36.41,7,Banks
+OSBC,-25.52,5,Banks
+OSCR,-50.17,8,Insurance
+OSIS,-20.66,13,Technology Hardware & Equipment
+OSK,-37.73,5,Capital Goods
+OSPN,-47.16,5,Software & Services
+OSUR,-74.52,2,Health Care Equipment & Services
+OSW,-34.73,8,Consumer Services
+OTIS,-19.88,5,Capital Goods
+OTLK,-90.45,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+OTTR,-27.91,10,Utilities
+OUT,-33.15,5,Equity Real Estate Investment Trusts (REITs)
+OVV,-43.88,9,Energy
+OWL,-56.41,9,Financial Services
+OXM,-71.78,4,Consumer Durables & Apparel
+OXY,-47.86,3,Energy
+OZK,-29.23,6,Banks
+PACB,-90.51,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+PAG,-20.19,9,Consumer Discretionary Distribution & Retail
+PAGS,-57.6,10,Financial Services
+PAHC,-36.96,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+PANL,-58.09,6,Transportation
+PANW,-30.49,9,Software & Services
+PAR,-73.4,5,Software & Services
+PARA,-34.58,7,Media & Entertainment
+PARR,-69.71,4,Energy
+PATH,-63.58,8,Software & Services
+PATK,-24.13,6,Automobiles & Components
+PAX,-38.13,7,Financial Services
+PAYC,-53.21,4,Commercial & Professional Services
+PAYO,-52.4,3,Financial Services
+PAYX,-39.2,6,Commercial & Professional Services
+PB,-27.25,6,Banks
+PBF,-76.84,9,Energy
+PBH,-35.49,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+PCAR,-28.59,2,Capital Goods
+PCG,-39.9,9,Utilities
+PCH,-25.08,4,Equity Real Estate Investment Trusts (REITs)
+PCOR,-42.31,4,Software & Services
+PCRX,-67.02,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+PCT,-61.08,14,Materials
+PCTY,-41.87,3,Commercial & Professional Services
+PCVX,-76.22,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+PD,-70.19,1,Software & Services
+PDCO,-35.54,1,Health Care Equipment & Services
+PDFS,-58.51,9,Semiconductors & Semiconductor Equipment
+PDM,-48.06,6,Equity Real Estate Investment Trusts (REITs)
+PEB,-53.61,4,Equity Real Estate Investment Trusts (REITs)
+PEBO,-25.46,10,Banks
+PECO,-16.98,4,Equity Real Estate Investment Trusts (REITs)
+PEG,-18.39,5,Utilities
+PEGA,-44.4,6,Software & Services
+PEN,-40.09,3,Health Care Equipment & Services
+PENG,-50.49,6,Semiconductors & Semiconductor Equipment
+PENN,-52.25,1,Consumer Services
+PEP,-30.09,7,"Food, Beverage & Tobacco"
+PEPG,-94.61,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+PETQ,-19.93,3,Health Care Equipment & Services
+PETS,-47.89,3,Consumer Discretionary Distribution & Retail
+PFBC,-22.13,6,Banks
+PFC,-22.48,5,Banks
+PFE,-31.22,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+PFG,-23.78,6,Insurance
+PFGC,-21.24,3,Consumer Staples Distribution & Retail
+PFIS,-30.79,7,Banks
+PFS,-32.8,11,Banks
+PFSI,-41.63,7,Financial Services
+PG,-23.18,2,Household & Personal Products
+PGC,-34.42,9,Banks
+PGEN,-64.17,14,"Pharmaceuticals, Biotechnology & Life Sciences"
+PGNY,-67.16,8,Health Care Equipment & Services
+PGR,-30.97,5,Insurance
+PGRE,-26.77,6,Equity Real Estate Investment Trusts (REITs)
+PGTI,-1.73,1,Capital Goods
+PH,-27.1,6,Capital Goods
+PHAT,-88.26,17,"Pharmaceuticals, Biotechnology & Life Sciences"
+PHIN,-33.23,5,Automobiles & Components
+PHLT,-47.43,7,Health Care Equipment & Services
+PHM,-38.26,10,Consumer Durables & Apparel
+PHR,-61.32,6,Health Care Equipment & Services
+PI,-73.79,10,Semiconductors & Semiconductor Equipment
+PII,-68.07,11,Consumer Durables & Apparel
+PINC,-25.19,5,Health Care Equipment & Services
+PINS,-57.05,3,Media & Entertainment
+PIPR,-38.92,11,Financial Services
+PJT,-29.37,16,Financial Services
+PK,-50.2,5,Equity Real Estate Investment Trusts (REITs)
+PKE,-27.78,4,Capital Goods
+PKG,-29.29,5,Materials
+PKST,-44.57,9,Equity Real Estate Investment Trusts (REITs)
+PL,-54.39,16,Commercial & Professional Services
+PLAB,-50.62,4,Semiconductors & Semiconductor Equipment
+PLAY,-80.79,5,Consumer Services
+PLCE,-76.92,3,Consumer Discretionary Distribution & Retail
+PLD,-33.55,2,Equity Real Estate Investment Trusts (REITs)
+PLL,-80.85,4,Materials
+PLMR,-37.44,7,Insurance
+PLNT,-24.64,7,Consumer Services
+PLOW,-29.08,7,Capital Goods
+PLPC,-22.33,10,Capital Goods
+PLRX,-94.08,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+PLTK,-62.93,6,Media & Entertainment
+PLTR,-40.61,9,Software & Services
+PLUG,-85.12,9,Capital Goods
+PLUS,-46.13,11,Technology Hardware & Equipment
+PLXS,-34.92,10,Technology Hardware & Equipment
+PLYM,-45.04,5,Equity Real Estate Investment Trusts (REITs)
+PM,-21.96,3,"Food, Beverage & Tobacco"
+PMT,-23.2,3,Financial Services
+PMVP,-51.6,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+PNC,-30.34,3,Banks
+PNFP,-35.03,4,Banks
+PNR,-30.25,6,Capital Goods
+PNTG,-40.16,4,Health Care Equipment & Services
+PNW,-13.5,6,Utilities
+PODD,-31.08,6,Health Care Equipment & Services
+POOL,-45.4,3,Consumer Discretionary Distribution & Retail
+POR,-19.07,4,Utilities
+POST,-20.48,6,"Food, Beverage & Tobacco"
+POWI,-62.46,2,Semiconductors & Semiconductor Equipment
+POWL,-55.85,12,Capital Goods
+POWW,-65.57,8,Consumer Discretionary Distribution & Retail
+PPBI,-36.96,7,Banks
+PPC,-29.84,5,"Food, Beverage & Tobacco"
+PPG,-37.81,2,Materials
+PPL,-12.4,5,Utilities
+PR,-42.7,5,Energy
+PRA,-28.17,7,Insurance
+PRAA,-59.71,3,Financial Services
+PRCT,-72.45,8,Health Care Equipment & Services
+PRDO,-27.22,8,Consumer Services
+PRFT,-41.23,1,Software & Services
+PRG,-52.21,9,Financial Services
+PRGO,-64.09,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+PRGS,-44.77,2,Software & Services
+PRI,-19.85,6,Insurance
+PRIM,-40.85,11,Capital Goods
+PRK,-31.18,10,Banks
+PRKS,-49.63,9,Consumer Services
+PRLB,-30.89,8,Capital Goods
+PRM,-35.94,8,Materials
+PRMB,-59.42,6,"Food, Beverage & Tobacco"
+PRME,-87.75,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+PRO,-63.51,6,Software & Services
+PROK,-87.84,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+PRSU,-40.21,9,Consumer Services
+PRTA,-88.74,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+PRTS,-69.57,2,Consumer Discretionary Distribution & Retail
+PRU,-26.56,8,Insurance
+PRVA,-32.14,8,Health Care Equipment & Services
+PSA,-29.2,5,Equity Real Estate Investment Trusts (REITs)
+PSFE,-74.96,8,Financial Services
+PSMT,-15.27,8,Consumer Staples Distribution & Retail
+PSN,-51.15,8,Commercial & Professional Services
+PSTG,-48.63,8,Technology Hardware & Equipment
+PSTL,-16.98,6,Equity Real Estate Investment Trusts (REITs)
+PSX,-46.23,5,Energy
+PTC,-32.27,3,Software & Services
+PTCT,-36.7,13,"Pharmaceuticals, Biotechnology & Life Sciences"
+PTEN,-58.63,4,Energy
+PTGX,-31.58,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+PTLO,-71.7,4,Consumer Services
+PTON,-58.47,7,Consumer Durables & Apparel
+PTVE,-40.18,7,Materials
+PUBM,-73.86,3,Media & Entertainment
+PUMP,-59.13,8,Energy
+PVH,-56.97,4,Consumer Durables & Apparel
+PWP,-41.5,10,Financial Services
+PWR,-33.89,6,Capital Goods
+PWSC,-33.73,1,Software & Services
+PX,-38.6,4,Financial Services
+PXD,-6.83,2,Energy
+PYCR,-47.85,5,Commercial & Professional Services
+PYPL,-56.54,4,Financial Services
+PZZA,-60.86,4,Consumer Services
+QCOM,-45.11,5,Semiconductors & Semiconductor Equipment
+QCRH,-32.23,9,Banks
+QDEL,-73.6,2,Health Care Equipment & Services
+QGEN,-20.37,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+QLYS,-41.87,4,Software & Services
+QNST,-56.06,9,Media & Entertainment
+QRVO,-60.68,8,Semiconductors & Semiconductor Equipment
+QS,-62.69,7,Automobiles & Components
+QSI,-78.27,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+QTRX,-84.87,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+QTWO,-50.23,5,Software & Services
+R,-23.86,3,Transportation
+RAMP,-48.19,4,Software & Services
+RAPT,-97.17,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+RARE,-66.78,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+RBA,-17.81,11,Commercial & Professional Services
+RBB,-39.67,6,Banks
+RBBN,-49.03,7,Technology Hardware & Equipment
+RBC,-17.81,7,Capital Goods
+RBCAA,-22.56,10,Banks
+RBLX,-57.21,8,Media & Entertainment
+RC,-80.74,1,Financial Services
+RCEL,-82.14,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+RCKT,-92.42,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+RCL,-35.25,11,Consumer Services
+RCM,-25.24,2,Health Care Equipment & Services
+RCUS,-65.96,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+RDFN,-59.72,6,Real Estate Management & Development
+RDN,-17.98,6,Financial Services
+RDNT,-46.84,7,Health Care Equipment & Services
+RDUS,-63.91,2,Materials
+REFI,-26.23,6,Financial Services
+REG,-15.87,5,Equity Real Estate Investment Trusts (REITs)
+REGN,-59.8,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+REI,-65.21,3,Energy
+RELY,-55.05,7,Financial Services
+REPL,-81.21,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+REPX,-38.63,9,Energy
+RES,-47.39,6,Energy
+REVG,-23.56,9,Capital Goods
+REX,-41.59,4,Energy
+REXR,-44.11,4,Equity Real Estate Investment Trusts (REITs)
+REYN,-35.2,5,Household & Personal Products
+REZI,-47.06,10,Capital Goods
+RF,-33.24,8,Banks
+RGA,-27.43,8,Insurance
+RGEN,-47.75,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+RGLD,-18.9,8,Materials
+RGNX,-78.42,13,"Pharmaceuticals, Biotechnology & Life Sciences"
+RGP,-69.91,1,Commercial & Professional Services
+RGR,-39.49,4,Consumer Durables & Apparel
+RH,-69.3,9,Consumer Discretionary Distribution & Retail
+RHI,-70.41,1,Commercial & Professional Services
+RHP,-34.76,4,Equity Real Estate Investment Trusts (REITs)
+RICK,-65.99,3,Consumer Services
+RIGL,-50.76,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+RILY,-92.74,9,Financial Services
+RIOT,-64.3,8,Software & Services
+RITM,-21.23,11,Financial Services
+RIVN,-60.19,12,Automobiles & Components
+RJF,-28.38,9,Financial Services
+RKLB,-48.15,15,Capital Goods
+RKT,-50.6,12,Financial Services
+RL,-36.41,7,Consumer Durables & Apparel
+RLAY,-83.43,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+RLI,-35.58,5,Insurance
+RLJ,-47.95,2,Equity Real Estate Investment Trusts (REITs)
+RM,-28.8,9,Financial Services
+RMAX,-49.86,10,Real Estate Management & Development
+RMBS,-48.83,11,Semiconductors & Semiconductor Equipment
+RMD,-20.61,7,Health Care Equipment & Services
+RMNI,-53.51,6,Software & Services
+RMR,-51.47,3,Real Estate Management & Development
+RNA,-54.13,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+RNG,-48.57,8,Software & Services
+RNR,-23.34,4,Insurance
+RNST,-29.73,7,Banks
+ROAD,-33.62,9,Capital Goods
+ROCK,-49.33,3,Capital Goods
+ROG,-60.5,8,Technology Hardware & Equipment
+ROIC,-15.77,1,Equity Real Estate Investment Trusts (REITs)
+ROIV,-28.56,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+ROK,-28.73,2,Capital Goods
+ROKU,-47.58,11,Media & Entertainment
+ROL,-11.51,3,Commercial & Professional Services
+ROP,-41.26,3,Software & Services
+ROST,-21.27,5,Consumer Discretionary Distribution & Retail
+RPAY,-72.85,3,Financial Services
+RPD,-82.9,1,Software & Services
+RPM,-30.86,4,Materials
+RPRX,-22.5,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+RRBI,-20.97,9,Banks
+RRC,-28.19,8,Energy
+RRR,-39.82,2,Consumer Services
+RRX,-48.42,2,Capital Goods
+RS,-22.93,2,Materials
+RSG,-20.91,1,Commercial & Professional Services
+RSI,-42.04,11,Consumer Services
+RTX,-16.15,7,Capital Goods
+RTYH24,-5.31,1,#N/A N/A: Unable to retrieve data for gics_industry_group_name. Try using its default parameters and/or a different security/universe.
+RUN,-73.65,11,Capital Goods
+RUSHA,-27.72,5,Capital Goods
+RUSHB,-28.77,9,Capital Goods
+RVLV,-56.01,8,Consumer Discretionary Distribution & Retail
+RVMD,-48.63,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+RVNC,-74.87,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+RVTY,-35.42,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+RWT,-38.74,9,Financial Services
+RXO,-67.15,3,Transportation
+RXRX,-77.06,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+RXST,-89.66,7,Health Care Equipment & Services
+RYAM,-63.7,11,Materials
+RYAN,-38.65,7,Insurance
+RYI,-50.41,3,Materials
+RYN,-33.28,4,Equity Real Estate Investment Trusts (REITs)
+RYTM,-32.48,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+S,-56.9,1,Software & Services
+SABR,-76.19,1,Consumer Services
+SAFE,-54.17,5,Equity Real Estate Investment Trusts (REITs)
+SAFT,-24.14,6,Insurance
+SAGE,-82.26,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+SAH,-32.76,10,Consumer Discretionary Distribution & Retail
+SAIA,-60.94,5,Transportation
+SAIC,-44.83,3,Commercial & Professional Services
+SAM,-49.45,6,"Food, Beverage & Tobacco"
+SANA,-88.11,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+SANM,-25.65,10,Technology Hardware & Equipment
+SASR,-28.7,5,Banks
+SATS,-48.8,13,Media & Entertainment
+SAVA,-96.61,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+SAVAW,-38.42,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+SAVEQ,-99.18,2,Transportation
+SB,-51.51,6,Transportation
+SBAC,-29.54,1,Equity Real Estate Investment Trusts (REITs)
+SBCF,-28.77,8,Banks
+SBGI,-35.54,10,Media & Entertainment
+SBH,-45.22,10,Consumer Discretionary Distribution & Retail
+SBOW,-17.72,2,Energy
+SBRA,-19.27,9,Equity Real Estate Investment Trusts (REITs)
+SBSI,-28.96,8,Banks
+SBUX,-32.25,6,Consumer Services
+SCCO,-40.37,5,Materials
+SCHL,-60.86,8,Media & Entertainment
+SCHW,-21.75,5,Financial Services
+SCI,-16.95,11,Consumer Services
+SCL,-54.72,1,Materials
+SCLX,-95.29,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+SCPH,-68.47,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+SCS,-34.99,7,Commercial & Professional Services
+SCSC,-44.21,8,Technology Hardware & Equipment
+SCVL,-65.8,7,Consumer Discretionary Distribution & Retail
+SDGR,-63.17,1,Health Care Equipment & Services
+SDRL,-66.14,7,Energy
+SEB,-35.73,3,"Food, Beverage & Tobacco"
+SEE,-40.26,5,Materials
+SEER,-26.34,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+SEI,-55.62,13,Energy
+SEIC,-23.25,3,Financial Services
+SEM,-45.63,5,Health Care Equipment & Services
+SEMR,-63.26,4,Software & Services
+SENEA,-19.51,9,"Food, Beverage & Tobacco"
+SES,-85.18,8,Capital Goods
+SF,-35.02,6,Financial Services
+SFBS,-31.56,5,Banks
+SFIX,-58.58,12,Consumer Discretionary Distribution & Retail
+SFL,-52.6,3,Energy
+SFM,-63.05,5,Consumer Staples Distribution & Retail
+SFNC,-32.39,4,Banks
+SFST,-33.61,7,Banks
+SG,-88.11,14,Consumer Services
+SGHC,-37.97,10,Consumer Services
+SGI,-21.23,10,Consumer Durables & Apparel
+SGMO,-74.04,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+SGRY,-61.71,2,Health Care Equipment & Services
+SHAK,-45.7,7,Consumer Services
+SHBI,-32.42,8,Banks
+SHC,-43.48,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+SHCR,-53.36,5,Health Care Equipment & Services
+SHEN,-53.93,2,Telecommunication Services
+SHLS,-83.49,8,Capital Goods
+SHO,-37.64,8,Equity Real Estate Investment Trusts (REITs)
+SHOO,-60.68,5,Consumer Durables & Apparel
+SHW,-21.57,5,Materials
+SHYF,-57.48,4,Capital Goods
+SIBN,-44.72,8,Health Care Equipment & Services
+SIG,-57.6,8,Consumer Discretionary Distribution & Retail
+SIGA,-56.39,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+SIGI,-32.2,3,Insurance
+SILK,-15.18,4,Health Care Equipment & Services
+SIRI,-64.77,5,Media & Entertainment
+SITC,-40.17,6,Equity Real Estate Investment Trusts (REITs)
+SITE,-43.6,7,Capital Goods
+SITM,-55.26,12,Semiconductors & Semiconductor Equipment
+SIX,-11.34,3,Consumer Services
+SJM,-29.41,2,"Food, Beverage & Tobacco"
+SKIN,-81.87,11,Household & Personal Products
+SKT,-22.35,4,Equity Real Estate Investment Trusts (REITs)
+SKWD,-32.62,9,Insurance
+SKX,-41.87,4,Consumer Durables & Apparel
+SKY,-44.61,11,Consumer Durables & Apparel
+SKYW,-34.33,8,Transportation
+SLAB,-45.7,11,Semiconductors & Semiconductor Equipment
+SLB,-42.56,3,Energy
+SLCA,-10.18,2,Energy
+SLDP,-58.62,13,Automobiles & Components
+SLG,-48.81,6,Equity Real Estate Investment Trusts (REITs)
+SLGN,-34.71,2,Materials
+SLM,-26.77,9,Financial Services
+SLP,-75.54,8,Health Care Equipment & Services
+SLQT,-82.98,9,Insurance
+SLRN,-78.1,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+SLVM,-58.99,2,Materials
+SM,-66.7,2,Energy
+SMAR,-24.69,4,Software & Services
+SMBC,-29.7,9,Banks
+SMBK,-26.45,9,Banks
+SMCI,-84.84,10,Technology Hardware & Equipment
+SMG,-48.42,7,Materials
+SMHI,-19.48,3,Energy
+SMMF,-16.9,2,Banks
+SMMT,-62.26,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+SMP,-46.92,3,Automobiles & Components
+SMPL,-59.99,1,"Food, Beverage & Tobacco"
+SMR,-73.48,20,Capital Goods
+SMRT,-78.76,5,Technology Hardware & Equipment
+SMTC,-68.45,14,Semiconductors & Semiconductor Equipment
+SNA,-21.27,11,Capital Goods
+SNBR,-81.77,9,Consumer Discretionary Distribution & Retail
+SNCY,-54.82,10,Transportation
+SNDR,-39.75,6,Transportation
+SNDX,-64.81,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+SNEX,-19.66,9,Financial Services
+SNOW,-54.0,8,Software & Services
+SNPS,-40.53,9,Software & Services
+SNV,-34.84,7,Banks
+SNX,-33.78,11,Technology Hardware & Equipment
+SO,-15.68,7,Utilities
+SOFI,-47.31,9,Financial Services
+SON,-36.09,2,Materials
+SONO,-60.53,4,Consumer Durables & Apparel
+SOUN,-70.37,16,Software & Services
+SOVO,-0.68,1,"Food, Beverage & Tobacco"
+SOY,-58.15,6,"Food, Beverage & Tobacco"
+SP,-4.0,1,Commercial & Professional Services
+SPB,-47.49,6,Household & Personal Products
+SPCE,-95.0,4,Capital Goods
+SPFI,-24.14,7,Banks
+SPG,-25.25,9,Equity Real Estate Investment Trusts (REITs)
+SPGI,-19.93,7,Financial Services
+SPHR,-52.29,5,Media & Entertainment
+SPNS,-40.85,3,Software & Services
+SPNT,-16.28,8,Insurance
+SPOK,-33.74,3,Telecommunication Services
+SPOT,-46.8,6,Media & Entertainment
+SPR,-20.33,5,Capital Goods
+SPSC,-63.78,4,Software & Services
+SPT,-88.07,1,Software & Services
+SPTN,-27.53,3,Consumer Staples Distribution & Retail
+SPWH,-47.33,1,Consumer Discretionary Distribution & Retail
+SPWRQ,-98.77,1,Capital Goods
+SPXC,-33.54,11,Capital Goods
+SQSP,-9.5,3,Software & Services
+SR,-12.16,6,Utilities
+SRC,-6.5,1,Equity Real Estate Investment Trusts (REITs)
+SRCE,-21.24,12,Banks
+SRCL,-20.4,2,Commercial & Professional Services
+SRDX,-37.45,2,Health Care Equipment & Services
+SRE,-32.7,5,Utilities
+SRI,-81.23,6,Automobiles & Components
+SRPT,-92.72,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+SRRK,-60.19,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+SRTA,-48.88,15,Health Care Equipment & Services
+SSB,-28.0,8,Banks
+SSD,-34.92,5,Capital Goods
+SSNC,-19.26,5,Commercial & Professional Services
+SSP,-84.54,9,Media & Entertainment
+SSRM,-61.97,18,Materials
+SSTI,-75.51,2,Software & Services
+SSTK,-71.91,9,Media & Entertainment
+ST,-58.88,11,Capital Goods
+STAA,-71.12,4,Health Care Equipment & Services
+STAG,-26.6,5,Equity Real Estate Investment Trusts (REITs)
+STBA,-27.89,8,Banks
+STC,-26.32,10,Insurance
+STE,-18.09,11,Health Care Equipment & Services
+STEL,-21.93,6,Banks
+STEM,-92.12,6,Capital Goods
+STEP,-38.75,7,Financial Services
+STER,-11.8,2,Commercial & Professional Services
+STGW,-48.64,13,Media & Entertainment
+STHO,-59.17,2,Real Estate Management & Development
+STLD,-29.23,6,Materials
+STNE,-57.15,6,Financial Services
+STNG,-61.86,9,Energy
+STOK,-66.32,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+STR,-41.81,4,Energy
+STRA,-39.94,6,Consumer Services
+STRL,-47.67,10,Capital Goods
+STRO,-90.72,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+STT,-26.31,3,Financial Services
+STWD,-18.41,2,Financial Services
+STZ,-53.08,5,"Food, Beverage & Tobacco"
+SUI,-22.33,9,Equity Real Estate Investment Trusts (REITs)
+SUM,-20.8,6,Materials
+SUPN,-26.73,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+SVC,-81.73,1,Equity Real Estate Investment Trusts (REITs)
+SVRA,-65.3,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+SVV,-68.48,4,Consumer Discretionary Distribution & Retail
+SWAV,-6.96,1,Health Care Equipment & Services
+SWBI,-57.1,5,Consumer Durables & Apparel
+SWI,-13.68,6,Software & Services
+SWK,-49.28,8,Capital Goods
+SWKS,-59.23,8,Semiconductors & Semiconductor Equipment
+SWN,-22.58,2,Energy
+SWTX,-45.5,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+SWX,-15.47,5,Utilities
+SXC,-50.55,4,Materials
+SXI,-38.11,7,Capital Goods
+SXT,-25.69,3,Materials
+SYBT,-24.39,7,Banks
+SYF,-37.97,8,Financial Services
+SYK,-15.64,7,Health Care Equipment & Services
+SYNA,-62.24,6,Semiconductors & Semiconductor Equipment
+SYY,-17.44,4,Consumer Staples Distribution & Retail
+T,-22.35,5,Telecommunication Services
+TALO,-56.48,5,Energy
+TAP,-36.62,5,"Food, Beverage & Tobacco"
+TARO,-5.45,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+TARS,-45.08,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+TBBK,-36.28,11,Banks
+TBI,-74.87,4,Commercial & Professional Services
+TBPH,-33.91,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+TBRG,-29.49,2,Health Care Equipment & Services
+TCBI,-31.71,7,Banks
+TCBK,-27.65,5,Banks
+TCBX,-28.88,10,Banks
+TCMD,-51.79,6,Health Care Equipment & Services
+TCX,-44.61,8,Software & Services
+TDC,-60.81,4,Software & Services
+TDG,-18.39,6,Capital Goods
+TDOC,-78.53,1,Health Care Equipment & Services
+TDS,-30.13,6,Telecommunication Services
+TDUP,-77.62,9,Consumer Discretionary Distribution & Retail
+TDW,-70.35,10,Energy
+TDY,-18.39,5,Technology Hardware & Equipment
+TEAD,-92.29,7,Media & Entertainment
+TEAM,-69.53,4,Software & Services
+TECH,-44.55,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+TELL,-60.7,7,Energy
+TENB,-62.0,1,Software & Services
+TER,-58.31,7,Semiconductors & Semiconductor Equipment
+TERN,-82.19,16,"Pharmaceuticals, Biotechnology & Life Sciences"
+TEX,-51.75,9,Capital Goods
+TFC,-27.75,8,Banks
+TFIN,-57.59,9,Banks
+TFSL,-20.52,5,Banks
+TFX,-60.66,1,Health Care Equipment & Services
+TG,-33.43,6,Materials
+TGI,-33.47,5,Capital Goods
+TGNA,-22.15,6,Media & Entertainment
+TGT,-52.94,3,Consumer Staples Distribution & Retail
+TGTX,-42.01,13,"Pharmaceuticals, Biotechnology & Life Sciences"
+TH,-56.73,7,Consumer Services
+THC,-34.48,6,Health Care Equipment & Services
+THFF,-20.19,11,Banks
+THG,-13.98,8,Insurance
+THO,-49.76,2,Automobiles & Components
+THR,-33.86,8,Capital Goods
+THRM,-60.59,6,Automobiles & Components
+THRY,-83.91,3,Media & Entertainment
+THS,-63.42,2,"Food, Beverage & Tobacco"
+TILE,-33.67,7,Commercial & Professional Services
+TIPT,-32.68,7,Insurance
+TITN,-55.07,9,Capital Goods
+TJX,-11.31,7,Consumer Discretionary Distribution & Retail
+TK,-32.17,5,Energy
+TKO,-21.33,8,Media & Entertainment
+TKR,-38.41,3,Capital Goods
+TMCI,-87.14,1,Health Care Equipment & Services
+TMDX,-67.79,12,Health Care Equipment & Services
+TMHC,-27.9,8,Consumer Durables & Apparel
+TMO,-37.48,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+TMP,-28.79,12,Banks
+TMUS,-32.71,3,Telecommunication Services
+TNC,-44.53,5,Capital Goods
+TNDM,-81.07,8,Health Care Equipment & Services
+TNET,-59.18,6,Commercial & Professional Services
+TNGX,-91.46,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+TNK,-53.22,6,Energy
+TNL,-32.98,10,Consumer Services
+TNYA,-94.3,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+TOL,-46.07,8,Consumer Durables & Apparel
+TOST,-45.13,7,Financial Services
+TOWN,-19.19,9,Banks
+TPB,-22.48,9,"Food, Beverage & Tobacco"
+TPC,-40.94,9,Capital Goods
+TPG,-44.34,9,Financial Services
+TPH,-37.97,13,Consumer Durables & Apparel
+TPICQ,-88.03,9,Capital Goods
+TPL,-84.19,4,Energy
+TPR,-32.07,6,Consumer Durables & Apparel
+TRC,-24.31,8,Real Estate Management & Development
+TRDA,-76.75,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+TREE,-45.57,11,Financial Services
+TREX,-69.9,2,Capital Goods
+TRGP,-32.65,4,Energy
+TRIP,-62.64,5,Media & Entertainment
+TRMB,-28.87,9,Technology Hardware & Equipment
+TRMK,-22.97,8,Banks
+TRN,-40.94,12,Capital Goods
+TRNO,-27.94,13,Equity Real Estate Investment Trusts (REITs)
+TRNS,-63.86,6,Capital Goods
+TROW,-35.62,6,Financial Services
+TROX,-85.81,6,Materials
+TRS,-29.73,10,Materials
+TRST,-27.4,8,Banks
+TRTX,-28.42,7,Financial Services
+TRU,-37.81,3,Commercial & Professional Services
+TRUP,-44.69,10,Insurance
+TRV,-12.84,7,Insurance
+TSBK,-22.45,7,Banks
+TSCO,-21.22,4,Consumer Discretionary Distribution & Retail
+TSE,-76.01,1,Materials
+TSLA,-53.77,15,Automobiles & Components
+TSN,-23.0,7,"Food, Beverage & Tobacco"
+TSPH,-72.03,1,Transportation
+TSVT,-61.67,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+TT,-24.8,4,Capital Goods
+TTC,-36.13,7,Capital Goods
+TTD,-81.19,6,Media & Entertainment
+TTEC,-88.39,2,Commercial & Professional Services
+TTEK,-44.56,7,Commercial & Professional Services
+TTGT,-82.17,4,Media & Entertainment
+TTI,-57.23,10,Energy
+TTMI,-34.24,11,Technology Hardware & Equipment
+TTWO,-26.33,6,Media & Entertainment
+TVRD,-76.9,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+TVTX,-46.44,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+TW,-33.24,5,Financial Services
+TWI,-58.53,8,Capital Goods
+TWKS,-56.31,3,Software & Services
+TWLO,-45.17,8,Software & Services
+TWO,-33.57,7,Financial Services
+TWOUQ,-85.38,1,Consumer Services
+TWST,-58.97,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+TXG,-86.85,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+TXN,-33.9,6,Semiconductors & Semiconductor Equipment
+TXNM,-11.83,8,Utilities
+TXRH,-25.36,8,Consumer Services
+TXT,-37.39,2,Capital Goods
+TYL,-48.66,4,Software & Services
+TYRA,-75.32,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+U,-64.26,10,Software & Services
+UA,-60.16,6,Consumer Durables & Apparel
+UAA,-62.53,7,Consumer Durables & Apparel
+UAL,-49.19,10,Transportation
+UBER,-30.59,7,Transportation
+UBSI,-27.23,7,Banks
+UCB,-31.95,5,Banks
+UCTT,-68.24,10,Semiconductors & Semiconductor Equipment
+UDMY,-68.07,1,Consumer Services
+UDR,-28.79,3,Equity Real Estate Investment Trusts (REITs)
+UE,-30.93,4,Equity Real Estate Investment Trusts (REITs)
+UEC,-53.49,10,Energy
+UFCS,-26.0,10,Insurance
+UFPI,-36.87,10,Capital Goods
+UFPT,-48.31,8,Health Care Equipment & Services
+UGI,-15.08,10,Utilities
+UHAL,-37.81,4,Transportation
+UHAL/B,-38.83,5,Transportation
+UHS,-35.84,4,Health Care Equipment & Services
+UHT,-26.26,6,Equity Real Estate Investment Trusts (REITs)
+UI,-36.57,8,Technology Hardware & Equipment
+UIS,-74.44,6,Software & Services
+ULCC,-70.38,14,Transportation
+ULH,-75.21,7,Transportation
+ULTA,-44.56,3,Consumer Discretionary Distribution & Retail
+UMBF,-32.29,12,Banks
+UMH,-30.85,7,Equity Real Estate Investment Trusts (REITs)
+UNF,-34.92,8,Commercial & Professional Services
+UNFI,-48.33,11,Consumer Staples Distribution & Retail
+UNH,-61.97,4,Health Care Equipment & Services
+UNIT,-59.6,6,Telecommunication Services
+UNM,-17.75,4,Insurance
+UNP,-18.93,7,Transportation
+UPBD,-57.38,6,Consumer Discretionary Distribution & Retail
+UPS,-48.78,2,Transportation
+UPST,-61.0,9,Financial Services
+UPWK,-42.46,6,Commercial & Professional Services
+URBN,-28.53,6,Consumer Discretionary Distribution & Retail
+URGN,-79.67,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+URI,-37.3,7,Capital Goods
+USB,-32.17,8,Banks
+USFD,-17.28,3,Consumer Staples Distribution & Retail
+USLM,-45.91,8,Materials
+USNA,-65.71,3,Household & Personal Products
+USPH,-42.34,7,Health Care Equipment & Services
+UTHR,-33.0,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+UTI,-39.36,6,Consumer Services
+UTL,-28.24,4,Utilities
+UTMD,-38.56,2,Health Care Equipment & Services
+UTZ,-52.72,4,"Food, Beverage & Tobacco"
+UVE,-25.75,11,Insurance
+UVSP,-21.45,11,Banks
+UVV,-31.53,6,"Food, Beverage & Tobacco"
+UWMC,-58.61,9,Financial Services
+V,-15.01,5,Financial Services
+VAC,-57.77,4,Consumer Services
+VAL,-63.82,8,Energy
+VBTX,-33.56,7,Banks
+VC,-46.97,3,Automobiles & Components
+VCEL,-51.72,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+VCTR,-29.01,3,Financial Services
+VCYT,-50.09,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+VECO,-64.2,9,Semiconductors & Semiconductor Equipment
+VEEV,-39.96,5,Health Care Equipment & Services
+VERA,-62.09,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+VERV,-83.46,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+VFC,-63.83,10,Consumer Durables & Apparel
+VGR,-20.39,3,"Food, Beverage & Tobacco"
+VIAV,-39.4,6,Technology Hardware & Equipment
+VICI,-19.08,4,Equity Real Estate Investment Trusts (REITs)
+VICR,-39.1,11,Capital Goods
+VIR,-66.19,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+VIRT,-28.24,6,Financial Services
+VITL,-50.03,7,"Food, Beverage & Tobacco"
+VKTX,-78.86,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+VLO,-42.91,4,Energy
+VLTO,-24.89,6,Commercial & Professional Services
+VLY,-39.63,5,Banks
+VMC,-24.43,8,Materials
+VMD,-40.64,2,Health Care Equipment & Services
+VMEO,-50.14,6,Media & Entertainment
+VMI,-30.01,9,Capital Goods
+VNDA,-39.69,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+VNO,-33.5,4,Equity Real Estate Investment Trusts (REITs)
+VNT,-38.18,5,Technology Hardware & Equipment
+VOYA,-35.32,9,Financial Services
+VPG,-46.04,8,Technology Hardware & Equipment
+VRDN,-57.14,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+VRE,-26.05,6,Equity Real Estate Investment Trusts (REITs)
+VREX,-66.8,4,Health Care Equipment & Services
+VRNS,-64.92,4,Software & Services
+VRNT,-60.92,5,Software & Services
+VRRM,-41.34,3,Commercial & Professional Services
+VRSK,-42.53,2,Commercial & Professional Services
+VRSN,-23.91,2,Software & Services
+VRT,-61.29,7,Capital Goods
+VRTS,-42.92,5,Financial Services
+VRTX,-29.07,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+VSAT,-75.64,12,Technology Hardware & Equipment
+VSCO,-69.47,11,Consumer Discretionary Distribution & Retail
+VSEC,-25.45,12,Capital Goods
+VSH,-56.52,6,Technology Hardware & Equipment
+VST,-48.89,11,Utilities
+VSTS,-81.79,2,Commercial & Professional Services
+VTLE,-77.25,7,Energy
+VTNRQ,-61.12,1,Energy
+VTOL,-35.34,6,Energy
+VTR,-17.58,6,Equity Real Estate Investment Trusts (REITs)
+VTRS,-46.34,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+VTS,-32.83,7,Energy
+VTYX,-91.75,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+VUZI,-45.58,2,Technology Hardware & Equipment
+VVV,-39.35,2,Consumer Discretionary Distribution & Retail
+VVX,-38.9,8,Capital Goods
+VYGR,-74.82,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+VYX,-54.49,2,Software & Services
+VZ,-17.4,3,Telecommunication Services
+VZIO,-8.54,5,Consumer Durables & Apparel
+W,-66.9,9,Consumer Discretionary Distribution & Retail
+WAB,-23.65,5,Capital Goods
+WABC,-25.32,12,Banks
+WAFD,-35.68,8,Banks
+WAL,-36.52,9,Banks
+WALD,-86.86,3,Household & Personal Products
+WASH,-36.25,7,Banks
+WAT,-33.45,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+WBA,-69.08,3,Consumer Staples Distribution & Retail
+WBD,-42.45,8,Media & Entertainment
+WBS,-33.52,5,Banks
+WCC,-37.68,8,Capital Goods
+WD,-49.51,8,Financial Services
+WDAY,-48.32,2,Software & Services
+WDC,-49.63,10,Technology Hardware & Equipment
+WDFC,-35.36,4,Household & Personal Products
+WEAV,-67.66,4,Software & Services
+WEC,-11.93,10,Utilities
+WELL,-12.99,10,Equity Real Estate Investment Trusts (REITs)
+WEN,-62.3,4,Consumer Services
+WERN,-45.19,3,Transportation
+WEST,-66.67,2,"Food, Beverage & Tobacco"
+WEX,-53.15,6,Financial Services
+WFC,-25.1,8,Banks
+WFRD,-70.83,9,Energy
+WGO,-61.84,7,Automobiles & Components
+WH,-38.07,6,Consumer Services
+WHD,-51.94,7,Energy
+WHR,-50.8,10,Consumer Durables & Apparel
+WINA,-27.99,6,Consumer Discretionary Distribution & Retail
+WING,-51.73,5,Consumer Services
+WIRE,-11.84,4,Capital Goods
+WK,-46.06,14,Software & Services
+WKC,-26.59,3,Energy
+WKHS,-78.25,1,Automobiles & Components
+WLDN,-35.26,11,Commercial & Professional Services
+WLK,-65.21,2,Materials
+WLLAW,-46.9,4,Energy
+WLLBW,-100.0,4,Energy
+WLY,-45.32,4,Media & Entertainment
+WM,-18.72,3,Commercial & Professional Services
+WMB,-12.94,8,Energy
+WMK,-28.7,8,Consumer Staples Distribution & Retail
+WMS,-46.0,4,Capital Goods
+WMT,-22.14,7,Consumer Staples Distribution & Retail
+WNC,-76.92,10,Capital Goods
+WOOF,-58.93,11,Consumer Discretionary Distribution & Retail
+WOR,-42.97,9,Capital Goods
+WOW,-45.16,5,Media & Entertainment
+WPC,-20.85,7,Equity Real Estate Investment Trusts (REITs)
+WRB,-15.1,5,Insurance
+WRBY,-50.74,9,Consumer Discretionary Distribution & Retail
+WRK,-10.87,3,Materials
+WRLD,-37.34,7,Financial Services
+WS,-51.46,8,Materials
+WSBC,-27.75,9,Banks
+WSBF,-28.25,6,Financial Services
+WSC,-70.95,3,Capital Goods
+WSFS,-24.86,9,Banks
+WSM,-36.79,8,Consumer Discretionary Distribution & Retail
+WSO,-43.12,4,Capital Goods
+WSR,-24.7,8,Equity Real Estate Investment Trusts (REITs)
+WST,-53.9,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+WT,-37.13,8,Financial Services
+WTBA,-26.9,7,Banks
+WTFC,-31.29,6,Banks
+WTI,-66.47,7,Energy
+WTM,-18.09,7,Insurance
+WTRG,-19.28,5,Utilities
+WTS,-19.7,6,Capital Goods
+WTTR,-51.33,6,Energy
+WTW,-13.18,6,Insurance
+WU,-44.07,4,Financial Services
+WULF,-74.6,21,Software & Services
+WVE,-66.67,13,"Pharmaceuticals, Biotechnology & Life Sciences"
+WWD,-19.43,7,Capital Goods
+WWW,-58.47,11,Consumer Durables & Apparel
+WY,-40.58,3,Equity Real Estate Investment Trusts (REITs)
+WYNN,-38.49,7,Consumer Services
+X,-39.41,9,Materials
+XEL,-23.99,5,Utilities
+XERS,-47.2,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+XFOR,-96.76,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+XHR,-43.61,4,Equity Real Estate Investment Trusts (REITs)
+XMTR,-68.3,10,Capital Goods
+XNCR,-73.92,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+XOM,-20.29,8,Energy
+XP,-57.98,3,Financial Services
+XPEL,-58.21,6,Automobiles & Components
+XPER,-57.63,4,Software & Services
+XPO,-42.19,12,Transportation
+XPOF,-70.28,6,Consumer Services
+XPRO,-71.48,9,Energy
+XRAY,-73.55,4,Health Care Equipment & Services
+XRX,-89.6,2,Technology Hardware & Equipment
+XYL,-29.52,3,Capital Goods
+XYZ,-52.96,7,Financial Services
+YELP,-48.16,1,Media & Entertainment
+YETI,-46.52,9,Consumer Durables & Apparel
+YEXT,-47.27,6,Software & Services
+YMAB,-80.52,2,"Pharmaceuticals, Biotechnology & Life Sciences"
+YORW,-27.5,4,Utilities
+YOU,-42.47,8,Software & Services
+YUM,-14.96,6,Consumer Services
+Z,-40.2,10,Real Estate Management & Development
+ZBH,-35.37,2,Health Care Equipment & Services
+ZBRA,-49.29,10,Technology Hardware & Equipment
+ZD,-58.78,3,Media & Entertainment
+ZETA,-70.01,11,Software & Services
+ZEUS,-62.29,2,Materials
+ZG,-38.08,10,Real Estate Management & Development
+ZIMV,-62.28,4,Health Care Equipment & Services
+ZION,-32.95,8,Banks
+ZIP,-87.44,1,Media & Entertainment
+ZM,-25.08,6,Software & Services
+ZNTL,-93.69,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+ZS,-49.63,7,Software & Services
+ZTS,-42.11,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+ZUMZ,-60.22,6,Consumer Discretionary Distribution & Retail
+ZUO,-21.02,4,Software & Services
+ZWS,-30.35,2,Capital Goods
+ZYME,-45.75,14,"Pharmaceuticals, Biotechnology & Life Sciences"
+ZYXI,-87.92,5,Health Care Equipment & Services
+9213421D,-20.84,2,Utilities
+9903653D,-33.91,2,Media & Entertainment
+9980328D,-13.05,1,Health Care Equipment & Services
+9991429D,-38.44,3,Automobiles & Components
+ALTM,-59.13,3,Materials
+CVLY,-10.29,1,Banks
+HOFT,-70.54,4,Consumer Durables & Apparel
+JAKK,-58.07,2,Consumer Durables & Apparel
+LBPH,-30.18,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+LGF/A,-32.42,7,Media & Entertainment
+LGF/B,-35.55,5,Media & Entertainment
+LSEA,-61.18,5,Consumer Durables & Apparel
+NMRA,-96.89,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+PBPB,-53.26,9,Consumer Services
+VSTO,-7.97,1,Consumer Durables & Apparel
+INZY,-89.28,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+2571895D,-48.15,12,Capital Goods
+ANNX,-81.91,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+BTSG,-35.56,9,Health Care Equipment & Services
+CGON,-64.01,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+CLMB,-30.91,7,Technology Hardware & Equipment
+CRGX,-86.44,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+FIHL,-30.25,8,Insurance
+GLRE,-22.8,5,Insurance
+SEAT,-94.86,3,Media & Entertainment
+SOLV,-31.46,7,Health Care Equipment & Services
+TRUE,-71.99,14,Media & Entertainment
+VEL,-21.48,9,Financial Services
+WGHTQ,-44.29,3,Consumer Services
+GEV,-38.29,6,Capital Goods
+PACK,-64.55,9,Materials
+PAYS,-64.6,4,Financial Services
+DNMWQ,-46.43,2,Materials
+INBX,-39.84,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+LINC,-27.35,8,Consumer Services
+SD,-34.37,8,Energy
+TBCH,-51.77,10,Technology Hardware & Equipment
+THRD,-78.9,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+AHR,-11.27,4,Equity Real Estate Investment Trusts (REITs)
+ALAB,-63.69,13,Semiconductors & Semiconductor Equipment
+AMSC,-61.08,8,Capital Goods
+APLT,-97.07,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+ARHS,-58.45,6,Consumer Discretionary Distribution & Retail
+AS,-37.92,7,Consumer Durables & Apparel
+AVDL,-61.03,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+BLND,-64.49,4,Software & Services
+BROS,-44.17,5,Consumer Services
+BUR,-49.15,5,Financial Services
+CATX,-89.2,13,"Pharmaceuticals, Biotechnology & Life Sciences"
+CIFR,-71.74,12,Software & Services
+CORZ,-64.95,13,Software & Services
+CRBP,-92.01,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+CRH,-27.29,6,Materials
+CWAN,-51.54,1,Software & Services
+DBD,-25.76,7,Technology Hardware & Equipment
+DEC,-42.32,4,Energy
+DELL,-50.93,4,Technology Hardware & Equipment
+DESP,-31.19,4,Consumer Services
+DJT,-80.02,5,Media & Entertainment
+DNTH,-50.3,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+ESPR,-80.94,13,"Pharmaceuticals, Biotechnology & Life Sciences"
+FULC,-74.23,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+FUN,-77.74,2,Consumer Services
+GBTG,-41.11,2,Consumer Services
+GCT,-64.03,6,Consumer Discretionary Distribution & Retail
+GRAL,-61.12,17,"Pharmaceuticals, Biotechnology & Life Sciences"
+HUT,-65.73,18,Software & Services
+IBTA,-74.96,3,Media & Entertainment
+IMNM,-66.32,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+LAB,-60.78,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+LBTYA,-35.74,3,Telecommunication Services
+LBTYK,-36.38,2,Telecommunication Services
+LOAR,-35.83,5,Capital Goods
+ML,-57.44,4,Financial Services
+MNMD,-50.56,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+MTAL,-46.27,1,Materials
+NBBK,-24.74,6,Banks
+NGNE,-89.74,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+OCGN,-73.52,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+OUST,-64.0,17,Technology Hardware & Equipment
+PACS,-82.04,5,Health Care Equipment & Services
+PGY,-61.99,9,Software & Services
+PRAX,-68.64,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+RIG,-63.4,8,Energy
+ROOT,-67.54,7,Insurance
+SLNO,-56.42,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+SN,-42.64,8,Consumer Durables & Apparel
+SOC,-87.52,15,Energy
+SPRY,-63.32,12,"Pharmaceuticals, Biotechnology & Life Sciences"
+SYRE,-70.18,11,"Pharmaceuticals, Biotechnology & Life Sciences"
+TGLS,-49.21,7,Capital Goods
+TRML,-58.46,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+TSHA,-65.12,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+VERX,-74.64,3,Software & Services
+VNOM,-36.62,5,Energy
+WNS,-29.36,4,Commercial & Professional Services
+SEG,-47.99,7,Real Estate Management & Development
+SUNS,-47.33,6,Financial Services
+SW,-42.11,5,Materials
+ABSI,-61.6,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+AIOT,-55.35,5,Technology Hardware & Equipment
+AKBA,-66.58,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+BCAL,-32.26,6,Banks
+CCCC,-84.29,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+CWBC,-29.51,7,Banks
+GETY,-75.06,1,Media & Entertainment
+GHM,-46.46,7,Capital Goods
+GRNT,-38.9,3,Energy
+INO,-80.79,1,"Pharmaceuticals, Biotechnology & Life Sciences"
+KRRO,-93.4,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+LENZ,-71.52,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+LRMR,-81.59,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+NCMI,-54.53,3,Media & Entertainment
+PLSE,-48.45,7,Health Care Equipment & Services
+RDVT,-33.2,7,Software & Services
+REAX,-53.08,2,Real Estate Management & Development
+TCRX,-81.48,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+WGS,-51.82,11,Health Care Equipment & Services
+AAOI,-77.17,14,Technology Hardware & Equipment
+ADCT,-68.39,9,"Pharmaceuticals, Biotechnology & Life Sciences"
+AMTM,-50.81,3,Commercial & Professional Services
+AQST,-60.78,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+AVBP,-54.25,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+BVS,-55.22,7,Health Care Equipment & Services
+CMPO,-32.4,9,Technology Hardware & Equipment
+CON,-21.39,6,Health Care Equipment & Services
+FSBW,-26.59,5,Banks
+HG,-19.09,6,Insurance
+HRTG,-26.9,8,Insurance
+ILPT,-45.91,5,Equity Real Estate Investment Trusts (REITs)
+ITIC,-29.14,3,Insurance
+LINE,-58.11,4,Equity Real Estate Investment Trusts (REITs)
+PPTA,-37.58,13,Materials
+QTTB,-97.31,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+SEZL,-72.02,9,Financial Services
+URE,-58.12,5,Energy
+WAY,-47.1,2,Health Care Equipment & Services
+WLFC,-50.33,2,Capital Goods
+ZVRA,-43.47,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+CAPR,-76.65,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+CURB,-14.77,4,Equity Real Estate Investment Trusts (REITs)
+ECG,-56.23,5,Capital Goods
+HNST,-73.98,1,Household & Personal Products
+INBK,-59.33,3,Banks
+LIF,-52.35,4,Software & Services
+TALK,-45.56,6,Health Care Equipment & Services
+USAP,-1.67,1,Materials
+ACIC,-24.44,4,Insurance
+BCAX,-48.54,5,"Pharmaceuticals, Biotechnology & Life Sciences"
+BOW,-43.56,5,Insurance
+BYRN,-64.26,3,Capital Goods
+DAVE,-44.67,5,Financial Services
+DSP,-68.63,6,Software & Services
+KLC,-82.68,2,Consumer Services
+LUNR,-71.91,12,Capital Goods
+METCB,-35.86,3,Materials
+NAGE,-64.4,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+NGVC,-60.31,2,Consumer Staples Distribution & Retail
+PBI,-29.48,4,Commercial & Professional Services
+PRCH,-66.39,7,Software & Services
+QBTS,-62.49,11,Software & Services
+REAL,-51.76,8,Consumer Discretionary Distribution & Retail
+RGTI,-73.42,11,Semiconductors & Semiconductor Equipment
+SARO,-24.18,3,Capital Goods
+SEPN,-78.81,8,"Pharmaceuticals, Biotechnology & Life Sciences"
+SKYT,-62.72,9,Semiconductors & Semiconductor Equipment
+UNTY,-23.83,5,Banks
+UPB,-66.92,10,"Pharmaceuticals, Biotechnology & Life Sciences"
+AIP,-46.09,9,Software & Services
+BALY,-12.52,2,Consumer Services
+BBAI,-75.56,7,Software & Services
+CTRI,-32.95,4,Capital Goods
+INGM,-40.78,5,Technology Hardware & Equipment
+MRP,-20.64,4,Equity Real Estate Investment Trusts (REITs)
+PRTH,-59.98,4,Financial Services
+RHLD,-50.66,9,Commercial & Professional Services
+SNDK,-47.5,8,Technology Hardware & Equipment
+ANGI,-44.87,5,Media & Entertainment
+BBNX,-58.61,10,Health Care Equipment & Services
+INR,-42.74,6,Energy
+MTSR,-46.63,7,"Pharmaceuticals, Biotechnology & Life Sciences"
+NNE,-57.6,8,Capital Goods
+PARAA,-27.89,1,Media & Entertainment
+ALMS,-31.38,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+CMDB,-16.76,4,Transportation
+STRZ,-55.34,1,Media & Entertainment
+AEBI,-31.96,3,Capital Goods
+AEVA,-72.67,3,Technology Hardware & Equipment
+ATYR,-90.15,4,"Pharmaceuticals, Biotechnology & Life Sciences"
+AU,-19.75,5,Materials
+BAM,-25.42,1,Financial Services
+BTDR,-62.32,4,Software & Services
+CBLL,-42.31,3,Health Care Equipment & Services
+CDTX,-19.83,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+CHWY,-37.23,2,Consumer Discretionary Distribution & Retail
+CLMT,-22.81,3,Energy
+CLOV,-46.6,3,Health Care Equipment & Services
+CRSP,-40.24,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+FLEX,-18.38,3,Technology Hardware & Equipment
+FLUT,-51.57,1,Consumer Services
+FRHC,-39.23,1,Financial Services
+GENI,-54.32,2,Consumer Services
+GRPN,-66.28,1,Consumer Discretionary Distribution & Retail
+GTX,-10.88,2,Automobiles & Components
+INDV,-11.09,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+IOT,-46.37,3,Software & Services
+JHX,-43.73,3,Materials
+KRMN,-33.04,3,Capital Goods
+MRX,-28.49,2,Financial Services
+OKLO,-64.32,5,Utilities
+ONON,-35.69,3,Consumer Durables & Apparel
+QSR,-11.86,3,Consumer Services
+QUBT,-68.28,3,Technology Hardware & Equipment
+QXO,-27.61,3,Capital Goods
+RAL,-31.79,2,Technology Hardware & Equipment
+RBRK,-50.92,3,Software & Services
+RDDT,-44.2,3,Media & Entertainment
+RDW,-73.93,6,Capital Goods
+RUM,-47.6,3,Media & Entertainment
+SAIL,-39.61,3,Software & Services
+SFD,-18.54,2,"Food, Beverage & Tobacco"
+SILA,-15.56,2,Equity Real Estate Investment Trusts (REITs)
+SMA,-21.21,4,Equity Real Estate Investment Trusts (REITs)
+TEM,-49.21,3,"Pharmaceuticals, Biotechnology & Life Sciences"
+TIC,-38.1,5,Commercial & Professional Services
+TIGO,-12.36,3,Telecommunication Services
+TLN,-28.89,3,Utilities
+TR,-20.03,2,"Food, Beverage & Tobacco"
+VIK,-12.61,2,Consumer Services
+XENE,-13.24,6,"Pharmaceuticals, Biotechnology & Life Sciences"
+ENVXW,-83.85,1,#N/A N/A: Unable to retrieve data for gics_industry_group_name. Try using its default parameters and/or a different security/universe.
+GLIBA,-21.11,2,Telecommunication Services
+GLIBK,-21.92,2,Telecommunication Services
+CMBT,-8.37,1,Energy
+CRCL,-66.62,1,Software & Services
+Q,-27.12,3,Semiconductors & Semiconductor Equipment
+SOLS,-14.28,1,Materials
+ACH,-39.37,2,Unknown
+AMPX,-35.92,2,Unknown
+ASPI,-38.5,2,Unknown
+BETR,-50.09,1,Unknown
+BKV,-12.28,1,Unknown
+CAI,-26.37,1,Unknown
+CLPT,-19.83,3,Unknown
+DEC,-21.46,1,Energy
+GLIBR,-36.86,1,Unknown
+IDR,-29.72,2,Unknown
+LAZRQ,-92.23,1,Unknown
+OPLN,-8.58,1,Unknown
+OPTU,-21.13,2,Unknown
+OSG,-35.86,1,Unknown
+RZLV,-51.4,4,Unknown
+SLDE,-20.01,1,Unknown
+TDAY,-8.85,1,Unknown
+UAMY,-32.44,4,Unknown
+ZBIO,-64.79,3,Unknown
+AVAH,-21.11,1,Unknown
+BLSH,-39.97,1,Unknown
+BULL,-32.72,1,Unknown
+CRVS,-25.31,2,Unknown
+DC,-16.29,1,Unknown
+DRUG,-23.37,1,Unknown
+FIGR,-45.96,2,Unknown
+GOSS,-20.83,1,Unknown
+GRDN,-14.22,1,Unknown
+HTFL,-30.06,1,Unknown
+KMTS,-17.3,1,Unknown
+LGN,-13.85,1,Unknown
+LXEO,-34.63,1,Unknown
+MBX,-16.94,1,Unknown
+MIAX,-12.11,1,Unknown
+NB,-25.45,1,Unknown
+NIQ,-35.89,1,Unknown
+NPCE,-12.8,1,Unknown
+NUTX,-45.23,1,Unknown
+ORKA,-11.57,1,Unknown
+PSIX,-14.12,2,Unknown
+PVLA,-27.42,2,Unknown
+RAPP,-15.17,1,Unknown
+RCAT,-34.85,1,Unknown
+SERV,-40.36,1,Unknown
+SION,-20.75,2,Unknown
+TE,-23.39,2,Unknown
+TRVI,-15.98,1,Unknown
+USAR,-22.9,1,Unknown

@@ -17,18 +17,10 @@ env/
 data/cache/
 data/precomputed/
 
-# Large data files - excluded from git to reduce repo size
+# Large source files - only exclude xlsx (parquet files are needed)
 input/ark_etfs/*.xlsx
-input/ark_etfs/*.parquet
-input/ark_etfs/*.csv
-input/ark_etfs/precomputed/
 input/russell_3000/*.xlsx
-input/russell_3000/*.parquet
-input/russell_3000/*.csv
-input/russell_3000/precomputed/
-input/precomputed/
 input/spx/*.jpg
-output/*.csv
 
 # IDE
 .vscode/

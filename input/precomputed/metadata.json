@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-02-15T14:50:30.540745",
+  "source_hashes": {
+    "ark_files_hash": 1771184535.197628,
+    "r3000_files_hash": 1771184574.8655143
+  },
+  "analysis_periods": [
+    "2024-2026",
+    "2021-2023"
+  ],
+  "parameters": {
+    "lookback_days": [
+      60,
+      120,
+      250
+    ],
+    "rolling_windows": [
+      20,
+      30
+    ],
+    "min_depth_pct": 10,
+    "min_duration_days": 7
+  }
+}
