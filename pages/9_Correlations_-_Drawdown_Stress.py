@@ -13,26 +13,26 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import ARK_ETFS
 from precomputed_loader import (
     load_stress_correlations,
-    load_correlation_returns,
     check_precomputed_exists
 )
-from data_loader import load_etf_prices
+from data_loader import load_etf_prices, load_ark_holdings, get_ark_files_hash
 from session_utils import init_session_state, get_current_dates, render_period_selector
 
 
 @st.cache_data
-def calculate_recovery_correlation(etf: str, stress_corr_df: pd.DataFrame) -> float:
+def calculate_recovery_correlation(_files_hash: str, etf: str, stress_corr_df: pd.DataFrame) -> float:
     """Calculate mean correlation during recovery periods.
 
     Recovery period = from trough of one drawdown to peak of the next drawdown.
     All recovery periods are combined to calculate the overall average correlation.
+    Uses holdings data to calculate returns dynamically for full historical coverage.
     """
     if len(stress_corr_df) < 2:
         return 0.0
 
-    # Load returns data
-    returns = load_correlation_returns(etf, 250)
-    if len(returns) == 0:
+    # Load full holdings data
+    holdings = load_ark_holdings(_files_hash, etf)
+    if len(holdings) == 0:
         return 0.0
 
     # Sort drawdowns by trough_date to get chronological order
@@ -49,25 +49,63 @@ def calculate_recovery_correlation(etf: str, stress_corr_df: pd.DataFrame) -> fl
         if recovery_end <= recovery_start:
             continue
 
-        # Filter returns to recovery period
-        recovery_returns = returns[
-            (returns.index >= recovery_start) &
-            (returns.index <= recovery_end)
-        ]
+        # Filter holdings to recovery period
+        period_holdings = holdings[
+            (holdings['Date'] >= recovery_start) &
+            (holdings['Date'] <= recovery_end)
+        ].copy()
 
-        # Need at least 10 days of data for meaningful correlation
-        if len(recovery_returns) >= 10:
-            # Calculate correlation matrix
-            corr_matrix = recovery_returns.corr()
+        if len(period_holdings) < 10:
+            continue
 
-            # Extract upper triangle (pairwise correlations)
-            n = len(corr_matrix.columns)
-            if n > 1:
-                triu_i, triu_j = np.triu_indices(n, k=1)
-                corr_values = corr_matrix.values[triu_i, triu_j]
-                valid_corrs = corr_values[~np.isnan(corr_values)]
-                if len(valid_corrs) > 0:
-                    recovery_corrs.extend(valid_corrs)
+        # Get tickers present in this period
+        tickers = period_holdings['Ticker'].unique()
+
+        # Filter out currency and money market tickers
+        if 'Bloomberg Name' in period_holdings.columns:
+            currency_tickers = period_holdings[
+                period_holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)
+            ]['Ticker'].unique()
+            tickers = [t for t in tickers if t not in currency_tickers]
+
+        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+        tickers = [t for t in tickers if not any(t.split()[0].startswith(p) for p in money_market_prefixes)]
+
+        if len(tickers) < 2:
+            continue
+
+        # Pivot to get price matrix
+        price_matrix = period_holdings[period_holdings['Ticker'].isin(tickers)].pivot_table(
+            index='Date',
+            columns='Ticker',
+            values='Stock_Price',
+            aggfunc='first'
+        )
+
+        # Drop tickers with too many missing values
+        min_data_points = len(price_matrix) * 0.5
+        price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
+
+        if len(price_matrix.columns) < 2:
+            continue
+
+        # Calculate daily returns
+        returns = price_matrix.pct_change().iloc[1:].dropna(axis=1)
+
+        if len(returns) < 10 or len(returns.columns) < 2:
+            continue
+
+        # Calculate correlation matrix
+        corr_matrix = returns.corr()
+
+        # Extract upper triangle (pairwise correlations)
+        n = len(corr_matrix.columns)
+        triu_i, triu_j = np.triu_indices(n, k=1)
+        corr_values = corr_matrix.values[triu_i, triu_j]
+        valid_corrs = corr_values[~np.isnan(corr_values)]
+
+        if len(valid_corrs) > 0:
+            recovery_corrs.extend(valid_corrs)
 
     if len(recovery_corrs) == 0:
         return 0.0
@@ -102,26 +140,19 @@ st.caption("Stress correlations are calculated across all top 10 drawdowns in th
 if not check_precomputed_exists():
     st.warning("Precomputed data not found. Please run `python convert_to_parquet.py` to generate precomputed data for faster loading.")
 
-# Explanation text
-st.markdown("""
-**Stress correlations** measure how correlated holdings become during drawdown periods.
-Typically, correlations **increase** during market stress, reducing diversification benefits when they're needed most.
-""")
-
-"" # Space
-
 # Get ETF from session state (default to first)
 if 'stress_etf' not in st.session_state:
     st.session_state.stress_etf = ARK_ETFS[0]
 selected_etf = st.session_state.stress_etf
 
-# Load stress correlation data
+# Load data
+files_hash = get_ark_files_hash()
 stress_corr = load_stress_correlations(selected_etf)
 
 # Calculate recovery correlation
 recovery_corr = 0.0
 if len(stress_corr) >= 2:
-    recovery_corr = calculate_recovery_correlation(selected_etf, stress_corr)
+    recovery_corr = calculate_recovery_correlation(files_hash, selected_etf, stress_corr)
 
 if len(stress_corr) > 0:
     # Calculate statistics
