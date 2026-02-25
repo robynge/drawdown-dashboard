@@ -19,8 +19,7 @@ from data_loader import load_etf_prices, load_ark_holdings, get_ark_files_hash
 from session_utils import init_session_state, get_current_dates, render_period_selector
 
 
-@st.cache_data
-def calculate_recovery_correlation(_files_hash: str, etf: str, stress_corr_df: pd.DataFrame) -> float:
+def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.DataFrame) -> float:
     """Calculate mean correlation during recovery periods.
 
     Recovery period = from trough of one drawdown to peak of the next drawdown.
@@ -30,7 +29,7 @@ def calculate_recovery_correlation(_files_hash: str, etf: str, stress_corr_df: p
         return 0.0
 
     # Load full holdings data
-    holdings = load_ark_holdings(_files_hash, etf)
+    holdings = load_ark_holdings(files_hash, etf)
     if len(holdings) == 0:
         return 0.0
 
@@ -58,7 +57,7 @@ def calculate_recovery_correlation(_files_hash: str, etf: str, stress_corr_df: p
             continue
 
         # Get tickers present in this period
-        tickers = period_holdings['Ticker'].unique()
+        tickers = list(period_holdings['Ticker'].unique())
 
         # Filter out currency and money market tickers
         if 'Bloomberg Name' in period_holdings.columns:
@@ -139,20 +138,10 @@ st.caption("Stress correlations are calculated across all top 10 drawdowns in th
 if not check_precomputed_exists():
     st.warning("Precomputed data not found. Please run `python convert_to_parquet.py` to generate precomputed data for faster loading.")
 
-# Layout
-cols = st.columns([1, 3])
-
-with cols[0]:
-    controls_card = st.container(border=True)
-    with controls_card:
-        st.markdown("##### Select ETF")
-        selected_etf = st.pills(
-            "ETF",
-            options=ARK_ETFS,
-            default=ARK_ETFS[0],
-            label_visibility="collapsed",
-            key="stress_etf_selector"
-        )
+# Get ETF from session state (default to first)
+if 'stress_etf' not in st.session_state:
+    st.session_state.stress_etf = ARK_ETFS[0]
+selected_etf = st.session_state.stress_etf
 
 # Load data
 files_hash = get_ark_files_hash()
@@ -164,11 +153,47 @@ if len(stress_corr) >= 2:
     recovery_corr = calculate_recovery_correlation(files_hash, selected_etf, stress_corr)
 
 if len(stress_corr) > 0:
-    # Summary statistics in left panel
+    # Calculate statistics
     stress_mean = stress_corr['mean_corr'].mean()
     correlation_increase = ((stress_mean / recovery_corr) - 1) * 100 if recovery_corr > 0 else 0
 
+    # === METRICS AT THE TOP (before two-column layout) ===
+    metric_cols = st.columns(3)
+    with metric_cols[0]:
+        st.metric("Recovery Correlation", f"{recovery_corr:.3f}",
+                  help="Average pairwise correlation during recovery periods")
+
+    with metric_cols[1]:
+        st.metric("Stress Correlation", f"{stress_mean:.3f}",
+                  delta=f"{stress_mean - recovery_corr:+.3f}",
+                  delta_color="inverse",
+                  help="Average correlation during drawdown periods")
+
+    with metric_cols[2]:
+        st.metric("Correlation Increase", f"{correlation_increase:+.1f}%",
+                  help="How much correlations increase during stress")
+
+    "" # Space
+
+    # === TWO-COLUMN LAYOUT ===
+    cols = st.columns([1, 3])
+
+    # Left column: Select ETF + Summary Statistics
     with cols[0]:
+        controls_card = st.container(border=True)
+        with controls_card:
+            st.markdown("##### Select ETF")
+            new_etf = st.pills(
+                "ETF",
+                options=ARK_ETFS,
+                default=selected_etf,
+                label_visibility="collapsed",
+                key="stress_etf_selector"
+            )
+            if new_etf != selected_etf:
+                st.session_state.stress_etf = new_etf
+                st.rerun()
+
         "" # Space
 
         stats_card = st.container(border=True)
@@ -198,26 +223,8 @@ if len(stress_corr) > 0:
             else:
                 st.markdown(f"**{correlation_increase:.1f}%** during stress")
 
-    # Right panel: Charts
+    # Right column: Chart + Table
     with cols[1]:
-        # Key metrics
-        metric_cols = st.columns(3)
-        with metric_cols[0]:
-            st.metric("Recovery Correlation", f"{recovery_corr:.3f}",
-                      help="Average pairwise correlation during recovery periods")
-
-        with metric_cols[1]:
-            st.metric("Stress Correlation", f"{stress_mean:.3f}",
-                      delta=f"{stress_mean - recovery_corr:+.3f}",
-                      delta_color="inverse",
-                      help="Average correlation during drawdown periods")
-
-        with metric_cols[2]:
-            st.metric("Correlation Increase", f"{correlation_increase:+.1f}%",
-                      help="How much correlations increase during stress")
-
-        "" # Space
-
         # Price chart with correlation overlay
         st.markdown("#### Correlation by Drawdown Event")
 
@@ -372,5 +379,4 @@ if len(stress_corr) > 0:
             st.success(f"✓ **Correlations remain stable during drawdowns.** The portfolio maintains diversification benefits during stress periods.")
 
 else:
-    with cols[1]:
-        st.warning(f"No stress correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
+    st.warning(f"No stress correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
