@@ -529,23 +529,8 @@ if corr_matrix is not None and len(corr_matrix) > 0:
     if correlation_mode == "Overall":
         st.subheader("Correlation Time Series")
 
-        # Rolling Window selector
-        rolling_options = {
-            "20 Days": 20,
-            "30 Days": 30
-        }
-        selected_rolling = st.pills(
-            "Rolling Window",
-            options=list(rolling_options.keys()),
-            default="20 Days",
-            key="rolling_window_selector"
-        )
-        if selected_rolling is None:
-            selected_rolling = "20 Days"
-        rolling_window = rolling_options[selected_rolling]
-
-        # Load rolling correlations with selected window
-        rolling_corr = load_rolling_correlations(selected_etf, lookback_days, rolling_window)
+        # Load rolling correlations (fixed 20-day rolling window)
+        rolling_corr = load_rolling_correlations(selected_etf, lookback_days)
 
         ts_card = st.container(border=True)
         with ts_card:
@@ -577,7 +562,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                     ))
 
                     fig_ts.update_layout(
-                        title=f"{selected_etf} Rolling {rolling_window}-Day Pairwise Correlation (Weighted vs Unweighted)",
+                        title=f"{selected_etf} Rolling 20-Day Pairwise Correlation (Weighted vs Unweighted)",
                         xaxis_title="Date",
                         yaxis_title="Correlation",
                         height=400,
@@ -748,7 +733,10 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                     with regime_cols[0]:
                         st.markdown(f"**High Correlation Regime** (≥ {median_corr:.3f})")
                         if len(high_corr) > 0:
-                            high_avg_return = high_corr['Return'].mean() * 252 * 100  # Annualized
+                            # Compound annualized return
+                            high_total_return = (1 + high_corr['Return']).prod() - 1
+                            high_n_days = len(high_corr)
+                            high_avg_return = ((1 + high_total_return) ** (252 / high_n_days) - 1) * 100
                             high_volatility = high_corr['Return'].std() * np.sqrt(252) * 100
                             high_sharpe = high_avg_return / high_volatility if high_volatility > 0 else 0
                             st.metric("Annualized Return", f"{high_avg_return:.1f}%")
@@ -759,7 +747,10 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                     with regime_cols[1]:
                         st.markdown(f"**Low Correlation Regime** (< {median_corr:.3f})")
                         if len(low_corr) > 0:
-                            low_avg_return = low_corr['Return'].mean() * 252 * 100  # Annualized
+                            # Compound annualized return
+                            low_total_return = (1 + low_corr['Return']).prod() - 1
+                            low_n_days = len(low_corr)
+                            low_avg_return = ((1 + low_total_return) ** (252 / low_n_days) - 1) * 100
                             low_volatility = low_corr['Return'].std() * np.sqrt(252) * 100
                             low_sharpe = low_avg_return / low_volatility if low_volatility > 0 else 0
                             st.metric("Annualized Return", f"{low_avg_return:.1f}%")
@@ -771,8 +762,9 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
                     # Summary insight
                     if len(high_corr) > 0 and len(low_corr) > 0:
-                        high_avg = high_corr['Return'].mean() * 252 * 100
-                        low_avg = low_corr['Return'].mean() * 252 * 100
+                        # Use the already calculated compound annualized returns
+                        high_avg = high_avg_return
+                        low_avg = low_avg_return
 
                         if low_avg > high_avg:
                             insight = f"📉 **Lower correlation = Better performance**: When correlation is below {median_corr:.3f}, {selected_etf} has higher annualized returns ({low_avg:.1f}% vs {high_avg:.1f}%)."

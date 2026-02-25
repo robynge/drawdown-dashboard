@@ -580,7 +580,10 @@ def precompute_weighted_correlations():
 
 
 def precompute_rolling_correlations():
-    """Step 10: Precompute rolling correlations for each ARK ETF"""
+    """Step 10: Precompute rolling correlations for each ARK ETF
+
+    Uses fixed 20-day rolling window to calculate daily correlation values.
+    """
     import sys
     sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
@@ -591,7 +594,7 @@ def precompute_rolling_correlations():
     files_hash = get_ark_files_hash()
 
     lookback_periods = [60, 120, 250]
-    rolling_windows = [20, 30]
+    rolling_window = 20  # Fixed 20-day rolling window
 
     for etf in ARK_ETFS:
         print(f"  Processing {etf}...")
@@ -627,69 +630,65 @@ def precompute_rolling_correlations():
             returns = price_matrix.pct_change().dropna()
             weight_matrix = weight_matrix.ffill()
 
-            if len(returns) < 20:
+            if len(returns) < rolling_window:
                 continue
 
             n_tickers = len(returns.columns)
             triu_i, triu_j = np.triu_indices(n_tickers, k=1)
             holdings_dates = np.sort(holdings_lookback['Date'].unique())
 
-            for rolling_window in rolling_windows:
-                if len(returns) < rolling_window:
+            results = []
+            dates = returns.index
+
+            for i in range(rolling_window, len(returns) + 1):
+                window_returns = returns.iloc[i - rolling_window:i]
+                current_date = dates[i - 1]
+                corr_matrix = window_returns.corr()
+
+                corr_values = corr_matrix.values[triu_i, triu_j]
+                valid_mask = ~np.isnan(corr_values)
+                valid_corrs = corr_values[valid_mask]
+
+                if len(valid_corrs) == 0:
                     continue
 
-                results = []
-                dates = returns.index
+                mean_corr = np.mean(valid_corrs)
+                median_corr = np.median(valid_corrs)
 
-                for i in range(rolling_window, len(returns) + 1):
-                    window_returns = returns.iloc[i - rolling_window:i]
-                    current_date = dates[i - 1]
-                    corr_matrix = window_returns.corr()
+                # Weighted correlation
+                valid_dates = holdings_dates[holdings_dates <= current_date]
+                if len(valid_dates) == 0:
+                    weighted_mean = mean_corr
+                else:
+                    closest_date = valid_dates[-1]
+                    weights_df = holdings_lookback[holdings_lookback['Date'] == closest_date][['Ticker', 'Weight']]
+                    weights_df = weights_df[weights_df['Ticker'].isin(corr_matrix.columns)]
 
-                    corr_values = corr_matrix.values[triu_i, triu_j]
-                    valid_mask = ~np.isnan(corr_values)
-                    valid_corrs = corr_values[valid_mask]
-
-                    if len(valid_corrs) == 0:
-                        continue
-
-                    mean_corr = np.mean(valid_corrs)
-                    median_corr = np.median(valid_corrs)
-
-                    # Weighted correlation
-                    valid_dates = holdings_dates[holdings_dates <= current_date]
-                    if len(valid_dates) == 0:
-                        weighted_mean = mean_corr
-                    else:
-                        closest_date = valid_dates[-1]
-                        weights_df = holdings_lookback[holdings_lookback['Date'] == closest_date][['Ticker', 'Weight']]
-                        weights_df = weights_df[weights_df['Ticker'].isin(corr_matrix.columns)]
-
-                        if len(weights_df) > 0:
-                            weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
-                            weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
-                            weight_mat = np.outer(weights_arr, weights_arr)
-                            pair_weights = weight_mat[triu_i, triu_j]
-                            valid_weight_mask = valid_mask & (pair_weights > 0)
-                            if valid_weight_mask.any():
-                                weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
-                            else:
-                                weighted_mean = mean_corr
+                    if len(weights_df) > 0:
+                        weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
+                        weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
+                        weight_mat = np.outer(weights_arr, weights_arr)
+                        pair_weights = weight_mat[triu_i, triu_j]
+                        valid_weight_mask = valid_mask & (pair_weights > 0)
+                        if valid_weight_mask.any():
+                            weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
                         else:
                             weighted_mean = mean_corr
+                    else:
+                        weighted_mean = mean_corr
 
-                    results.append({
-                        'Date': current_date,
-                        'mean_corr': mean_corr,
-                        'median_corr': median_corr,
-                        'weighted_mean_corr': weighted_mean
-                    })
+                results.append({
+                    'Date': current_date,
+                    'mean_corr': mean_corr,
+                    'median_corr': median_corr,
+                    'weighted_mean_corr': weighted_mean
+                })
 
-                if len(results) > 0:
-                    rolling_df = pd.DataFrame(results)
-                    output_path = ARK_PRECOMPUTED_DIR / f'{etf}_rolling_correlations_{lookback_days}d_{rolling_window}w.parquet'
-                    rolling_df.to_parquet(output_path, index=False)
-                    print(f"    Saved {lookback_days}d/{rolling_window}w rolling correlations ({len(rolling_df)} records)")
+            if len(results) > 0:
+                rolling_df = pd.DataFrame(results)
+                output_path = ARK_PRECOMPUTED_DIR / f'{etf}_rolling_correlations_{lookback_days}d.parquet'
+                rolling_df.to_parquet(output_path, index=False)
+                print(f"    Saved {lookback_days}d rolling correlations ({len(rolling_df)} records)")
 
 
 def precompute_holdings_drawdowns():
@@ -982,6 +981,35 @@ def precompute_iwv_total_mv_drawdowns():
             print(f"    Saved {len(dd_data)} IWV Total MV drawdowns")
     else:
         print("    Not enough IWV Total MV data")
+
+
+def precompute_iwv_etf_drawdowns():
+    """Step 21: Precompute IWV ETF price drawdowns"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from drawdown_calculator import calculate_drawdowns
+
+    ensure_dirs()
+
+    # Load IWV prices
+    price_file = OUTPUT_DIR / 'IWV_prices.csv'
+    if not price_file.exists():
+        print(f"    IWV prices not found: {price_file}")
+        return
+
+    prices = pd.read_csv(price_file)
+    prices['Date'] = pd.to_datetime(prices['Date'])
+
+    if len(prices) >= 30:
+        dd_data = calculate_drawdowns(prices, start_date=prices['Date'].min(), end_date=prices['Date'].max())
+
+        if len(dd_data) > 0:
+            output_path = R3000_PRECOMPUTED_DIR / 'iwv_etf_drawdowns.parquet'
+            dd_data.to_parquet(output_path, index=False)
+            print(f"    Saved {len(dd_data)} IWV ETF drawdowns")
+    else:
+        print("    Not enough IWV price data")
 
 
 def precompute_ark_stock_drawdowns_full():
@@ -1385,7 +1413,7 @@ def generate_metadata():
         'analysis_periods': list(ANALYSIS_PERIODS.keys()),
         'parameters': {
             'lookback_days': [60, 120, 250],
-            'rolling_windows': [20, 30],
+            'rolling_window': 20,  # Fixed 20-day rolling window for correlation time series
             'min_depth_pct': 10,
             'min_duration_days': 7
         }
@@ -1476,19 +1504,23 @@ if __name__ == '__main__':
     precompute_peer_group_drawdowns()
     print()
 
-    print("Step 19/22: IWV Total MV Drawdowns")
+    print("Step 19/23: IWV Total MV Drawdowns")
     precompute_iwv_total_mv_drawdowns()
     print()
 
-    print("Step 20/22: S&P 500 Top 50 Correlations")
+    print("Step 20/23: IWV ETF Drawdowns")
+    precompute_iwv_etf_drawdowns()
+    print()
+
+    print("Step 21/23: S&P 500 Top 50 Correlations")
     precompute_sp500_correlations()
     print()
 
-    print("Step 21/22: Stress Correlations")
+    print("Step 22/23: Stress Correlations")
     precompute_stress_correlations()
     print()
 
-    print("Step 22/22: Generate Metadata")
+    print("Step 23/23: Generate Metadata")
     generate_metadata()
     print()
 

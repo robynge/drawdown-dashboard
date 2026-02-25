@@ -1,9 +1,9 @@
 {
   "version": "1.0",
-  "generated_at": "2026-02-15T14:50:30.540745",
+  "generated_at": "2026-02-25T13:26:12.631848",
   "source_hashes": {
-    "ark_files_hash": 1771184535.197628,
-    "r3000_files_hash": 1771184574.8655143
+    "ark_files_hash": 1772043463.089,
+    "r3000_files_hash": 1772043505.4336045
   },
   "analysis_periods": [
     "2024-2026",
@@ -15,10 +15,7 @@
       120,
       250
     ],
-    "rolling_windows": [
-      20,
-      30
-    ],
+    "rolling_window": 20,
     "min_depth_pct": 10,
     "min_duration_days": 7
   }

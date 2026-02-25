@@ -97,18 +97,17 @@ def load_weighted_correlation_matrix(etf: str, lookback_days: int = 250) -> pd.D
     return pd.read_parquet(path)
 
 
-def load_rolling_correlations(etf: str, lookback_days: int = 250, rolling_window: int = 20) -> pd.DataFrame:
+def load_rolling_correlations(etf: str, lookback_days: int = 250) -> pd.DataFrame:
     """Load precomputed rolling correlations for an ETF
 
     Args:
         etf: ETF name (e.g., 'ARKK')
         lookback_days: Lookback period in days (60, 120, or 250)
-        rolling_window: Rolling window size (20 or 30)
 
     Returns:
         DataFrame with columns: Date, mean_corr, median_corr, weighted_mean_corr
     """
-    path = ARK_PRECOMPUTED_DIR / f'{etf}_rolling_correlations_{lookback_days}d_{rolling_window}w.parquet'
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_rolling_correlations_{lookback_days}d.parquet'
     if not path.exists():
         return pd.DataFrame()
 
