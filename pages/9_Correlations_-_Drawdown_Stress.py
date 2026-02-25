@@ -165,8 +165,6 @@ if len(stress_corr) > 0:
 
     with metric_cols[1]:
         st.metric("Stress Correlation", f"{stress_mean:.3f}",
-                  delta=f"{stress_mean - recovery_corr:+.3f}",
-                  delta_color="inverse",
                   help="Average correlation during drawdown periods")
 
     with metric_cols[2]:
