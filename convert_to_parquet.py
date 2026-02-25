@@ -582,7 +582,8 @@ def precompute_weighted_correlations():
 def precompute_rolling_correlations():
     """Step 10: Precompute rolling correlations for each ARK ETF
 
-    Uses fixed 20-day rolling window to calculate daily correlation values.
+    Rolling window = lookback period. Each day's correlation is calculated
+    using the past N days of data, where N = lookback period.
     """
     import sys
     sys.path.insert(0, str(Path(__file__).parent / 'src'))
@@ -594,7 +595,6 @@ def precompute_rolling_correlations():
     files_hash = get_ark_files_hash()
 
     lookback_periods = [60, 120, 250]
-    rolling_window = 20  # Fixed 20-day rolling window
 
     for etf in ARK_ETFS:
         print(f"  Processing {etf}...")
@@ -607,35 +607,41 @@ def precompute_rolling_correlations():
         latest_date = holdings_filtered['Date'].max()
         current_tickers = holdings_filtered[holdings_filtered['Date'] == latest_date]['Ticker'].unique()
 
+        # Use full historical data for current tickers
+        holdings_current = holdings_filtered[
+            holdings_filtered['Ticker'].isin(current_tickers)
+        ].copy()
+
+        price_matrix = holdings_current.pivot_table(
+            index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
+        )
+        weight_matrix = holdings_current.pivot_table(
+            index='Date', columns='Ticker', values='Weight', aggfunc='first'
+        )
+
+        # Drop tickers with too many missing values (require 50% data)
+        min_data_points = len(price_matrix) * 0.5
+        valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
+        price_matrix = price_matrix[valid_tickers]
+        weight_matrix = weight_matrix[valid_tickers]
+
+        returns = price_matrix.pct_change(fill_method=None).dropna()
+        weight_matrix = weight_matrix.ffill()
+
+        n_tickers = len(returns.columns)
+        if n_tickers < 2:
+            continue
+
+        triu_i, triu_j = np.triu_indices(n_tickers, k=1)
+        holdings_dates = np.sort(holdings_current['Date'].unique())
+
         for lookback_days in lookback_periods:
-            lookback_start = latest_date - pd.Timedelta(days=lookback_days)
-
-            holdings_lookback = holdings_filtered[
-                (holdings_filtered['Date'] >= lookback_start) &
-                (holdings_filtered['Ticker'].isin(current_tickers))
-            ].copy()
-
-            price_matrix = holdings_lookback.pivot_table(
-                index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
-            )
-            weight_matrix = holdings_lookback.pivot_table(
-                index='Date', columns='Ticker', values='Weight', aggfunc='first'
-            )
-
-            min_data_points = len(price_matrix) * 0.5
-            valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
-            price_matrix = price_matrix[valid_tickers]
-            weight_matrix = weight_matrix[valid_tickers]
-
-            returns = price_matrix.pct_change().dropna()
-            weight_matrix = weight_matrix.ffill()
+            # Rolling window = lookback period
+            rolling_window = lookback_days
 
             if len(returns) < rolling_window:
+                print(f"    Skipping {lookback_days}d (not enough data)")
                 continue
-
-            n_tickers = len(returns.columns)
-            triu_i, triu_j = np.triu_indices(n_tickers, k=1)
-            holdings_dates = np.sort(holdings_lookback['Date'].unique())
 
             results = []
             dates = returns.index
@@ -661,7 +667,7 @@ def precompute_rolling_correlations():
                     weighted_mean = mean_corr
                 else:
                     closest_date = valid_dates[-1]
-                    weights_df = holdings_lookback[holdings_lookback['Date'] == closest_date][['Ticker', 'Weight']]
+                    weights_df = holdings_current[holdings_current['Date'] == closest_date][['Ticker', 'Weight']]
                     weights_df = weights_df[weights_df['Ticker'].isin(corr_matrix.columns)]
 
                     if len(weights_df) > 0:

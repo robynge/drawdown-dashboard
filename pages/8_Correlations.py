@@ -336,6 +336,7 @@ with cols[0]:
             if selected_lookback is None:
                 selected_lookback = "120 Days"
             lookback_days = lookback_options[selected_lookback]
+            st.caption("Also used as rolling window for time series")
         else:
             lookback_days = 120  # Default for non-Overall modes (not used)
 
@@ -562,7 +563,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                     ))
 
                     fig_ts.update_layout(
-                        title=f"{selected_etf} Rolling 20-Day Pairwise Correlation (Weighted vs Unweighted)",
+                        title=f"{selected_etf} Rolling {lookback_days}-Day Pairwise Correlation (Weighted vs Unweighted)",
                         xaxis_title="Date",
                         yaxis_title="Correlation",
                         height=400,
