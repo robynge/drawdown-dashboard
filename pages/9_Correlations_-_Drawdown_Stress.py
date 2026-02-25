@@ -173,6 +173,9 @@ if len(stress_corr) > 0:
 
     "" # Space
 
+    # Chart title before two-column layout
+    st.markdown("#### Correlation by Drawdown Event")
+
     # === TWO-COLUMN LAYOUT ===
     cols = st.columns([1, 3])
 
@@ -202,29 +205,16 @@ if len(stress_corr) > 0:
 
             "" # Space
 
-            st.markdown("**Recovery Correlation**")
-            st.markdown(f"Mean: **{recovery_corr:.3f}**")
-            st.caption("Avg during recovery periods")
+            max_stress = stress_corr['mean_corr'].max()
+            st.markdown(f"**Max Stress Corr:** {max_stress:.3f}")
 
             "" # Space
 
-            st.markdown("**Stress Correlation**")
-            st.markdown(f"Mean: **{stress_mean:.3f}**")
-            delta_color = "🔴" if stress_mean > recovery_corr else "🟢"
-            st.markdown(f"Δ: {delta_color} **{stress_mean - recovery_corr:+.3f}**")
-
-            "" # Space
-
-            st.markdown("**Correlation Increase**")
-            if correlation_increase > 0:
-                st.markdown(f"**+{correlation_increase:.1f}%** during stress")
-            else:
-                st.markdown(f"**{correlation_increase:.1f}%** during stress")
+            min_stress = stress_corr['mean_corr'].min()
+            st.markdown(f"**Min Stress Corr:** {min_stress:.3f}")
 
     # Right column: Chart + Table
     with cols[1]:
-        # Price chart with correlation overlay
-        st.markdown("#### Correlation by Drawdown Event")
 
         chart_card = st.container(border=True)
         with chart_card:
