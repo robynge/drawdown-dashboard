@@ -324,47 +324,47 @@ if len(stress_corr) > 0:
             else:
                 st.warning(f"No price data available for {selected_etf}")
 
-        "" # Space
+    "" # Space
 
-        # Detailed table
-        st.markdown("#### Detailed Stress Correlation Data")
+    # Detailed table (full width, outside two-column layout)
+    st.markdown("#### Detailed Stress Correlation Data")
 
-        table_card = st.container(border=True)
-        with table_card:
-            display_df = stress_corr.copy()
-            display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
-            display_df['trough_date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
-            display_df = display_df.rename(columns={
-                'dd_rank': 'Rank',
-                'peak_date': 'Peak',
-                'trough_date': 'Trough',
-                'depth_pct': 'Depth %',
-                'duration_days': 'Days',
-                'num_tickers': 'Tickers',
-                'mean_corr': 'Mean ρ',
-                'median_corr': 'Median ρ',
-                'max_corr': 'Max ρ',
-                'min_corr': 'Min ρ'
-            })
+    table_card = st.container(border=True)
+    with table_card:
+        display_df = stress_corr.copy()
+        display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
+        display_df['trough_date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
+        display_df = display_df.rename(columns={
+            'dd_rank': 'Rank',
+            'peak_date': 'Peak',
+            'trough_date': 'Trough',
+            'depth_pct': 'Depth %',
+            'duration_days': 'Days',
+            'num_tickers': 'Tickers',
+            'mean_corr': 'Mean ρ',
+            'median_corr': 'Median ρ',
+            'max_corr': 'Max ρ',
+            'min_corr': 'Min ρ'
+        })
 
-            # Format numeric columns
-            for col in ['Depth %', 'Mean ρ', 'Median ρ', 'Max ρ', 'Min ρ']:
-                if col in display_df.columns:
-                    display_df[col] = display_df[col].apply(lambda x: f"{x:.3f}" if pd.notna(x) else "")
+        # Format numeric columns
+        for col in ['Depth %', 'Mean ρ', 'Median ρ', 'Max ρ', 'Min ρ']:
+            if col in display_df.columns:
+                display_df[col] = display_df[col].apply(lambda x: f"{x:.3f}" if pd.notna(x) else "")
 
-            st.dataframe(
-                display_df[['Rank', 'Peak', 'Trough', 'Depth %', 'Days', 'Tickers', 'Mean ρ', 'Median ρ', 'Max ρ', 'Min ρ']],
-                hide_index=True,
-                width='stretch'
-            )
+        st.dataframe(
+            display_df[['Rank', 'Peak', 'Trough', 'Depth %', 'Days', 'Tickers', 'Mean ρ', 'Median ρ', 'Max ρ', 'Min ρ']],
+            hide_index=True,
+            width='stretch'
+        )
 
-        "" # Space
+    "" # Space
 
-        # Insight
-        if stress_mean > recovery_corr:
-            st.warning(f"⚠️ **Correlations increase {correlation_increase:.0f}% during drawdowns.** Diversification benefits are reduced when the portfolio is under stress.")
-        else:
-            st.success(f"✓ **Correlations remain stable during drawdowns.** The portfolio maintains diversification benefits during stress periods.")
+    # Insight
+    if stress_mean > recovery_corr:
+        st.warning(f"⚠️ **Correlations increase {correlation_increase:.0f}% during drawdowns.** Diversification benefits are reduced when the portfolio is under stress.")
+    else:
+        st.success(f"✓ **Correlations remain stable during drawdowns.** The portfolio maintains diversification benefits during stress periods.")
 
 else:
     st.warning(f"No stress correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")

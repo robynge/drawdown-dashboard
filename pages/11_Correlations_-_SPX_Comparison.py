@@ -16,7 +16,7 @@ from precomputed_loader import (
     load_sp500_correlation_matrix,
     check_precomputed_exists
 )
-from session_utils import init_session_state, get_current_dates, render_period_selector
+from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
 st.set_page_config(
     page_title="Correlations - SPX Comparison",
@@ -36,6 +36,7 @@ start_date, end_date = get_current_dates()
 Compare ARK ETF correlation structure with S&P 500 Top 50 holdings.
 """
 
+period_key = get_current_period()
 st.markdown(f"**Analysis Period:** {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
 "" # Space
@@ -127,7 +128,7 @@ with cols[0]:
         st.caption("All pairs weighted equally")
 
 # Load correlation matrices
-ark_corr = load_correlation_matrix(selected_etf, lookback_days)
+ark_corr = load_correlation_matrix(selected_etf, period_key, lookback_days)
 sp500_corr = load_sp500_correlation_matrix(lookback_days)
 
 # Get ARK stats

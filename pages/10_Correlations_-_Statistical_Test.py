@@ -49,7 +49,7 @@ def prepare_returns_data_precomputed(_files_hash, etf, lookback_days, period_key
         dropped_stocks: empty list (filtering already done during precomputation)
     """
     # Try to load precomputed returns
-    returns = load_correlation_returns(etf, lookback_days)
+    returns = load_correlation_returns(etf, period_key, lookback_days)
 
     if len(returns) == 0:
         return pd.DataFrame(), []

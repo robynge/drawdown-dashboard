@@ -13,6 +13,7 @@ from data_loader import get_r3000_files_hash as get_r3000_data_hash
 from precomputed_loader import (
     load_peer_group_drawdowns,
     load_iwv_total_mv_drawdowns,
+    load_iwv_etf_drawdowns,
     filter_drawdowns_by_period,
     check_precomputed_exists
 )
@@ -55,9 +56,10 @@ def get_r3000_files_hash():
     if price_file.exists():
         mtimes.append(price_file.stat().st_mtime)
 
-    dd_file = OUTPUT_DIR / 'IWV_drawdown_2024-2026.xlsx'
-    if dd_file.exists():
-        mtimes.append(dd_file.stat().st_mtime)
+    # Check precomputed parquet file
+    precomputed_file = Path(__file__).parent.parent / 'input' / 'russell_3000' / 'precomputed' / 'iwv_etf_drawdowns.parquet'
+    if precomputed_file.exists():
+        mtimes.append(precomputed_file.stat().st_mtime)
 
     peer_file = OUTPUT_DIR / 'R3000_peer_groups_drawdown_2024-2026.xlsx'
     if peer_file.exists():
@@ -69,20 +71,27 @@ def get_r3000_files_hash():
 def load_iwv_data(_files_hash):
     """Load Russell 3000 Index (IWV) price and drawdown data"""
     price_file = OUTPUT_DIR / 'IWV_prices.csv'
-    dd_file = OUTPUT_DIR / 'IWV_drawdown_2024-2026.xlsx'
 
-    if not price_file.exists() or not dd_file.exists():
+    if not price_file.exists():
         return None, None
 
     prices = pd.read_csv(price_file)
     prices['Date'] = pd.to_datetime(prices['Date'])
 
-    drawdowns = pd.read_excel(dd_file, sheet_name='Drawdowns')
-    drawdowns['peak_date'] = pd.to_datetime(drawdowns['peak_date'])
-    drawdowns['trough_date'] = pd.to_datetime(drawdowns['trough_date'])
+    # Try to load precomputed drawdowns first
+    drawdowns = load_iwv_etf_drawdowns()
 
-    if 'rank' in drawdowns.columns:
-        drawdowns['rank'] = drawdowns['rank'].astype(str)
+    if len(drawdowns) == 0:
+        # Fallback: calculate dynamically from prices
+        prices_for_dd = prices.copy()
+        drawdowns = calculate_drawdowns(prices_for_dd)
+
+    if len(drawdowns) > 0:
+        drawdowns['peak_date'] = pd.to_datetime(drawdowns['peak_date'])
+        drawdowns['trough_date'] = pd.to_datetime(drawdowns['trough_date'])
+
+        if 'rank' in drawdowns.columns:
+            drawdowns['rank'] = drawdowns['rank'].astype(str)
 
     return prices, drawdowns
 
