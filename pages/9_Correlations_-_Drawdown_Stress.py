@@ -288,7 +288,7 @@ if len(stress_corr) > 0:
                     yaxis2=dict(title="Mean Correlation", overlaying='y', side='right', range=[0, 1], showgrid=False)
                 )
 
-                st.plotly_chart(fig_stress, use_container_width=True)
+                st.plotly_chart(fig_stress, width='stretch')
 
                 st.markdown("<small>*Colored regions show top 10 drawdown periods. Red line = stress correlation at midpoint of each drawdown. Blue dashed line = mean correlation during recovery periods.*</small>", unsafe_allow_html=True)
             else:
@@ -325,7 +325,7 @@ if len(stress_corr) > 0:
             st.dataframe(
                 display_df[['Rank', 'Peak', 'Trough', 'Depth %', 'Days', 'Tickers', 'Mean ρ', 'Median ρ', 'Max ρ', 'Min ρ']],
                 hide_index=True,
-                use_container_width=True
+                width='stretch'
             )
 
         "" # Space
