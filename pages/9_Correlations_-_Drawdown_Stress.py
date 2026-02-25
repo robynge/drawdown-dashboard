@@ -88,7 +88,7 @@ def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.Data
             continue
 
         # Calculate daily returns
-        returns = price_matrix.pct_change().iloc[1:].dropna(axis=1)
+        returns = price_matrix.pct_change(fill_method=None).iloc[1:].dropna(axis=1)
 
         if len(returns) < 10 or len(returns.columns) < 2:
             continue
