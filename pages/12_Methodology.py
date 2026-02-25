@@ -284,3 +284,58 @@ st.markdown("""
 - Window Size: 20 or 30 days
 - Bootstrap Iterations: 1,000 / 5,000 / 10,000 (more iterations = more precise p-value)
 """)
+
+""  # Space
+
+# Section 8: Drawdown Stress Correlation
+st.subheader("8. Drawdown Stress Correlation Methodology")
+
+st.markdown("""
+**Purpose**: Compare portfolio correlations during market stress (drawdowns) vs recovery periods to assess whether diversification breaks down when needed most.
+
+**Stress Correlation Calculation**:
+1. **Identify Drawdowns**: Find the top 10 largest peak-to-trough drawdowns in ETF price history
+2. **Define Stress Periods**: Each drawdown period spans from peak date to trough date
+3. **Calculate Correlations**: For each stress period:
+   - Get daily returns for all current holdings during the period
+   - Compute pairwise correlation matrix
+   - Extract all unique pairwise correlations (upper triangle)
+4. **Aggregate**: Average all pairwise correlations across all stress periods
+
+**Recovery Correlation Calculation**:
+1. **Identify Recovery Periods**: Recovery = trough of drawdown N → peak of drawdown N+1
+   - Sort all drawdowns chronologically by trough date
+   - For each consecutive pair, the recovery period is the interval between them
+2. **Calculate Correlations**: For each recovery period (minimum 10 trading days):
+   - Get daily returns for all holdings during the period
+   - Compute pairwise correlation matrix
+   - Extract all unique pairwise correlations
+3. **Aggregate**: Combine all pairwise correlations from all recovery periods, then take the mean
+
+**Visual Representation**:
+```
+Price
+  ↑
+      peak1        peak2        peak3
+       /\\          /\\           /\\
+      /  \\        /  \\         /  \\
+     /    \\      /    \\       /    \\
+    /      \\    /      \\     /      \\
+           trough1    trough2
+
+    |--Stress--|--Recovery--|--Stress--|--Recovery--|--Stress--|
+       (DD1)                   (DD2)                   (DD3)
+```
+
+**Interpretation**:
+
+| Scenario | Meaning |
+|----------|---------|
+| Stress > Recovery | Correlations increase during drawdowns → diversification weakens under stress |
+| Stress ≈ Recovery | Correlations stable → portfolio maintains diversification characteristics |
+| Stress < Recovery | Rare: holdings decouple during stress (defensive characteristics) |
+
+**Correlation Increase %**: Calculated as (Stress / Recovery - 1) × 100
+
+*A high correlation increase indicates that the portfolio's holdings tend to move together during market downturns, reducing the defensive benefits of diversification when they are most needed.*
+""")

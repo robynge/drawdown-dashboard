@@ -312,40 +312,5 @@ if len(stress_corr) > 0:
     else:
         st.success(f"✓ **Correlations remain stable during drawdowns.** The portfolio maintains diversification benefits during stress periods.")
 
-    "" # Space
-
-    # Methodology section
-    st.markdown("#### Methodology")
-
-    method_card = st.container(border=True)
-    with method_card:
-        st.markdown("""
-**Stress Correlation**
-
-Stress correlation measures portfolio diversification during market downturns:
-
-1. **Identify Drawdowns**: Find the top 10 largest peak-to-trough drawdowns in ETF price history
-2. **Calculate Correlations**: For each drawdown period (peak date → trough date), calculate the pairwise correlation matrix of all holdings using daily returns
-3. **Aggregate**: Take the mean of all pairwise correlations within each drawdown period
-
-**Recovery Correlation**
-
-Recovery correlation measures portfolio diversification during market recoveries:
-
-1. **Identify Recovery Periods**: Recovery period = trough of drawdown N → peak of drawdown N+1
-2. **Calculate Correlations**: For each recovery period, calculate the pairwise correlation matrix using daily returns
-3. **Aggregate**: Combine all pairwise correlations from all recovery periods and take the mean
-
-**Interpretation**
-
-| Metric | Meaning |
-|--------|---------|
-| Stress > Recovery | Correlations rise during drawdowns → diversification weakens when needed most |
-| Stress ≈ Recovery | Correlations stable → portfolio maintains diversification under stress |
-| Correlation Increase | Percentage increase in correlation during stress vs recovery |
-
-*Higher stress correlations indicate that holdings tend to move together during market downturns, reducing the portfolio's defensive characteristics.*
-        """)
-
 else:
     st.warning(f"No stress correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
