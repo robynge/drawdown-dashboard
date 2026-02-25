@@ -13,11 +13,67 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import ARK_ETFS
 from precomputed_loader import (
     load_stress_correlations,
-    load_correlation_matrix,
+    load_correlation_returns,
     check_precomputed_exists
 )
 from data_loader import load_etf_prices
 from session_utils import init_session_state, get_current_dates, render_period_selector
+
+
+@st.cache_data
+def calculate_recovery_correlation(etf: str, stress_corr_df: pd.DataFrame) -> float:
+    """Calculate mean correlation during recovery periods.
+
+    Recovery period = from trough of one drawdown to peak of the next drawdown.
+    All recovery periods are combined to calculate the overall average correlation.
+    """
+    if len(stress_corr_df) < 2:
+        return 0.0
+
+    # Load returns data
+    returns = load_correlation_returns(etf, 250)
+    if len(returns) == 0:
+        return 0.0
+
+    # Sort drawdowns by trough_date to get chronological order
+    sorted_dd = stress_corr_df.sort_values('trough_date').reset_index(drop=True)
+
+    recovery_corrs = []
+
+    for i in range(len(sorted_dd) - 1):
+        # Recovery period: from trough of current drawdown to peak of next drawdown
+        recovery_start = sorted_dd.iloc[i]['trough_date']
+        recovery_end = sorted_dd.iloc[i + 1]['peak_date']
+
+        # Skip if recovery period is invalid (end before start)
+        if recovery_end <= recovery_start:
+            continue
+
+        # Filter returns to recovery period
+        recovery_returns = returns[
+            (returns.index >= recovery_start) &
+            (returns.index <= recovery_end)
+        ]
+
+        # Need at least 10 days of data for meaningful correlation
+        if len(recovery_returns) >= 10:
+            # Calculate correlation matrix
+            corr_matrix = recovery_returns.corr()
+
+            # Extract upper triangle (pairwise correlations)
+            n = len(corr_matrix.columns)
+            if n > 1:
+                triu_i, triu_j = np.triu_indices(n, k=1)
+                corr_values = corr_matrix.values[triu_i, triu_j]
+                valid_corrs = corr_values[~np.isnan(corr_values)]
+                if len(valid_corrs) > 0:
+                    recovery_corrs.extend(valid_corrs)
+
+    if len(recovery_corrs) == 0:
+        return 0.0
+
+    return np.mean(recovery_corrs)
+
 
 st.set_page_config(
     page_title="Correlations - Drawdown Stress",
@@ -34,7 +90,7 @@ start_date, end_date = get_current_dates()
 """
 # Correlations - Drawdown Stress
 
-Analyze how portfolio correlations change during drawdown periods (stress correlations).
+Analyze how portfolio correlations change during drawdown periods vs recovery periods.
 """
 
 st.markdown("**Analysis Period:** Full Historical Data (2021-2026)")
@@ -59,41 +115,34 @@ if 'stress_etf' not in st.session_state:
     st.session_state.stress_etf = ARK_ETFS[0]
 selected_etf = st.session_state.stress_etf
 
-# Load data - use 120 days as fixed baseline for normal correlation
-lookback_days = 120
+# Load stress correlation data
 stress_corr = load_stress_correlations(selected_etf)
-corr_matrix = load_correlation_matrix(selected_etf, lookback_days)
 
-# Calculate normal correlation baseline
-normal_corr = 0
-if corr_matrix is not None and len(corr_matrix) > 0:
-    n = len(corr_matrix.columns)
-    triu_i, triu_j = np.triu_indices(n, k=1)
-    corr_values = corr_matrix.values[triu_i, triu_j]
-    valid_corrs = corr_values[~np.isnan(corr_values)]
-    if len(valid_corrs) > 0:
-        normal_corr = np.mean(valid_corrs)
+# Calculate recovery correlation
+recovery_corr = 0.0
+if len(stress_corr) >= 2:
+    recovery_corr = calculate_recovery_correlation(selected_etf, stress_corr)
 
 if len(stress_corr) > 0:
     # Calculate statistics
     stress_mean = stress_corr['mean_corr'].mean()
-    correlation_increase = ((stress_mean / normal_corr) - 1) * 100 if normal_corr > 0 else 0
+    correlation_increase = ((stress_mean / recovery_corr) - 1) * 100 if recovery_corr > 0 else 0
 
     # Key metrics BEFORE Select ETF
     metric_cols = st.columns(3)
     with metric_cols[0]:
-        st.metric("Normal Correlation", f"{normal_corr:.3f}",
-                  help="Average pairwise correlation over 120-day baseline")
+        st.metric("Recovery Correlation", f"{recovery_corr:.3f}",
+                  help="Average pairwise correlation during recovery periods (between drawdowns)")
 
     with metric_cols[1]:
         st.metric("Stress Correlation", f"{stress_mean:.3f}",
-                  delta=f"{stress_mean - normal_corr:+.3f}",
+                  delta=f"{stress_mean - recovery_corr:+.3f}",
                   delta_color="inverse",
                   help="Average correlation during drawdown periods")
 
     with metric_cols[2]:
         st.metric("Correlation Increase", f"{correlation_increase:+.1f}%",
-                  help="How much correlations increase during stress")
+                  help="How much correlations increase during stress vs recovery")
 
     "" # Space
 
@@ -122,7 +171,7 @@ if len(stress_corr) > 0:
             # Use full price history
             price_df = etf_prices.copy()
 
-            # Create figure (go.Figure works with add_vrect, make_subplots doesn't)
+            # Create figure
             fig_stress = go.Figure()
 
             # Drawdown colors
@@ -178,7 +227,7 @@ if len(stress_corr) > 0:
             midpoint_corrs = [x[1] for x in sorted_data]
             hover_texts = [x[2] for x in sorted_data]
 
-            # Add correlation line on secondary y-axis
+            # Add stress correlation line on secondary y-axis
             fig_stress.add_trace(go.Scatter(
                 x=midpoint_dates,
                 y=midpoint_corrs,
@@ -191,13 +240,13 @@ if len(stress_corr) > 0:
                 yaxis='y2'
             ))
 
-            # Add normal correlation reference line as a trace (for legend)
+            # Add recovery correlation reference line as a trace (for legend)
             x_range = [price_df['Date'].min(), price_df['Date'].max()]
             fig_stress.add_trace(go.Scatter(
                 x=x_range,
-                y=[normal_corr, normal_corr],
+                y=[recovery_corr, recovery_corr],
                 mode='lines',
-                name=f'Normal Correlation ({normal_corr:.3f})',
+                name=f'Recovery Correlation ({recovery_corr:.3f})',
                 line=dict(color='steelblue', width=2, dash='dash'),
                 yaxis='y2',
                 hoverinfo='skip'
@@ -217,7 +266,7 @@ if len(stress_corr) > 0:
 
             st.plotly_chart(fig_stress, width='stretch')
 
-            st.markdown("<small>*Colored regions show top 10 drawdown periods. Red line = stress correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline.*</small>", unsafe_allow_html=True)
+            st.markdown("<small>*Colored regions show top 10 drawdown periods. Red line = stress correlation at midpoint of each drawdown. Blue dashed line = recovery correlation baseline.*</small>", unsafe_allow_html=True)
         else:
             st.warning(f"No price data available for {selected_etf}")
 
@@ -258,10 +307,45 @@ if len(stress_corr) > 0:
     "" # Space
 
     # Insight
-    if stress_mean > normal_corr:
+    if stress_mean > recovery_corr:
         st.warning(f"⚠️ **Correlations increase {correlation_increase:.0f}% during drawdowns.** Diversification benefits are reduced when the portfolio is under stress.")
     else:
         st.success(f"✓ **Correlations remain stable during drawdowns.** The portfolio maintains diversification benefits during stress periods.")
+
+    "" # Space
+
+    # Methodology section
+    st.markdown("#### Methodology")
+
+    method_card = st.container(border=True)
+    with method_card:
+        st.markdown("""
+**Stress Correlation**
+
+Stress correlation measures portfolio diversification during market downturns:
+
+1. **Identify Drawdowns**: Find the top 10 largest peak-to-trough drawdowns in ETF price history
+2. **Calculate Correlations**: For each drawdown period (peak date → trough date), calculate the pairwise correlation matrix of all holdings using daily returns
+3. **Aggregate**: Take the mean of all pairwise correlations within each drawdown period
+
+**Recovery Correlation**
+
+Recovery correlation measures portfolio diversification during market recoveries:
+
+1. **Identify Recovery Periods**: Recovery period = trough of drawdown N → peak of drawdown N+1
+2. **Calculate Correlations**: For each recovery period, calculate the pairwise correlation matrix using daily returns
+3. **Aggregate**: Combine all pairwise correlations from all recovery periods and take the mean
+
+**Interpretation**
+
+| Metric | Meaning |
+|--------|---------|
+| Stress > Recovery | Correlations rise during drawdowns → diversification weakens when needed most |
+| Stress ≈ Recovery | Correlations stable → portfolio maintains diversification under stress |
+| Correlation Increase | Percentage increase in correlation during stress vs recovery |
+
+*Higher stress correlations indicate that holdings tend to move together during market downturns, reducing the portfolio's defensive characteristics.*
+        """)
 
 else:
     st.warning(f"No stress correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
