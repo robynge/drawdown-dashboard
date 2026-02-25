@@ -218,14 +218,18 @@ if len(stress_corr) > 0:
                     yaxis='y2'
                 ))
 
-                # Add normal correlation reference line
-                fig_stress.add_hline(
-                    y=normal_corr, line_dash="dash", line_color="steelblue", line_width=2,
-                    annotation_text=f"Normal: {normal_corr:.3f}",
-                    annotation_position="right",
-                    annotation_font_color="steelblue",
-                    yref="y2"
-                )
+                # Add normal correlation reference line as a trace (so it appears in legend)
+                # Get x-axis range from price data
+                x_range = [price_df['Date'].min(), price_df['Date'].max()]
+                fig_stress.add_trace(go.Scatter(
+                    x=x_range,
+                    y=[normal_corr, normal_corr],
+                    mode='lines',
+                    name=f'Normal Correlation ({normal_corr:.3f})',
+                    line=dict(color='steelblue', width=2, dash='dash'),
+                    yaxis='y2',
+                    hoverinfo='skip'
+                ))
 
                 fig_stress.update_layout(
                     title=f"{selected_etf} Price & Stress Correlation by Drawdown",
@@ -241,7 +245,7 @@ if len(stress_corr) > 0:
 
                 st.plotly_chart(fig_stress, width='stretch')
 
-                st.markdown("<small>*Colored regions show top 10 drawdown periods (colors match table order: #1=red, #2=orange, #3=yellow, etc.). Red line connects mean correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline.*</small>", unsafe_allow_html=True)
+                st.markdown("<small>*Colored regions show top 10 drawdown periods. Red line = stress correlation at midpoint of each drawdown. Blue dashed line = normal correlation baseline (120-day average).*</small>", unsafe_allow_html=True)
             else:
                 st.warning(f"No price data available for {selected_etf}")
 
