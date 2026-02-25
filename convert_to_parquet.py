@@ -406,11 +406,11 @@ def precompute_hhi_timeseries():
 
 
 def precompute_correlation_matrices():
-    """Step 8: Precompute correlation matrices for each ARK ETF"""
+    """Step 8: Precompute correlation matrices for each ARK ETF and analysis period"""
     import sys
     sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-    from config import ARK_ETFS
+    from config import ARK_ETFS, ANALYSIS_PERIODS
     from data_loader import load_ark_holdings, get_ark_files_hash
 
     ensure_dirs()
@@ -426,58 +426,71 @@ def precompute_correlation_matrices():
         if len(holdings_filtered) == 0:
             continue
 
-        latest_date = holdings_filtered['Date'].max()
-        current_tickers = holdings_filtered[holdings_filtered['Date'] == latest_date]['Ticker'].unique()
+        for period_key, period_config in ANALYSIS_PERIODS.items():
+            period_end = period_config["end"]
 
-        for lookback_days in lookback_periods:
-            lookback_start = latest_date - pd.Timedelta(days=lookback_days)
-
-            # Filter to lookback period and current tickers
-            holdings_lookback = holdings_filtered[
-                (holdings_filtered['Date'] >= lookback_start) &
-                (holdings_filtered['Ticker'].isin(current_tickers))
-            ].copy()
-
-            # Pivot to get price matrix
-            price_matrix = holdings_lookback.pivot_table(
-                index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
-            )
-
-            # Drop tickers with too many missing values
-            min_data_points = len(price_matrix) * 0.5
-            price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
-
-            if len(price_matrix.columns) < 2:
+            # Get holdings up to the period end date
+            holdings_period = holdings_filtered[holdings_filtered['Date'] <= period_end].copy()
+            if len(holdings_period) == 0:
                 continue
 
-            # Calculate returns and correlation
-            returns = price_matrix.pct_change().dropna()
-            corr_matrix = returns.corr()
+            # Get the latest date within this period
+            period_latest_date = holdings_period['Date'].max()
+            current_tickers = holdings_period[holdings_period['Date'] == period_latest_date]['Ticker'].unique()
 
-            # Save correlation matrix
-            output_path = ARK_PRECOMPUTED_DIR / f'{etf}_correlation_matrix_{lookback_days}d.parquet'
-            corr_matrix.to_parquet(output_path)
+            for lookback_days in lookback_periods:
+                # Calculate lookback start from period end date
+                lookback_start = period_end - pd.Timedelta(days=lookback_days)
 
-            # Save returns for later use (rolling correlations need them)
-            returns_reset = returns.reset_index()
-            returns_path = ARK_PRECOMPUTED_DIR / f'{etf}_returns_{lookback_days}d.parquet'
-            returns_reset.to_parquet(returns_path, index=False)
+                # Filter to lookback period and current tickers
+                holdings_lookback = holdings_period[
+                    (holdings_period['Date'] >= lookback_start) &
+                    (holdings_period['Ticker'].isin(current_tickers))
+                ].copy()
 
-            # Save current weights
-            current_weights = holdings_lookback[holdings_lookback['Date'] == latest_date][['Ticker', 'Weight']].copy()
-            current_weights = current_weights[current_weights['Ticker'].isin(corr_matrix.columns)]
-            weights_path = ARK_PRECOMPUTED_DIR / f'{etf}_current_weights.parquet'
-            current_weights.to_parquet(weights_path, index=False)
+                if len(holdings_lookback) == 0:
+                    continue
 
-            print(f"    Saved {lookback_days}d correlation matrix ({len(corr_matrix)}x{len(corr_matrix)})")
+                # Pivot to get price matrix
+                price_matrix = holdings_lookback.pivot_table(
+                    index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
+                )
+
+                # Drop tickers with too many missing values
+                min_data_points = len(price_matrix) * 0.5
+                price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
+
+                if len(price_matrix.columns) < 2:
+                    continue
+
+                # Calculate returns and correlation
+                returns = price_matrix.pct_change(fill_method=None).dropna()
+                corr_matrix = returns.corr()
+
+                # Save correlation matrix with period key in filename
+                output_path = ARK_PRECOMPUTED_DIR / f'{etf}_correlation_matrix_{period_key}_{lookback_days}d.parquet'
+                corr_matrix.to_parquet(output_path)
+
+                # Save returns for later use (rolling correlations need them)
+                returns_reset = returns.reset_index()
+                returns_path = ARK_PRECOMPUTED_DIR / f'{etf}_returns_{period_key}_{lookback_days}d.parquet'
+                returns_reset.to_parquet(returns_path, index=False)
+
+                # Save current weights (at the period's latest date)
+                current_weights = holdings_lookback[holdings_lookback['Date'] == period_latest_date][['Ticker', 'Weight']].copy()
+                current_weights = current_weights[current_weights['Ticker'].isin(corr_matrix.columns)]
+                weights_path = ARK_PRECOMPUTED_DIR / f'{etf}_current_weights_{period_key}.parquet'
+                current_weights.to_parquet(weights_path, index=False)
+
+                print(f"    Saved {period_key} {lookback_days}d correlation matrix ({len(corr_matrix)}x{len(corr_matrix)})")
 
 
 def precompute_weighted_correlations():
-    """Step 9: Precompute weighted correlation matrices for each ARK ETF"""
+    """Step 9: Precompute weighted correlation matrices for each ARK ETF and analysis period"""
     import sys
     sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-    from config import ARK_ETFS
+    from config import ARK_ETFS, ANALYSIS_PERIODS
     from data_loader import load_ark_holdings, get_ark_files_hash
 
     ensure_dirs()
@@ -493,208 +506,240 @@ def precompute_weighted_correlations():
         if len(holdings_filtered) == 0:
             continue
 
-        latest_date = holdings_filtered['Date'].max()
-        current_tickers = holdings_filtered[holdings_filtered['Date'] == latest_date]['Ticker'].unique()
+        for period_key, period_config in ANALYSIS_PERIODS.items():
+            period_end = period_config["end"]
 
-        for lookback_days in lookback_periods:
-            lookback_start = latest_date - pd.Timedelta(days=lookback_days)
+            # Get holdings up to the period end date
+            holdings_period = holdings_filtered[holdings_filtered['Date'] <= period_end].copy()
+            if len(holdings_period) == 0:
+                continue
 
-            holdings_lookback = holdings_filtered[
-                (holdings_filtered['Date'] >= lookback_start) &
-                (holdings_filtered['Ticker'].isin(current_tickers))
+            # Get the latest date within this period
+            period_latest_date = holdings_period['Date'].max()
+            current_tickers = holdings_period[holdings_period['Date'] == period_latest_date]['Ticker'].unique()
+
+            for lookback_days in lookback_periods:
+                # Calculate lookback start from period end date
+                lookback_start = period_end - pd.Timedelta(days=lookback_days)
+
+                holdings_lookback = holdings_period[
+                    (holdings_period['Date'] >= lookback_start) &
+                    (holdings_period['Ticker'].isin(current_tickers))
+                ].copy()
+
+                if len(holdings_lookback) == 0:
+                    continue
+
+                # Pivot for price and weight matrices
+                price_matrix = holdings_lookback.pivot_table(
+                    index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
+                )
+                weight_matrix = holdings_lookback.pivot_table(
+                    index='Date', columns='Ticker', values='Weight', aggfunc='first'
+                )
+
+                # Drop tickers with too many missing values
+                min_data_points = len(price_matrix) * 0.5
+                valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
+                price_matrix = price_matrix[valid_tickers]
+                weight_matrix = weight_matrix[valid_tickers]
+
+                if len(valid_tickers) < 2:
+                    continue
+
+                # Calculate returns
+                returns = price_matrix.pct_change(fill_method=None).dropna(how='all')
+                weight_matrix = weight_matrix.ffill()
+                weight_matrix = weight_matrix.loc[returns.index]
+
+                tickers = returns.columns.tolist()
+                n = len(tickers)
+
+                # Initialize weighted correlation matrix
+                weighted_corr = pd.DataFrame(np.eye(n), index=tickers, columns=tickers)
+
+                # Calculate weighted correlation for each pair
+                for i in range(n):
+                    for j in range(i + 1, n):
+                        ticker_a, ticker_b = tickers[i], tickers[j]
+
+                        R_A = returns[ticker_a].values
+                        R_B = returns[ticker_b].values
+                        W_A = weight_matrix[ticker_a].values if ticker_a in weight_matrix.columns else np.zeros(len(R_A))
+                        W_B = weight_matrix[ticker_b].values if ticker_b in weight_matrix.columns else np.zeros(len(R_B))
+
+                        W_t = W_A * W_B
+                        mask = (~np.isnan(R_A)) & (~np.isnan(R_B)) & (W_t > 0)
+
+                        if mask.sum() < 2:
+                            valid_mask = (~np.isnan(R_A)) & (~np.isnan(R_B))
+                            if valid_mask.sum() > 1:
+                                corr_val = np.corrcoef(R_A[valid_mask], R_B[valid_mask])[0, 1]
+                            else:
+                                corr_val = np.nan
+                        else:
+                            w = W_t[mask]
+                            w = w / w.sum()
+                            a = R_A[mask]
+                            b = R_B[mask]
+
+                            mu_a = np.sum(w * a)
+                            mu_b = np.sum(w * b)
+                            da = a - mu_a
+                            db = b - mu_b
+                            cov_ab = np.sum(w * da * db)
+                            var_a = np.sum(w * da * da)
+                            var_b = np.sum(w * db * db)
+
+                            if var_a > 0 and var_b > 0:
+                                corr_val = cov_ab / np.sqrt(var_a * var_b)
+                                corr_val = np.clip(corr_val, -1, 1)
+                            else:
+                                corr_val = np.nan
+
+                        weighted_corr.iloc[i, j] = corr_val
+                        weighted_corr.iloc[j, i] = corr_val
+
+                output_path = ARK_PRECOMPUTED_DIR / f'{etf}_weighted_correlation_matrix_{period_key}_{lookback_days}d.parquet'
+                weighted_corr.to_parquet(output_path)
+                print(f"    Saved {period_key} {lookback_days}d weighted correlation matrix ({n}x{n})")
+
+
+def precompute_rolling_correlations():
+    """Step 10: Precompute rolling correlations for each ARK ETF and analysis period
+
+    Rolling window is now independent from lookback period.
+    Generates files for each (period_key, rolling_window) combination.
+    Rolling windows: 20, 30, 60, 120 days
+    """
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from config import ARK_ETFS, ANALYSIS_PERIODS
+    from data_loader import load_ark_holdings, get_ark_files_hash
+
+    ensure_dirs()
+    files_hash = get_ark_files_hash()
+
+    # Independent rolling windows for correlation time series
+    rolling_windows = [20, 30, 60, 120]
+
+    for etf in ARK_ETFS:
+        print(f"  Processing {etf}...")
+        holdings = load_ark_holdings(files_hash, etf)
+        holdings_filtered = _filter_non_stocks(holdings)
+
+        if len(holdings_filtered) == 0:
+            continue
+
+        for period_key, period_config in ANALYSIS_PERIODS.items():
+            period_start = period_config["start"]
+            period_end = period_config["end"]
+
+            # Get holdings within the period
+            holdings_period = holdings_filtered[
+                (holdings_filtered['Date'] >= period_start) &
+                (holdings_filtered['Date'] <= period_end)
+            ].copy()
+            if len(holdings_period) == 0:
+                continue
+
+            # Get the latest date within this period
+            period_latest_date = holdings_period['Date'].max()
+            current_tickers = holdings_period[holdings_period['Date'] == period_latest_date]['Ticker'].unique()
+
+            # Use full historical data for current tickers (up to period end)
+            # Need to include data before period_start for rolling window calculation
+            holdings_full = holdings_filtered[
+                (holdings_filtered['Ticker'].isin(current_tickers)) &
+                (holdings_filtered['Date'] <= period_end)
             ].copy()
 
-            # Pivot for price and weight matrices
-            price_matrix = holdings_lookback.pivot_table(
+            price_matrix = holdings_full.pivot_table(
                 index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
             )
-            weight_matrix = holdings_lookback.pivot_table(
+            weight_matrix = holdings_full.pivot_table(
                 index='Date', columns='Ticker', values='Weight', aggfunc='first'
             )
 
-            # Drop tickers with too many missing values
+            # Drop tickers with too many missing values (require 50% data)
             min_data_points = len(price_matrix) * 0.5
             valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
             price_matrix = price_matrix[valid_tickers]
             weight_matrix = weight_matrix[valid_tickers]
 
-            if len(valid_tickers) < 2:
-                continue
-
-            # Calculate returns
-            returns = price_matrix.pct_change().dropna(how='all')
+            returns = price_matrix.pct_change(fill_method=None).dropna()
             weight_matrix = weight_matrix.ffill()
-            weight_matrix = weight_matrix.loc[returns.index]
 
-            tickers = returns.columns.tolist()
-            n = len(tickers)
-
-            # Initialize weighted correlation matrix
-            weighted_corr = pd.DataFrame(np.eye(n), index=tickers, columns=tickers)
-
-            # Calculate weighted correlation for each pair
-            for i in range(n):
-                for j in range(i + 1, n):
-                    ticker_a, ticker_b = tickers[i], tickers[j]
-
-                    R_A = returns[ticker_a].values
-                    R_B = returns[ticker_b].values
-                    W_A = weight_matrix[ticker_a].values if ticker_a in weight_matrix.columns else np.zeros(len(R_A))
-                    W_B = weight_matrix[ticker_b].values if ticker_b in weight_matrix.columns else np.zeros(len(R_B))
-
-                    W_t = W_A * W_B
-                    mask = (~np.isnan(R_A)) & (~np.isnan(R_B)) & (W_t > 0)
-
-                    if mask.sum() < 2:
-                        valid_mask = (~np.isnan(R_A)) & (~np.isnan(R_B))
-                        if valid_mask.sum() > 1:
-                            corr_val = np.corrcoef(R_A[valid_mask], R_B[valid_mask])[0, 1]
-                        else:
-                            corr_val = np.nan
-                    else:
-                        w = W_t[mask]
-                        w = w / w.sum()
-                        a = R_A[mask]
-                        b = R_B[mask]
-
-                        mu_a = np.sum(w * a)
-                        mu_b = np.sum(w * b)
-                        da = a - mu_a
-                        db = b - mu_b
-                        cov_ab = np.sum(w * da * db)
-                        var_a = np.sum(w * da * da)
-                        var_b = np.sum(w * db * db)
-
-                        if var_a > 0 and var_b > 0:
-                            corr_val = cov_ab / np.sqrt(var_a * var_b)
-                            corr_val = np.clip(corr_val, -1, 1)
-                        else:
-                            corr_val = np.nan
-
-                    weighted_corr.iloc[i, j] = corr_val
-                    weighted_corr.iloc[j, i] = corr_val
-
-            output_path = ARK_PRECOMPUTED_DIR / f'{etf}_weighted_correlation_matrix_{lookback_days}d.parquet'
-            weighted_corr.to_parquet(output_path)
-            print(f"    Saved {lookback_days}d weighted correlation matrix ({n}x{n})")
-
-
-def precompute_rolling_correlations():
-    """Step 10: Precompute rolling correlations for each ARK ETF
-
-    Rolling window = lookback period. Each day's correlation is calculated
-    using the past N days of data, where N = lookback period.
-    """
-    import sys
-    sys.path.insert(0, str(Path(__file__).parent / 'src'))
-
-    from config import ARK_ETFS
-    from data_loader import load_ark_holdings, get_ark_files_hash
-
-    ensure_dirs()
-    files_hash = get_ark_files_hash()
-
-    lookback_periods = [60, 120, 250]
-
-    for etf in ARK_ETFS:
-        print(f"  Processing {etf}...")
-        holdings = load_ark_holdings(files_hash, etf)
-        holdings_filtered = _filter_non_stocks(holdings)
-
-        if len(holdings_filtered) == 0:
-            continue
-
-        latest_date = holdings_filtered['Date'].max()
-        current_tickers = holdings_filtered[holdings_filtered['Date'] == latest_date]['Ticker'].unique()
-
-        # Use full historical data for current tickers
-        holdings_current = holdings_filtered[
-            holdings_filtered['Ticker'].isin(current_tickers)
-        ].copy()
-
-        price_matrix = holdings_current.pivot_table(
-            index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
-        )
-        weight_matrix = holdings_current.pivot_table(
-            index='Date', columns='Ticker', values='Weight', aggfunc='first'
-        )
-
-        # Drop tickers with too many missing values (require 50% data)
-        min_data_points = len(price_matrix) * 0.5
-        valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
-        price_matrix = price_matrix[valid_tickers]
-        weight_matrix = weight_matrix[valid_tickers]
-
-        returns = price_matrix.pct_change(fill_method=None).dropna()
-        weight_matrix = weight_matrix.ffill()
-
-        n_tickers = len(returns.columns)
-        if n_tickers < 2:
-            continue
-
-        triu_i, triu_j = np.triu_indices(n_tickers, k=1)
-        holdings_dates = np.sort(holdings_current['Date'].unique())
-
-        for lookback_days in lookback_periods:
-            # Rolling window = lookback period
-            rolling_window = lookback_days
-
-            if len(returns) < rolling_window:
-                print(f"    Skipping {lookback_days}d (not enough data)")
+            n_tickers = len(returns.columns)
+            if n_tickers < 2:
                 continue
 
-            results = []
-            dates = returns.index
+            triu_i, triu_j = np.triu_indices(n_tickers, k=1)
+            holdings_dates = np.sort(holdings_full['Date'].unique())
 
-            for i in range(rolling_window, len(returns) + 1):
-                window_returns = returns.iloc[i - rolling_window:i]
-                current_date = dates[i - 1]
-                corr_matrix = window_returns.corr()
-
-                corr_values = corr_matrix.values[triu_i, triu_j]
-                valid_mask = ~np.isnan(corr_values)
-                valid_corrs = corr_values[valid_mask]
-
-                if len(valid_corrs) == 0:
+            for rolling_window in rolling_windows:
+                if len(returns) < rolling_window:
+                    print(f"    Skipping {period_key} {rolling_window}d (not enough data)")
                     continue
 
-                mean_corr = np.mean(valid_corrs)
-                median_corr = np.median(valid_corrs)
+                results = []
+                dates = returns.index
 
-                # Weighted correlation
-                valid_dates = holdings_dates[holdings_dates <= current_date]
-                if len(valid_dates) == 0:
-                    weighted_mean = mean_corr
-                else:
-                    closest_date = valid_dates[-1]
-                    weights_df = holdings_current[holdings_current['Date'] == closest_date][['Ticker', 'Weight']]
-                    weights_df = weights_df[weights_df['Ticker'].isin(corr_matrix.columns)]
+                for i in range(rolling_window, len(returns) + 1):
+                    window_returns = returns.iloc[i - rolling_window:i]
+                    current_date = dates[i - 1]
 
-                    if len(weights_df) > 0:
-                        weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
-                        weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
-                        weight_mat = np.outer(weights_arr, weights_arr)
-                        pair_weights = weight_mat[triu_i, triu_j]
-                        valid_weight_mask = valid_mask & (pair_weights > 0)
-                        if valid_weight_mask.any():
-                            weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
+                    # Only include dates within the analysis period
+                    if current_date < period_start:
+                        continue
+
+                    corr_matrix = window_returns.corr()
+
+                    corr_values = corr_matrix.values[triu_i, triu_j]
+                    valid_mask = ~np.isnan(corr_values)
+                    valid_corrs = corr_values[valid_mask]
+
+                    if len(valid_corrs) == 0:
+                        continue
+
+                    mean_corr = np.mean(valid_corrs)
+                    median_corr = np.median(valid_corrs)
+
+                    # Weighted correlation
+                    valid_dates = holdings_dates[holdings_dates <= current_date]
+                    if len(valid_dates) == 0:
+                        weighted_mean = mean_corr
+                    else:
+                        closest_date = valid_dates[-1]
+                        weights_df = holdings_full[holdings_full['Date'] == closest_date][['Ticker', 'Weight']]
+                        weights_df = weights_df[weights_df['Ticker'].isin(corr_matrix.columns)]
+
+                        if len(weights_df) > 0:
+                            weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
+                            weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
+                            weight_mat = np.outer(weights_arr, weights_arr)
+                            pair_weights = weight_mat[triu_i, triu_j]
+                            valid_weight_mask = valid_mask & (pair_weights > 0)
+                            if valid_weight_mask.any():
+                                weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
+                            else:
+                                weighted_mean = mean_corr
                         else:
                             weighted_mean = mean_corr
-                    else:
-                        weighted_mean = mean_corr
 
-                results.append({
-                    'Date': current_date,
-                    'mean_corr': mean_corr,
-                    'median_corr': median_corr,
-                    'weighted_mean_corr': weighted_mean
-                })
+                    results.append({
+                        'Date': current_date,
+                        'mean_corr': mean_corr,
+                        'median_corr': median_corr,
+                        'weighted_mean_corr': weighted_mean
+                    })
 
-            if len(results) > 0:
-                rolling_df = pd.DataFrame(results)
-                output_path = ARK_PRECOMPUTED_DIR / f'{etf}_rolling_correlations_{lookback_days}d.parquet'
-                rolling_df.to_parquet(output_path, index=False)
-                print(f"    Saved {lookback_days}d rolling correlations ({len(rolling_df)} records)")
+                if len(results) > 0:
+                    rolling_df = pd.DataFrame(results)
+                    output_path = ARK_PRECOMPUTED_DIR / f'{etf}_rolling_correlations_{period_key}_{rolling_window}d.parquet'
+                    rolling_df.to_parquet(output_path, index=False)
+                    print(f"    Saved {period_key} {rolling_window}d rolling correlations ({len(rolling_df)} records)")
 
 
 def precompute_holdings_drawdowns():
@@ -1419,7 +1464,7 @@ def generate_metadata():
         'analysis_periods': list(ANALYSIS_PERIODS.keys()),
         'parameters': {
             'lookback_days': [60, 120, 250],
-            'rolling_window': 20,  # Fixed 20-day rolling window for correlation time series
+            'rolling_windows': [20, 30, 60, 120],  # Independent rolling windows for correlation time series
             'min_depth_pct': 10,
             'min_duration_days': 7
         }

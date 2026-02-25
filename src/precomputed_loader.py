@@ -63,51 +63,54 @@ def load_hhi_timeseries(etf: str) -> pd.DataFrame:
     return _ensure_datetime(df, ['Date'])
 
 
-def load_correlation_matrix(etf: str, lookback_days: int = 250) -> pd.DataFrame:
-    """Load precomputed correlation matrix for an ETF
+def load_correlation_matrix(etf: str, period_key: str, lookback_days: int = 250) -> pd.DataFrame:
+    """Load precomputed correlation matrix for an ETF and analysis period
 
     Args:
         etf: ETF name (e.g., 'ARKK')
+        period_key: Analysis period key (e.g., '2024-2026' or '2021-2023')
         lookback_days: Lookback period in days (60, 120, or 250)
 
     Returns:
         DataFrame with correlation matrix (tickers as index and columns)
     """
-    path = ARK_PRECOMPUTED_DIR / f'{etf}_correlation_matrix_{lookback_days}d.parquet'
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_correlation_matrix_{period_key}_{lookback_days}d.parquet'
     if not path.exists():
         return pd.DataFrame()
 
     return pd.read_parquet(path)
 
 
-def load_weighted_correlation_matrix(etf: str, lookback_days: int = 250) -> pd.DataFrame:
-    """Load precomputed weighted correlation matrix for an ETF
+def load_weighted_correlation_matrix(etf: str, period_key: str, lookback_days: int = 250) -> pd.DataFrame:
+    """Load precomputed weighted correlation matrix for an ETF and analysis period
 
     Args:
         etf: ETF name (e.g., 'ARKK')
+        period_key: Analysis period key (e.g., '2024-2026' or '2021-2023')
         lookback_days: Lookback period in days (60, 120, or 250)
 
     Returns:
         DataFrame with weighted correlation matrix (tickers as index and columns)
     """
-    path = ARK_PRECOMPUTED_DIR / f'{etf}_weighted_correlation_matrix_{lookback_days}d.parquet'
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_weighted_correlation_matrix_{period_key}_{lookback_days}d.parquet'
     if not path.exists():
         return pd.DataFrame()
 
     return pd.read_parquet(path)
 
 
-def load_rolling_correlations(etf: str, lookback_days: int = 250) -> pd.DataFrame:
-    """Load precomputed rolling correlations for an ETF
+def load_rolling_correlations(etf: str, period_key: str, rolling_window: int = 60) -> pd.DataFrame:
+    """Load precomputed rolling correlations for an ETF and analysis period
 
     Args:
         etf: ETF name (e.g., 'ARKK')
-        lookback_days: Lookback period in days (60, 120, or 250)
+        period_key: Analysis period key (e.g., '2024-2026' or '2021-2023')
+        rolling_window: Rolling window in days (20, 30, 60, or 120)
 
     Returns:
         DataFrame with columns: Date, mean_corr, median_corr, weighted_mean_corr
     """
-    path = ARK_PRECOMPUTED_DIR / f'{etf}_rolling_correlations_{lookback_days}d.parquet'
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_rolling_correlations_{period_key}_{rolling_window}d.parquet'
     if not path.exists():
         return pd.DataFrame()
 
@@ -191,17 +194,18 @@ def load_iwv_etf_drawdowns() -> pd.DataFrame:
     return _ensure_datetime(df, ['peak_date', 'trough_date', 'recovery_date'])
 
 
-def load_correlation_returns(etf: str, lookback_days: int = 250) -> pd.DataFrame:
+def load_correlation_returns(etf: str, period_key: str, lookback_days: int = 250) -> pd.DataFrame:
     """Load precomputed returns data used for correlation calculation
 
     Args:
         etf: ETF name (e.g., 'ARKK')
+        period_key: Analysis period key (e.g., '2024-2026' or '2021-2023')
         lookback_days: Lookback period in days
 
     Returns:
         DataFrame with daily returns for each holding
     """
-    path = ARK_PRECOMPUTED_DIR / f'{etf}_returns_{lookback_days}d.parquet'
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_returns_{period_key}_{lookback_days}d.parquet'
     if not path.exists():
         return pd.DataFrame()
 
@@ -212,16 +216,17 @@ def load_correlation_returns(etf: str, lookback_days: int = 250) -> pd.DataFrame
     return df
 
 
-def load_current_weights(etf: str) -> pd.DataFrame:
-    """Load precomputed current weights for an ETF
+def load_current_weights(etf: str, period_key: str) -> pd.DataFrame:
+    """Load precomputed current weights for an ETF at the end of an analysis period
 
     Args:
         etf: ETF name (e.g., 'ARKK')
+        period_key: Analysis period key (e.g., '2024-2026' or '2021-2023')
 
     Returns:
         DataFrame with columns: Ticker, Weight
     """
-    path = ARK_PRECOMPUTED_DIR / f'{etf}_current_weights.parquet'
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_current_weights_{period_key}.parquet'
     if not path.exists():
         return pd.DataFrame()
 
