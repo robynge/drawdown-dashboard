@@ -360,15 +360,19 @@ with cols[0]:
         ""  # Space
 
         st.markdown("##### Correlation Mode")
+        # Use session state to persist selection across reruns (e.g., period switch)
+        if "correlation_mode_value" not in st.session_state:
+            st.session_state.correlation_mode_value = "Overall"
         correlation_mode = st.pills(
             "Mode",
             options=["Overall", "Drawdown", "Recovery"],
-            default="Overall",
+            default=st.session_state.correlation_mode_value,
             label_visibility="collapsed",
             key="correlation_mode_selector"
         )
         if correlation_mode is None:
             correlation_mode = "Overall"
+        st.session_state.correlation_mode_value = correlation_mode
 
         # Lookback Period only shown for Overall mode
         if correlation_mode == "Overall":
