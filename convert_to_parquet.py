@@ -1443,8 +1443,8 @@ def precompute_stress_correlations():
             if len(returns) < 3:
                 continue
 
-            # Use min_periods=3 (matching minimum return days filter) for stress correlations
-            corr_matrix = returns.corr(min_periods=3)
+            # corr(min_periods=20) requires at least 20 overlapping days for each pair
+            corr_matrix = returns.corr(min_periods=20)
 
             # Get upper triangle correlations
             n = len(corr_matrix.columns)

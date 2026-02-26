@@ -142,8 +142,8 @@ def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.Data
         if len(returns) < 10:
             continue
 
-        # Calculate correlation matrix - use min_periods=3 (matching minimum return days filter)
-        corr_matrix = returns.corr(min_periods=3)
+        # Calculate correlation matrix - require at least 20 overlapping days for each pair
+        corr_matrix = returns.corr(min_periods=20)
 
         # Remove stocks that have NO valid correlation with any other stock
         has_valid_corr = (corr_matrix.notna().sum() > 1)
