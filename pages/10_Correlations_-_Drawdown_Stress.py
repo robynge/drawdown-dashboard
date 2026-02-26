@@ -242,6 +242,9 @@ corr_label = 'Weighted' if use_weighted else 'Unweighted'
 files_hash = get_ark_files_hash()
 stress_corr = load_stress_correlations(selected_etf)
 
+# DEBUG: show actual row count
+st.warning(f"DEBUG: stress_corr has {len(stress_corr)} rows for {selected_etf}")
+
 # Calculate recovery correlation (both unweighted and weighted)
 recovery_result = {'unweighted_mean': 0.0, 'weighted_mean': 0.0, 'excluded_tickers': []}
 if len(stress_corr) >= 2:
