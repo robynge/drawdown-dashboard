@@ -238,8 +238,12 @@ def calculate_weighted_correlation_from_returns(returns_df, weight_matrix):
     if len(returns_df) < 10 or len(weight_matrix) == 0:
         return pd.DataFrame(), []
 
-    # Drop Date column if present
-    ticker_cols = [col for col in returns_df.columns if col not in ['Date', 'index']]
+    # Ensure Date is the index for alignment with weight_matrix
+    if 'Date' in returns_df.columns:
+        returns_df = returns_df.set_index('Date')
+
+    # Drop non-ticker columns
+    ticker_cols = [col for col in returns_df.columns if col not in ['index']]
     if len(ticker_cols) == 0:
         return pd.DataFrame(), []
 
