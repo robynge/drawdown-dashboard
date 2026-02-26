@@ -204,8 +204,9 @@ st.markdown("""
 **Correlation Matrix Calculation**:
 1. **Holdings Selection**: Use stocks held on the latest date (current portfolio)
 2. **Data Filtering**:
-   - Exclude currency tickers and money market funds (e.g., FTOXX, FIRXX)
-   - Remove stocks with less than 50% price data in the lookback period
+   - Exclude currency tickers and money market funds (e.g., FTOXX, FIRXX, DGCXX)
+   - Use `min_periods=20` for correlation calculation (requires at least 20 overlapping days per pair)
+   - Exclude stocks with no valid correlation with any other stock (less than 20 overlapping days with all stocks)
 3. **Returns Calculation**: Calculate daily returns from price data
 4. **Correlation**: Compute Pearson correlation coefficient for all stock pairs
 
