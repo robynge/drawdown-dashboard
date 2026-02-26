@@ -1409,7 +1409,9 @@ def precompute_stress_correlations():
                 continue
 
             # Calculate returns and correlation
-            returns = price_matrix.pct_change(fill_method=None).dropna()
+            # Use iloc[1:] to skip first row (NaN from pct_change), don't dropna to preserve data
+            # corr() handles NaN automatically with pairwise correlation
+            returns = price_matrix.pct_change(fill_method=None).iloc[1:]
             if len(returns) < 3:
                 continue
 
