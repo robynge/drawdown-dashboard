@@ -222,6 +222,95 @@ def calculate_correlation_from_returns(returns_df, weights_df=None):
     return corr_matrix, excluded_tickers
 
 
+def calculate_weighted_correlation_from_returns(returns_df, weight_matrix):
+    """Calculate weighted correlation matrix from returns and weight data.
+
+    Uses portfolio weights to compute weighted pairwise correlations.
+    Same logic as precompute_weighted_correlations() in convert_to_parquet.py.
+
+    Args:
+        returns_df: DataFrame with Date column (or index) and ticker columns
+        weight_matrix: DataFrame (Date x Ticker) with daily portfolio weights
+
+    Returns:
+        tuple: (weighted correlation matrix DataFrame, list of excluded ticker names)
+    """
+    if len(returns_df) < 10 or len(weight_matrix) == 0:
+        return pd.DataFrame(), []
+
+    # Drop Date column if present
+    ticker_cols = [col for col in returns_df.columns if col not in ['Date', 'index']]
+    if len(ticker_cols) == 0:
+        return pd.DataFrame(), []
+
+    returns_only = returns_df[ticker_cols]
+
+    # Filter columns that have at least some data
+    valid_cols = returns_only.columns[returns_only.notna().sum() > 0]
+    if len(valid_cols) < 2:
+        return pd.DataFrame(), []
+
+    returns_filtered = returns_only[valid_cols]
+    all_tickers = set(t.split()[0] for t in returns_filtered.columns)
+
+    tickers = returns_filtered.columns.tolist()
+    n = len(tickers)
+
+    # Align weight_matrix and returns to same date index
+    common_idx = returns_filtered.index.intersection(weight_matrix.index)
+    if len(common_idx) < 10:
+        return pd.DataFrame(), []
+
+    R = returns_filtered.loc[common_idx].values
+    W = weight_matrix.reindex(columns=tickers, index=common_idx).fillna(0).values
+
+    # Initialize weighted correlation matrix
+    weighted_corr = pd.DataFrame(np.eye(n), index=tickers, columns=tickers)
+
+    triu_i, triu_j = np.triu_indices(n, k=1)
+
+    for i, j in zip(triu_i, triu_j):
+        R_A, R_B = R[:, i], R[:, j]
+        W_A, W_B = W[:, i], W[:, j]
+
+        W_t = W_A * W_B
+        valid_mask = (~np.isnan(R_A)) & (~np.isnan(R_B))
+
+        if valid_mask.sum() < 20:
+            corr_val = np.nan
+        else:
+            mask = valid_mask & (W_t > 0)
+            if mask.sum() < 20:
+                corr_val = np.corrcoef(R_A[valid_mask], R_B[valid_mask])[0, 1]
+            else:
+                w = W_t[mask]
+                w = w / w.sum()
+                a, b = R_A[mask], R_B[mask]
+
+                mu_a, mu_b = np.dot(w, a), np.dot(w, b)
+                da, db = a - mu_a, b - mu_b
+                cov_ab = np.dot(w, da * db)
+                var_a, var_b = np.dot(w, da * da), np.dot(w, db * db)
+
+                if var_a > 0 and var_b > 0:
+                    corr_val = cov_ab / np.sqrt(var_a * var_b)
+                    corr_val = np.clip(corr_val, -1, 1)
+                else:
+                    corr_val = np.nan
+
+        weighted_corr.iloc[i, j] = corr_val
+        weighted_corr.iloc[j, i] = corr_val
+
+    # Remove tickers with no valid correlations
+    has_valid = (weighted_corr.notna().sum() > 1)
+    weighted_corr = weighted_corr.loc[has_valid, has_valid]
+
+    included_tickers = set(t.split()[0] for t in weighted_corr.columns)
+    excluded_tickers = sorted(all_tickers - included_tickers)
+
+    return weighted_corr, excluded_tickers
+
+
 def calculate_average_pair_weights(weight_matrix, tickers):
     """Calculate average daily pair weights for weighted mean correlation (vectorized).
 
@@ -520,13 +609,17 @@ with st.spinner("Loading correlations..."):
         excluded_tickers = []
         if len(returns) > 0 and len(drawdown_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, drawdown_periods)
-            corr_matrix, excluded_tickers = calculate_correlation_from_returns(filtered_returns)
-            total_days = len(filtered_returns)
-            # Filter weight_matrix to drawdown periods for weighted stats
+            # Filter weight_matrix to drawdown periods
             if len(weight_matrix) > 0:
                 weight_matrix = filter_returns_by_periods(weight_matrix.reset_index(), drawdown_periods)
                 if len(weight_matrix) > 0 and 'Date' in weight_matrix.columns:
                     weight_matrix = weight_matrix.set_index('Date')
+            # Calculate correlation matrix (weighted or unweighted)
+            if use_weighted_corr and len(weight_matrix) > 0:
+                corr_matrix, excluded_tickers = calculate_weighted_correlation_from_returns(filtered_returns, weight_matrix)
+            else:
+                corr_matrix, excluded_tickers = calculate_correlation_from_returns(filtered_returns)
+            total_days = len(filtered_returns)
         else:
             corr_matrix = pd.DataFrame()
             total_days = 0
@@ -539,13 +632,17 @@ with st.spinner("Loading correlations..."):
         excluded_tickers = []
         if len(returns) > 0 and len(recovery_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, recovery_periods)
-            corr_matrix, excluded_tickers = calculate_correlation_from_returns(filtered_returns)
-            total_days = len(filtered_returns)
-            # Filter weight_matrix to recovery periods for weighted stats
+            # Filter weight_matrix to recovery periods
             if len(weight_matrix) > 0:
                 weight_matrix = filter_returns_by_periods(weight_matrix.reset_index(), recovery_periods)
                 if len(weight_matrix) > 0 and 'Date' in weight_matrix.columns:
                     weight_matrix = weight_matrix.set_index('Date')
+            # Calculate correlation matrix (weighted or unweighted)
+            if use_weighted_corr and len(weight_matrix) > 0:
+                corr_matrix, excluded_tickers = calculate_weighted_correlation_from_returns(filtered_returns, weight_matrix)
+            else:
+                corr_matrix, excluded_tickers = calculate_correlation_from_returns(filtered_returns)
+            total_days = len(filtered_returns)
         else:
             corr_matrix = pd.DataFrame()
             total_days = 0
