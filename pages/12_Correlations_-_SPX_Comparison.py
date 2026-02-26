@@ -230,8 +230,10 @@ with cols[1]:
         heatmap_card = st.container(border=True)
         with heatmap_card:
             # Filter out tickers with no valid correlations (all NaN off-diagonal)
+            sp500_excluded_tickers = []
             has_valid = (sp500_corr.notna().sum() > 1)
             if not has_valid.all():
+                sp500_excluded_tickers = sorted(has_valid[~has_valid].index.tolist())
                 filtered_sp = has_valid[has_valid].index
                 sp500_corr = sp500_corr.loc[filtered_sp, filtered_sp]
 
@@ -266,6 +268,10 @@ with cols[1]:
             st.plotly_chart(fig_sp500, width='stretch')
 
             st.markdown("<small>*S&P 500 Top 50 by market cap. Lower average correlation = better diversification potential.*</small>", unsafe_allow_html=True)
+
+            if sp500_excluded_tickers:
+                excluded_sp_str = ', '.join(sp500_excluded_tickers)
+                st.markdown(f"<small>*S&P 500 excluded (less than 20 overlapping days with all other stocks): {excluded_sp_str}*</small>", unsafe_allow_html=True)
 
             "" # Space
 

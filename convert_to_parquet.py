@@ -484,6 +484,12 @@ def precompute_correlation_matrices():
             period_latest_date = holdings_period['Date'].max()
             current_tickers = holdings_period[holdings_period['Date'] == period_latest_date]['Ticker'].unique()
 
+            # Save current weights for all current holdings (before correlation filtering)
+            # This allows pages to detect which tickers were excluded due to insufficient data
+            current_weights = holdings_period[holdings_period['Date'] == period_latest_date][['Ticker', 'Weight']].copy()
+            weights_path = ARK_PRECOMPUTED_DIR / f'{etf}_current_weights_{period_key}.parquet'
+            current_weights.to_parquet(weights_path, index=False)
+
             for lookback_days in lookback_periods:
                 # Calculate lookback start from period end date
                 lookback_start = period_end - pd.Timedelta(days=lookback_days)
@@ -522,12 +528,6 @@ def precompute_correlation_matrices():
                 returns_reset = returns.reset_index()
                 returns_path = ARK_PRECOMPUTED_DIR / f'{etf}_returns_{period_key}_{lookback_days}d.parquet'
                 returns_reset.to_parquet(returns_path, index=False)
-
-                # Save current weights (at the period's latest date)
-                current_weights = holdings_lookback[holdings_lookback['Date'] == period_latest_date][['Ticker', 'Weight']].copy()
-                current_weights = current_weights[current_weights['Ticker'].isin(corr_matrix.columns)]
-                weights_path = ARK_PRECOMPUTED_DIR / f'{etf}_current_weights_{period_key}.parquet'
-                current_weights.to_parquet(weights_path, index=False)
 
                 print(f"    Saved {period_key} {lookback_days}d correlation matrix ({len(corr_matrix)}x{len(corr_matrix)})")
 

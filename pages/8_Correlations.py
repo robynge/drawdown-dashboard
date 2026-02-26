@@ -503,13 +503,12 @@ with st.spinner("Loading correlations..."):
         period_info = f"Full {lookback_days}-day period"
         num_periods = 1
         total_days = lookback_days
-        # For precomputed data, determine excluded tickers by comparing with current holdings
-        # Filter out money market funds from excluded list (they shouldn't be shown)
-        if len(corr_matrix) > 0 and len(current_tickers) > 0:
+        # For precomputed data, determine excluded tickers by comparing returns
+        # (all tickers before filtering) with correlation matrix columns (filtered)
+        if len(corr_matrix) > 0 and len(returns) > 0:
+            all_return_tickers = set(t.split()[0] for t in returns.columns)
             included = set(t.split()[0] for t in corr_matrix.columns)
-            current_clean = set(t.split()[0] for t in current_tickers)
-            excluded_raw = current_clean - included
-            # Remove money market funds from excluded list
+            excluded_raw = all_return_tickers - included
             excluded_tickers = sorted([t for t in excluded_raw if not is_non_stock_ticker(t)])
 
     elif correlation_mode == "Drawdown":
@@ -592,6 +591,9 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             # Filter out tickers with no valid correlations (all NaN off-diagonal)
             has_valid = (corr_matrix.notna().sum() > 1)  # >1 because diagonal may be 1.0
             if not has_valid.all():
+                newly_excluded = [t.split()[0] for t in has_valid[~has_valid].index]
+                newly_excluded = [t for t in newly_excluded if not is_non_stock_ticker(t)]
+                excluded_tickers = sorted(set(excluded_tickers) | set(newly_excluded))
                 filtered_tickers = has_valid[has_valid].index
                 corr_matrix = corr_matrix.loc[filtered_tickers, filtered_tickers]
 
