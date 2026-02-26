@@ -140,16 +140,25 @@ with cols[0]:
 ark_corr = load_correlation_matrix(selected_etf, period_key, lookback_days)
 sp500_corr = load_sp500_correlation_matrix(lookback_days)
 
+# Money market fund prefixes to filter from excluded list
+MONEY_MARKET_PREFIXES = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
+
+def is_non_stock_ticker(ticker):
+    """Check if a ticker is a money market fund or cash instrument"""
+    ticker_clean = ticker.split()[0] if isinstance(ticker, str) else ticker
+    return any(ticker_clean.startswith(p) for p in MONEY_MARKET_PREFIXES)
+
 # Load current weights to determine excluded tickers
 current_weights = load_current_weights(selected_etf, period_key)
 current_tickers = set(current_weights['Ticker'].tolist()) if len(current_weights) > 0 else set()
 
-# Determine excluded tickers for ARK
+# Determine excluded tickers for ARK (filter out money market funds)
 ark_excluded_tickers = []
 if ark_corr is not None and len(ark_corr) > 0 and len(current_tickers) > 0:
     included = set(t.split()[0] for t in ark_corr.columns)
     current_clean = set(t.split()[0] for t in current_tickers)
-    ark_excluded_tickers = sorted(current_clean - included)
+    excluded_raw = current_clean - included
+    ark_excluded_tickers = sorted([t for t in excluded_raw if not is_non_stock_ticker(t)])
 
 # Get ARK stats
 ark_stats = get_correlation_stats(ark_corr) if ark_corr is not None and len(ark_corr) > 0 else None

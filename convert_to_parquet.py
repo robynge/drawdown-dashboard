@@ -131,7 +131,7 @@ def precompute_ark_holdings_max_drawdowns():
             currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
             holdings = holdings[~holdings['Ticker'].isin(currency_tickers)]
 
-        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
+        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
         holdings = holdings[~holdings['Ticker'].str.split().str[0].apply(
             lambda t: any(t.startswith(p) for p in money_market_prefixes)
         )]
@@ -339,7 +339,7 @@ def _filter_non_stocks(holdings):
         result = result[~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
 
     # Filter out money market funds
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
     ticker_symbols = result['Ticker'].str.split().str[0]
     is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
     result = result[~is_mm]
@@ -1105,7 +1105,7 @@ def precompute_ark_stock_drawdowns_full():
             currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
             holdings = holdings[~holdings['Ticker'].isin(currency_tickers)]
 
-        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
+        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
         holdings = holdings[~holdings['Ticker'].str.split().str[0].apply(
             lambda t: any(t.startswith(p) for p in money_market_prefixes)
         )]
@@ -1267,7 +1267,7 @@ def precompute_position_changes():
                     mask = ~df['Bloomberg Name'].str.contains('curncy', case=False, na=False)
                     df.drop(df[~mask].index, inplace=True)
 
-            money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
+            money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
             for df in [peak_holdings, trough_holdings]:
                 ticker_symbols = df['Ticker'].str.split().str[0]
                 is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)

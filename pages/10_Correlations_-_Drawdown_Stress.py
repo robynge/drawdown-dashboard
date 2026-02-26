@@ -24,7 +24,7 @@ def _filter_non_stocks(holdings):
     result = holdings.copy()
     if 'Bloomberg Name' in result.columns:
         result = result[~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
     ticker_symbols = result['Ticker'].str.split().str[0]
     is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
     result = result[~is_mm]

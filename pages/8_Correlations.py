@@ -398,16 +398,24 @@ with cols[0]:
         st.markdown("##### Correlation Type")
         use_weighted_corr = st.toggle("Weighted Correlation", value=False)
 
+MONEY_MARKET_PREFIXES = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
+
+
 def _filter_non_stocks(holdings):
     """Filter out currency and money market tickers"""
     result = holdings.copy()
     if 'Bloomberg Name' in result.columns:
         result = result[~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
     ticker_symbols = result['Ticker'].str.split().str[0]
-    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
+    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in MONEY_MARKET_PREFIXES) if pd.notna(x) else False)
     result = result[~is_mm]
     return result
+
+
+def is_non_stock_ticker(ticker):
+    """Check if a ticker is a money market fund or cash instrument"""
+    ticker_clean = ticker.split()[0] if isinstance(ticker, str) else ticker
+    return any(ticker_clean.startswith(p) for p in MONEY_MARKET_PREFIXES)
 
 
 @st.cache_data
@@ -492,10 +500,13 @@ with st.spinner("Loading correlations..."):
         num_periods = 1
         total_days = lookback_days
         # For precomputed data, determine excluded tickers by comparing with current holdings
+        # Filter out money market funds from excluded list (they shouldn't be shown)
         if len(corr_matrix) > 0 and len(current_tickers) > 0:
             included = set(t.split()[0] for t in corr_matrix.columns)
             current_clean = set(t.split()[0] for t in current_tickers)
-            excluded_tickers = sorted(current_clean - included)
+            excluded_raw = current_clean - included
+            # Remove money market funds from excluded list
+            excluded_tickers = sorted([t for t in excluded_raw if not is_non_stock_ticker(t)])
 
     elif correlation_mode == "Drawdown":
         # Filter returns to drawdown periods only
