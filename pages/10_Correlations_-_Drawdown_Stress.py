@@ -451,8 +451,8 @@ if len(stress_corr) > 0:
                 dd_excluded_str = ', '.join(sorted(drawdown_excluded)) if drawdown_excluded else 'None'
                 rec_excluded_str = ', '.join(sorted(recovery_excluded)) if recovery_excluded else 'None'
 
-                caption_text = f"*Drawdown correlation excluded (not consistently in portfolio): {dd_excluded_str}*<br>"
-                caption_text += f"*Recovery correlation excluded (not consistently in portfolio): {rec_excluded_str}*"
+                caption_text = f"*Drawdown correlation excluded: {dd_excluded_str} (less than 50% price data during drawdown periods)*<br>"
+                caption_text += f"*Recovery correlation excluded: {rec_excluded_str} (less than 50% price data during recovery periods)*"
 
                 st.markdown(f"<small>{caption_text}</small>", unsafe_allow_html=True)
             else:
