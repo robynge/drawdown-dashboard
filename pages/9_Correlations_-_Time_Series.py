@@ -69,6 +69,25 @@ with cols[0]:
 
         ""  # Space
 
+        st.markdown("##### Lookback Period")
+        lookback_options = {
+            "60 Days": 60,
+            "120 Days": 120,
+            "250 Days": 250
+        }
+        selected_lookback = st.pills(
+            "Lookback",
+            options=list(lookback_options.keys()),
+            default="120 Days",
+            label_visibility="collapsed",
+            key="ts_lookback_selector"
+        )
+        if selected_lookback is None:
+            selected_lookback = "120 Days"
+        lookback_days = lookback_options[selected_lookback]
+
+        ""  # Space
+
         st.markdown("##### Rolling Window")
         rolling_options = {
             "20 Days": 20,
@@ -86,13 +105,30 @@ with cols[0]:
         if selected_rolling is None:
             selected_rolling = "60 Days"
         rolling_window = rolling_options[selected_rolling]
-        st.caption("Number of days used to calculate each correlation point")
+
+        ""  # Space
+
+        st.markdown("##### Correlation Type")
+        use_weighted = st.toggle("Weighted Correlation", value=True, key="ts_weighted_toggle")
 
 # Load data
 with st.spinner("Loading correlation data..."):
     rolling_corr = load_rolling_correlations(selected_etf, period_key, rolling_window)
     current_weights = load_current_weights(selected_etf, period_key)
     etf_prices = load_etf_prices(selected_etf)
+
+# Filter data by lookback period (last N trading days)
+if len(rolling_corr) > 0:
+    rolling_corr_filtered = filter_by_period(rolling_corr, start_date, end_date)
+    # Apply lookback filter - take last N rows
+    if len(rolling_corr_filtered) > lookback_days:
+        rolling_corr_filtered = rolling_corr_filtered.tail(lookback_days)
+else:
+    rolling_corr_filtered = pd.DataFrame()
+
+# Choose which correlation column to use based on toggle
+corr_col = 'weighted_mean_corr' if use_weighted else 'mean_corr'
+corr_label = 'Weighted' if use_weighted else 'Unweighted'
 
 # Summary Statistics
 with cols[0]:
@@ -102,80 +138,56 @@ with cols[0]:
     with stats_card:
         st.markdown("##### Summary Statistics")
 
-        if len(rolling_corr) > 0:
-            # Filter to period
-            rolling_corr_filtered = filter_by_period(rolling_corr, start_date, end_date)
+        if len(rolling_corr_filtered) > 0:
+            st.markdown(f"**Data Points:** {len(rolling_corr_filtered)}")
 
-            if len(rolling_corr_filtered) > 0:
-                st.markdown(f"**Data Points:** {len(rolling_corr_filtered)}")
+            ""  # Space
 
-                ""  # Space
+            # Current correlation (latest value)
+            latest_corr = rolling_corr_filtered.iloc[-1]
+            st.markdown("**Latest Correlation**")
+            st.markdown(f"{corr_label}: **{latest_corr[corr_col]:.3f}**")
 
-                # Current correlation (latest value)
-                latest_corr = rolling_corr_filtered.iloc[-1]
-                st.markdown("**Latest Correlation**")
-                st.markdown(f"Weighted: **{latest_corr['weighted_mean_corr']:.3f}**")
-                st.markdown(f"Unweighted: **{latest_corr['mean_corr']:.3f}**")
+            ""  # Space
 
-                ""  # Space
-
-                # Period statistics
-                st.markdown("**Period Statistics**")
-                st.markdown(f"Mean: **{rolling_corr_filtered['weighted_mean_corr'].mean():.3f}**")
-                st.markdown(f"Min: **{rolling_corr_filtered['weighted_mean_corr'].min():.3f}**")
-                st.markdown(f"Max: **{rolling_corr_filtered['weighted_mean_corr'].max():.3f}**")
-            else:
-                st.warning("No data for selected period")
+            # Period statistics
+            st.markdown("**Period Statistics**")
+            st.markdown(f"Mean: **{rolling_corr_filtered[corr_col].mean():.3f}**")
+            st.markdown(f"Min: **{rolling_corr_filtered[corr_col].min():.3f}**")
+            st.markdown(f"Max: **{rolling_corr_filtered[corr_col].max():.3f}**")
         else:
-            st.warning("No rolling correlation data available")
+            st.warning("No data for selected period")
 
 # Main chart area
 with cols[1]:
     ts_card = st.container(border=True)
     with ts_card:
-        if len(rolling_corr) > 0:
-            rolling_corr_filtered = filter_by_period(rolling_corr, start_date, end_date)
+        if len(rolling_corr_filtered) > 0:
+            fig_ts = go.Figure()
 
-            if len(rolling_corr_filtered) > 0:
-                fig_ts = go.Figure()
+            # Main correlation line based on toggle
+            fig_ts.add_trace(go.Scatter(
+                x=rolling_corr_filtered['Date'],
+                y=rolling_corr_filtered[corr_col],
+                mode='lines',
+                name=f'{corr_label} Mean',
+                line=dict(color='steelblue', width=2),
+                hovertemplate=f'<b>{corr_label} Mean</b><br>Date: %{{x|%Y-%m-%d}}<br>Correlation: %{{y:.4f}}<extra></extra>'
+            ))
 
-                # Weighted mean correlation (primary)
-                fig_ts.add_trace(go.Scatter(
-                    x=rolling_corr_filtered['Date'],
-                    y=rolling_corr_filtered['weighted_mean_corr'],
-                    mode='lines',
-                    name='Weighted Mean',
-                    line=dict(color='steelblue', width=2),
-                    hovertemplate='<b>Weighted Mean</b><br>Date: %{x|%Y-%m-%d}<br>Correlation: %{y:.4f}<extra></extra>'
-                ))
+            fig_ts.update_layout(
+                title=f"{selected_etf} Rolling {rolling_window}-Day {corr_label} Correlation (Last {lookback_days} Days)",
+                xaxis_title="Date",
+                yaxis_title="Correlation",
+                height=400,
+                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                xaxis=dict(gridcolor='lightgray'),
+                yaxis=dict(gridcolor='lightgray')
+            )
 
-                # Unweighted mean correlation
-                fig_ts.add_trace(go.Scatter(
-                    x=rolling_corr_filtered['Date'],
-                    y=rolling_corr_filtered['mean_corr'],
-                    mode='lines',
-                    name='Unweighted Mean',
-                    line=dict(color='red', width=2, dash='dash'),
-                    hovertemplate='<b>Unweighted Mean</b><br>Date: %{x|%Y-%m-%d}<br>Correlation: %{y:.4f}<extra></extra>'
-                ))
-
-                fig_ts.update_layout(
-                    title=f"{selected_etf} Rolling {rolling_window}-Day Pairwise Correlation",
-                    xaxis_title="Date",
-                    yaxis_title="Correlation",
-                    height=400,
-                    legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    xaxis=dict(gridcolor='lightgray'),
-                    yaxis=dict(gridcolor='lightgray')
-                )
-
-                st.plotly_chart(fig_ts, use_container_width=True)
-
-                st.markdown(f"<small>*Solid blue = weighted by position size (large positions matter more). Dashed red = unweighted (equal weight to all pairs). Rising values indicate increasing concentration risk.*</small>", unsafe_allow_html=True)
-            else:
-                st.warning(f"No rolling correlation data available for the selected period.")
+            st.plotly_chart(fig_ts, use_container_width=True)
         else:
             st.warning(f"No precomputed rolling correlations available for {selected_etf} with {rolling_window}-day window. Run `python convert_to_parquet.py` to generate.")
 
@@ -186,18 +198,15 @@ st.subheader("Correlation vs Performance Analysis")
 
 perf_card = st.container(border=True)
 with perf_card:
-    if len(etf_prices) > 0 and len(rolling_corr) > 0:
-        # Filter rolling correlations to analysis period
-        rolling_corr_filtered = filter_by_period(rolling_corr, start_date, end_date)
-
+    if len(etf_prices) > 0 and len(rolling_corr_filtered) > 0:
         # Calculate ETF returns
-        etf_prices = etf_prices.copy()
-        etf_prices['Return'] = etf_prices['Close'].pct_change(fill_method=None)
+        etf_prices_copy = etf_prices.copy()
+        etf_prices_copy['Return'] = etf_prices_copy['Close'].pct_change(fill_method=None)
 
         # Merge correlation data with ETF returns
         corr_perf = pd.merge(
             rolling_corr_filtered,
-            etf_prices[['Date', 'Close', 'Return']],
+            etf_prices_copy[['Date', 'Close', 'Return']],
             on='Date',
             how='inner'
         )
@@ -221,21 +230,21 @@ with perf_card:
                 secondary_y=False
             )
 
-            # Weighted correlation
+            # Correlation line based on toggle
             fig_perf.add_trace(
                 go.Scatter(
                     x=corr_perf['Date'],
-                    y=corr_perf['weighted_mean_corr'],
+                    y=corr_perf[corr_col],
                     mode='lines',
-                    name='Weighted Correlation',
+                    name=f'{corr_label} Correlation',
                     line=dict(color='steelblue', width=2, dash='dot'),
-                    hovertemplate='<b>Weighted Correlation</b><br>Date: %{x|%Y-%m-%d}<br>Correlation: %{y:.4f}<extra></extra>'
+                    hovertemplate=f'<b>{corr_label} Correlation</b><br>Date: %{{x|%Y-%m-%d}}<br>Correlation: %{{y:.4f}}<extra></extra>'
                 ),
                 secondary_y=True
             )
 
             fig_perf.update_layout(
-                title=f"{selected_etf} Cumulative Return vs Rolling {rolling_window}-Day Weighted Correlation",
+                title=f"{selected_etf} Cumulative Return vs Rolling {rolling_window}-Day {corr_label} Correlation",
                 height=450,
                 legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                 plot_bgcolor='white',
@@ -245,7 +254,7 @@ with perf_card:
 
             fig_perf.update_xaxes(title_text="Date", gridcolor='lightgray')
             fig_perf.update_yaxes(title_text="Cumulative Return (%)", secondary_y=False, gridcolor='lightgray')
-            fig_perf.update_yaxes(title_text="Weighted Correlation", secondary_y=True)
+            fig_perf.update_yaxes(title_text=f"{corr_label} Correlation", secondary_y=True)
 
             st.plotly_chart(fig_perf, use_container_width=True)
 
@@ -255,10 +264,10 @@ with perf_card:
             st.markdown("#### Correlation Regime Analysis")
 
             # Split into high/low correlation regimes
-            median_corr = corr_perf['weighted_mean_corr'].median()
+            median_corr = corr_perf[corr_col].median()
 
-            high_corr = corr_perf[corr_perf['weighted_mean_corr'] >= median_corr]
-            low_corr = corr_perf[corr_perf['weighted_mean_corr'] < median_corr]
+            high_corr = corr_perf[corr_perf[corr_col] >= median_corr]
+            low_corr = corr_perf[corr_perf[corr_col] < median_corr]
 
             # Calculate statistics for each regime
             regime_cols = st.columns(2)
@@ -290,17 +299,6 @@ with perf_card:
                     st.metric("Annualized Volatility", f"{low_volatility:.1f}%")
                     st.metric("Sharpe Ratio", f"{low_sharpe:.2f}")
                     st.caption(f"Days: {len(low_corr)}")
-
-            ""  # Space
-
-            # Summary insight
-            if len(high_corr) > 0 and len(low_corr) > 0:
-                if low_avg_return > high_avg_return:
-                    insight = f"Lower correlation = Better performance: When correlation is below {median_corr:.3f}, {selected_etf} has higher annualized returns ({low_avg_return:.1f}% vs {high_avg_return:.1f}%)."
-                else:
-                    insight = f"Higher correlation = Better performance: When correlation is above {median_corr:.3f}, {selected_etf} has higher annualized returns ({high_avg_return:.1f}% vs {low_avg_return:.1f}%)."
-
-                st.info(insight)
         else:
             st.warning("Could not merge correlation and price data.")
     else:
@@ -316,38 +314,33 @@ st.subheader("Data Download")
 
 download_card = st.container(border=True)
 with download_card:
-    if len(rolling_corr) > 0:
-        rolling_corr_filtered = filter_by_period(rolling_corr, start_date, end_date)
+    if len(rolling_corr_filtered) > 0:
+        st.markdown(f"**Rolling Correlation Data** ({len(rolling_corr_filtered)} records)")
 
-        if len(rolling_corr_filtered) > 0:
-            st.markdown(f"**Rolling Correlation Data** ({len(rolling_corr_filtered)} records)")
+        # Display table
+        display_df = rolling_corr_filtered.copy()
+        display_df['Date'] = display_df['Date'].dt.strftime('%Y-%m-%d')
+        display_df = display_df.rename(columns={
+            'mean_corr': 'Unweighted Mean',
+            'median_corr': 'Median',
+            'weighted_mean_corr': 'Weighted Mean'
+        })
 
-            # Display table
-            display_df = rolling_corr_filtered.copy()
-            display_df['Date'] = display_df['Date'].dt.strftime('%Y-%m-%d')
-            display_df = display_df.rename(columns={
-                'mean_corr': 'Unweighted Mean',
-                'median_corr': 'Median',
-                'weighted_mean_corr': 'Weighted Mean'
-            })
+        st.dataframe(
+            display_df.round(4),
+            use_container_width=True,
+            height=300
+        )
 
-            st.dataframe(
-                display_df.round(4),
-                use_container_width=True,
-                height=300
-            )
+        ""  # Space
 
-            ""  # Space
-
-            # Download button
-            csv_data = rolling_corr_filtered.to_csv(index=False)
-            st.download_button(
-                label="Download Rolling Correlations (CSV)",
-                data=csv_data,
-                file_name=f"{selected_etf}_rolling_correlations_{rolling_window}d.csv",
-                mime="text/csv"
-            )
-        else:
-            st.warning("No data available for download in the selected period.")
+        # Download button
+        csv_data = rolling_corr_filtered.to_csv(index=False)
+        st.download_button(
+            label="Download Rolling Correlations (CSV)",
+            data=csv_data,
+            file_name=f"{selected_etf}_rolling_correlations_{rolling_window}d.csv",
+            mime="text/csv"
+        )
     else:
         st.warning("No rolling correlation data available.")

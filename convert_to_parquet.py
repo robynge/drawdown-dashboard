@@ -1387,9 +1387,12 @@ def precompute_stress_correlations():
             if len(dd_holdings) == 0:
                 continue
 
-            # Pivot to get price matrix
+            # Pivot to get price and weight matrices
             price_matrix = dd_holdings.pivot_table(
                 index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
+            )
+            weight_matrix = dd_holdings.pivot_table(
+                index='Date', columns='Ticker', values='Weight', aggfunc='first'
             )
 
             # Need at least 5 days of data
@@ -1398,13 +1401,15 @@ def precompute_stress_correlations():
 
             # Drop tickers with too many missing values (>50% missing)
             min_data_points = len(price_matrix) * 0.5
-            price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
+            valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
+            price_matrix = price_matrix[valid_tickers]
+            weight_matrix = weight_matrix[valid_tickers]
 
             if len(price_matrix.columns) < 2:
                 continue
 
             # Calculate returns and correlation
-            returns = price_matrix.pct_change().dropna()
+            returns = price_matrix.pct_change(fill_method=None).dropna()
             if len(returns) < 3:
                 continue
 
@@ -1414,10 +1419,28 @@ def precompute_stress_correlations():
             n = len(corr_matrix.columns)
             triu_i, triu_j = np.triu_indices(n, k=1)
             corr_values = corr_matrix.values[triu_i, triu_j]
-            valid_corrs = corr_values[~np.isnan(corr_values)]
+            valid_mask = ~np.isnan(corr_values)
+            valid_corrs = corr_values[valid_mask]
 
             if len(valid_corrs) == 0:
                 continue
+
+            # Calculate weighted correlation using weights at peak date
+            weights_at_peak = dd_holdings[dd_holdings['Date'] == dd_holdings['Date'].min()][['Ticker', 'Weight']]
+            weights_at_peak = weights_at_peak[weights_at_peak['Ticker'].isin(corr_matrix.columns)]
+
+            if len(weights_at_peak) > 0:
+                weights_dict = dict(zip(weights_at_peak['Ticker'], weights_at_peak['Weight']))
+                weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
+                weight_mat = np.outer(weights_arr, weights_arr)
+                pair_weights = weight_mat[triu_i, triu_j]
+                valid_weight_mask = valid_mask & (pair_weights > 0)
+                if valid_weight_mask.any():
+                    weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
+                else:
+                    weighted_mean = np.mean(valid_corrs)
+            else:
+                weighted_mean = np.mean(valid_corrs)
 
             # Calculate stress correlation stats
             stress_results.append({
@@ -1429,6 +1452,7 @@ def precompute_stress_correlations():
                 'num_tickers': len(corr_matrix.columns),
                 'num_pairs': len(valid_corrs),
                 'mean_corr': np.mean(valid_corrs),
+                'weighted_mean_corr': weighted_mean,
                 'median_corr': np.median(valid_corrs),
                 'min_corr': np.min(valid_corrs),
                 'max_corr': np.max(valid_corrs),

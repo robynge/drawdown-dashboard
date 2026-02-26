@@ -19,24 +19,29 @@ from data_loader import load_etf_prices, load_ark_holdings, get_ark_files_hash
 from session_utils import init_session_state, get_current_dates, render_period_selector
 
 
-def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.DataFrame) -> float:
+def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.DataFrame) -> tuple:
     """Calculate mean correlation during recovery periods.
 
     Recovery period = from trough of one drawdown to peak of the next drawdown.
     All recovery periods are combined to calculate the overall average correlation.
+
+    Returns:
+        tuple: (unweighted_mean, weighted_mean)
     """
     if len(stress_corr_df) < 2:
-        return 0.0
+        return 0.0, 0.0
 
     # Load full holdings data
     holdings = load_ark_holdings(files_hash, etf)
     if len(holdings) == 0:
-        return 0.0
+        return 0.0, 0.0
 
     # Sort drawdowns by trough_date to get chronological order
     sorted_dd = stress_corr_df.sort_values('trough_date').reset_index(drop=True)
 
     recovery_corrs = []
+    recovery_weighted_corrs = []
+    recovery_weights = []
 
     for i in range(len(sorted_dd) - 1):
         # Recovery period: from trough of current drawdown to peak of next drawdown
@@ -100,15 +105,39 @@ def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.Data
         n = len(corr_matrix.columns)
         triu_i, triu_j = np.triu_indices(n, k=1)
         corr_values = corr_matrix.values[triu_i, triu_j]
-        valid_corrs = corr_values[~np.isnan(corr_values)]
+        valid_mask = ~np.isnan(corr_values)
+        valid_corrs = corr_values[valid_mask]
 
         if len(valid_corrs) > 0:
             recovery_corrs.extend(valid_corrs)
 
-    if len(recovery_corrs) == 0:
-        return 0.0
+            # Calculate weighted correlation using weights at recovery start
+            weights_at_start = period_holdings[period_holdings['Date'] == period_holdings['Date'].min()][['Ticker', 'Weight']]
+            weights_at_start = weights_at_start[weights_at_start['Ticker'].isin(corr_matrix.columns)]
 
-    return np.mean(recovery_corrs)
+            if len(weights_at_start) > 0:
+                weights_dict = dict(zip(weights_at_start['Ticker'], weights_at_start['Weight']))
+                weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
+                weight_mat = np.outer(weights_arr, weights_arr)
+                pair_weights = weight_mat[triu_i, triu_j]
+                valid_weight_mask = valid_mask & (pair_weights > 0)
+                if valid_weight_mask.any():
+                    weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
+                    recovery_weighted_corrs.append(weighted_mean)
+                    recovery_weights.append(valid_weight_mask.sum())
+
+    if len(recovery_corrs) == 0:
+        return 0.0, 0.0
+
+    unweighted_mean = np.mean(recovery_corrs)
+
+    if len(recovery_weighted_corrs) > 0:
+        # Weight each period's weighted correlation by number of valid pairs
+        weighted_mean = np.average(recovery_weighted_corrs, weights=recovery_weights)
+    else:
+        weighted_mean = unweighted_mean
+
+    return unweighted_mean, weighted_mean
 
 
 st.set_page_config(
@@ -143,18 +172,34 @@ if 'stress_etf' not in st.session_state:
     st.session_state.stress_etf = ARK_ETFS[0]
 selected_etf = st.session_state.stress_etf
 
+# Get weighted toggle from session state (default False)
+use_weighted = st.session_state.get('stress_weighted_toggle', False)
+
+# Determine which correlation column to use based on toggle
+corr_col = 'weighted_mean_corr' if use_weighted else 'mean_corr'
+corr_label = 'Weighted' if use_weighted else 'Unweighted'
+
 # Load data
 files_hash = get_ark_files_hash()
 stress_corr = load_stress_correlations(selected_etf)
 
-# Calculate recovery correlation
-recovery_corr = 0.0
+# Calculate recovery correlation (both unweighted and weighted)
+recovery_corr_unweighted = 0.0
+recovery_corr_weighted = 0.0
 if len(stress_corr) >= 2:
-    recovery_corr = calculate_recovery_correlation(files_hash, selected_etf, stress_corr)
+    recovery_corr_unweighted, recovery_corr_weighted = calculate_recovery_correlation(files_hash, selected_etf, stress_corr)
+
+# Select the appropriate recovery correlation based on toggle
+recovery_corr = recovery_corr_weighted if use_weighted else recovery_corr_unweighted
 
 if len(stress_corr) > 0:
-    # Calculate statistics
-    stress_mean = stress_corr['mean_corr'].mean()
+    # Check if weighted_mean_corr column exists
+    if corr_col not in stress_corr.columns:
+        corr_col = 'mean_corr'
+        corr_label = 'Unweighted'
+
+    # Calculate statistics using selected correlation column
+    stress_mean = stress_corr[corr_col].mean()
     correlation_increase = ((stress_mean / recovery_corr) - 1) * 100 if recovery_corr > 0 else 0
 
     # === METRICS AT THE TOP (before two-column layout) ===
@@ -165,7 +210,7 @@ if len(stress_corr) > 0:
 
     with metric_cols[1]:
         st.metric("Stress Correlation", f"{stress_mean:.3f}",
-                  help="Average correlation during drawdown periods")
+                  help=f"Average {corr_label.lower()} correlation during drawdown periods")
 
     with metric_cols[2]:
         st.metric("Correlation Increase", f"{correlation_increase:+.1f}%",
@@ -195,6 +240,11 @@ if len(stress_corr) > 0:
                 st.session_state.stress_etf = new_etf
                 st.rerun()
 
+            "" # Space
+
+            st.markdown("##### Correlation Type")
+            st.toggle("Weighted Correlation", value=use_weighted, key="stress_weighted_toggle")
+
         "" # Space
 
         stats_card = st.container(border=True)
@@ -205,12 +255,12 @@ if len(stress_corr) > 0:
 
             "" # Space
 
-            max_stress = stress_corr['mean_corr'].max()
+            max_stress = stress_corr[corr_col].max()
             st.markdown(f"**Max Stress Corr:** {max_stress:.3f}")
 
             "" # Space
 
-            min_stress = stress_corr['mean_corr'].min()
+            min_stress = stress_corr[corr_col].min()
             st.markdown(f"**Min Stress Corr:** {min_stress:.3f}")
 
     # Right column: Chart + Table
@@ -266,13 +316,13 @@ if len(stress_corr) > 0:
                     trough = row['trough_date']
                     midpoint = peak + (trough - peak) / 2
                     midpoint_dates.append(midpoint)
-                    midpoint_corrs.append(row['mean_corr'])
+                    midpoint_corrs.append(row[corr_col])
                     hover_texts.append(
                         f"<b>Drawdown #{int(row['dd_rank'])}</b><br>" +
                         f"Period: {peak.strftime('%Y-%m-%d')} to {trough.strftime('%Y-%m-%d')}<br>" +
                         f"Depth: {row['depth_pct']:.1f}%<br>" +
                         f"Duration: {row['duration_days']} days<br>" +
-                        f"Mean Correlation: {row['mean_corr']:.3f}"
+                        f"{corr_label} Correlation: {row[corr_col]:.3f}"
                     )
 
                 # Sort by date for proper line connection
@@ -286,7 +336,7 @@ if len(stress_corr) > 0:
                     x=midpoint_dates,
                     y=midpoint_corrs,
                     mode='lines+markers',
-                    name='Stress Correlation',
+                    name=f'Stress Correlation ({corr_label})',
                     line=dict(color='red', width=2),
                     marker=dict(size=12, color='red', symbol='circle'),
                     hovertemplate='%{customdata}<extra></extra>',
@@ -307,7 +357,7 @@ if len(stress_corr) > 0:
                 ))
 
                 fig_stress.update_layout(
-                    title=f"{selected_etf} Price & Stress Correlation by Drawdown",
+                    title=f"{selected_etf} Price & {corr_label} Stress Correlation by Drawdown",
                     height=550,
                     legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                     plot_bgcolor='white',
@@ -315,10 +365,10 @@ if len(stress_corr) > 0:
                     hovermode='closest',
                     xaxis=dict(title="Date", gridcolor='lightgray'),
                     yaxis=dict(title=f"{selected_etf} Price ($)", gridcolor='lightgray'),
-                    yaxis2=dict(title="Mean Correlation", overlaying='y', side='right', range=[0, 1], showgrid=False)
+                    yaxis2=dict(title=f"{corr_label} Correlation", overlaying='y', side='right', range=[0, 1], showgrid=False)
                 )
 
-                st.plotly_chart(fig_stress, width='stretch')
+                st.plotly_chart(fig_stress, use_container_width=True)
 
                 st.markdown("<small>*Colored regions show top 10 drawdown periods. Red line = stress correlation at midpoint of each drawdown. Blue dashed line = recovery correlation baseline.*</small>", unsafe_allow_html=True)
             else:
@@ -334,37 +384,38 @@ if len(stress_corr) > 0:
         display_df = stress_corr.copy()
         display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
         display_df['trough_date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
-        display_df = display_df.rename(columns={
+
+        # Rename columns based on which correlation type is selected
+        rename_map = {
             'dd_rank': 'Rank',
             'peak_date': 'Peak',
             'trough_date': 'Trough',
             'depth_pct': 'Depth %',
             'duration_days': 'Days',
             'num_tickers': 'Tickers',
-            'mean_corr': 'Mean ρ',
             'median_corr': 'Median ρ',
             'max_corr': 'Max ρ',
             'min_corr': 'Min ρ'
-        })
+        }
+        # Add the selected correlation column with appropriate name
+        rename_map[corr_col] = f'{corr_label} ρ'
+
+        display_df = display_df.rename(columns=rename_map)
 
         # Format numeric columns
-        for col in ['Depth %', 'Mean ρ', 'Median ρ', 'Max ρ', 'Min ρ']:
+        for col in ['Depth %', f'{corr_label} ρ', 'Median ρ', 'Max ρ', 'Min ρ']:
             if col in display_df.columns:
                 display_df[col] = display_df[col].apply(lambda x: f"{x:.3f}" if pd.notna(x) else "")
 
+        # Select columns for display
+        display_cols = ['Rank', 'Peak', 'Trough', 'Depth %', 'Days', 'Tickers', f'{corr_label} ρ', 'Median ρ', 'Max ρ', 'Min ρ']
+        display_cols = [c for c in display_cols if c in display_df.columns]
+
         st.dataframe(
-            display_df[['Rank', 'Peak', 'Trough', 'Depth %', 'Days', 'Tickers', 'Mean ρ', 'Median ρ', 'Max ρ', 'Min ρ']],
+            display_df[display_cols],
             hide_index=True,
-            width='stretch'
+            use_container_width=True
         )
-
-    "" # Space
-
-    # Insight
-    if stress_mean > recovery_corr:
-        st.warning(f"⚠️ **Correlations increase {correlation_increase:.0f}% during drawdowns.** Diversification benefits are reduced when the portfolio is under stress.")
-    else:
-        st.success(f"✓ **Correlations remain stable during drawdowns.** The portfolio maintains diversification benefits during stress periods.")
 
 else:
     st.warning(f"No stress correlation data for {selected_etf}. Run `python convert_to_parquet.py` to generate.")
