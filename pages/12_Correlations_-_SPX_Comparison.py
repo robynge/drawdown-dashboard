@@ -138,7 +138,7 @@ with cols[0]:
 
 # Load correlation matrices
 ark_corr = load_correlation_matrix(selected_etf, period_key, lookback_days)
-sp500_corr = load_sp500_correlation_matrix(lookback_days)
+sp500_corr = load_sp500_correlation_matrix(lookback_days, period_key=period_key)
 
 # Money market fund prefixes to filter from excluded list
 MONEY_MARKET_PREFIXES = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']

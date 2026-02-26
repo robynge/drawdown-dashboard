@@ -479,15 +479,23 @@ def check_precomputed_exists() -> bool:
     return ARK_PRECOMPUTED_DIR.exists() and any(ARK_PRECOMPUTED_DIR.glob('*.parquet'))
 
 
-def load_sp500_correlation_matrix(lookback_days: int = 120) -> pd.DataFrame:
+def load_sp500_correlation_matrix(lookback_days: int = 120, period_key: str = None) -> pd.DataFrame:
     """Load precomputed S&P 500 Top 50 correlation matrix
 
     Args:
         lookback_days: Number of days used for correlation calculation (60, 120, or 250)
+        period_key: Analysis period key (e.g., '2024-2026' or '2021-2023')
 
     Returns:
         DataFrame with correlation matrix (tickers as both index and columns)
     """
+    # Try period-specific file first
+    if period_key is not None:
+        path = ARK_PRECOMPUTED_DIR / f'SP500_top50_correlation_matrix_{period_key}_{lookback_days}d.parquet'
+        if path.exists():
+            return pd.read_parquet(path)
+
+    # Fallback to legacy file without period key
     path = ARK_PRECOMPUTED_DIR / f'SP500_top50_correlation_matrix_{lookback_days}d.parquet'
     if not path.exists():
         return pd.DataFrame()

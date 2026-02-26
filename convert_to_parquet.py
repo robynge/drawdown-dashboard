@@ -1312,7 +1312,9 @@ def precompute_position_changes():
 
 
 def precompute_sp500_correlations():
-    """Precompute S&P 500 Top 50 correlation matrices"""
+    """Precompute S&P 500 Top 50 correlation matrices per analysis period"""
+    from config import ANALYSIS_PERIODS
+
     ensure_dirs()
 
     # Load S&P 500 Top 50 prices
@@ -1327,27 +1329,33 @@ def precompute_sp500_correlations():
 
     lookback_periods = [60, 120, 250]
 
-    for lookback_days in lookback_periods:
-        print(f"  Processing {lookback_days}d lookback...")
-
-        latest_date = prices.index.max()
-        lookback_start = latest_date - pd.Timedelta(days=lookback_days)
-
-        # Filter to lookback period
-        prices_lookback = prices[prices.index >= lookback_start].copy()
-
-        if len(prices_lookback.columns) < 2:
+    for period_key, period_config in ANALYSIS_PERIODS.items():
+        period_end = period_config["end"]
+        # Use prices up to the period end date
+        prices_period = prices[prices.index <= period_end]
+        if len(prices_period) == 0:
+            print(f"  No price data for period {period_key}")
             continue
 
-        # Calculate returns and correlation
-        # Use min_periods=20 to require at least 20 overlapping days
-        returns = prices_lookback.pct_change().iloc[1:]
-        corr_matrix = returns.corr(min_periods=20)
+        for lookback_days in lookback_periods:
+            latest_date = prices_period.index.max()
+            lookback_start = latest_date - pd.Timedelta(days=lookback_days)
 
-        # Save correlation matrix
-        output_path = ARK_PRECOMPUTED_DIR / f'SP500_top50_correlation_matrix_{lookback_days}d.parquet'
-        corr_matrix.to_parquet(output_path)
-        print(f"    Saved {output_path.name} ({len(corr_matrix)} tickers)")
+            # Filter to lookback period
+            prices_lookback = prices_period[prices_period.index >= lookback_start].copy()
+
+            if len(prices_lookback.columns) < 2:
+                continue
+
+            # Calculate returns and correlation
+            # Use min_periods=20 to require at least 20 overlapping days
+            returns = prices_lookback.pct_change().iloc[1:]
+            corr_matrix = returns.corr(min_periods=20)
+
+            # Save correlation matrix with period key in filename
+            output_path = ARK_PRECOMPUTED_DIR / f'SP500_top50_correlation_matrix_{period_key}_{lookback_days}d.parquet'
+            corr_matrix.to_parquet(output_path)
+            print(f"    Saved {output_path.name} ({len(corr_matrix)} tickers)")
 
 
 def precompute_stress_correlations():
