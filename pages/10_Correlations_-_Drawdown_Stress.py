@@ -295,6 +295,8 @@ if len(stress_corr) > 0:
                 label_visibility="collapsed",
                 key="stress_etf_selector"
             )
+            if new_etf is None:
+                new_etf = selected_etf
             if new_etf != selected_etf:
                 st.session_state.stress_etf = new_etf
                 st.rerun()

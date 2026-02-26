@@ -66,6 +66,8 @@ with cols[0]:
             label_visibility="collapsed",
             key="ts_etf_selector"
         )
+        if selected_etf is None:
+            selected_etf = ARK_ETFS[0]
 
         ""  # Space
 
