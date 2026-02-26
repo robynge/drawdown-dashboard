@@ -19,29 +19,49 @@ from data_loader import load_etf_prices, load_ark_holdings, get_ark_files_hash
 from session_utils import init_session_state, get_current_dates, render_period_selector
 
 
-def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.DataFrame) -> tuple:
+def _filter_non_stocks(holdings):
+    """Filter out currency and money market tickers"""
+    result = holdings.copy()
+    if 'Bloomberg Name' in result.columns:
+        result = result[~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    ticker_symbols = result['Ticker'].str.split().str[0]
+    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
+    result = result[~is_mm]
+    return result
+
+
+def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.DataFrame) -> dict:
     """Calculate mean correlation during recovery periods.
 
     Recovery period = from trough of one drawdown to peak of the next drawdown.
-    All recovery periods are combined to calculate the overall average correlation.
+    For each recovery period, calculate the mean correlation, then average across all periods.
 
     Returns:
-        tuple: (unweighted_mean, weighted_mean)
+        dict with keys: unweighted_mean, weighted_mean, excluded_tickers
     """
+    result = {
+        'unweighted_mean': 0.0,
+        'weighted_mean': 0.0,
+        'excluded_tickers': set()
+    }
+
     if len(stress_corr_df) < 2:
-        return 0.0, 0.0
+        return result
 
     # Load full holdings data
     holdings = load_ark_holdings(files_hash, etf)
     if len(holdings) == 0:
-        return 0.0, 0.0
+        return result
+
+    holdings_filtered = _filter_non_stocks(holdings)
 
     # Sort drawdowns by trough_date to get chronological order
     sorted_dd = stress_corr_df.sort_values('trough_date').reset_index(drop=True)
 
-    recovery_corrs = []
-    recovery_weighted_corrs = []
-    recovery_weights = []
+    period_unweighted_means = []
+    period_weighted_means = []
+    all_excluded = set()
 
     for i in range(len(sorted_dd) - 1):
         # Recovery period: from trough of current drawdown to peak of next drawdown
@@ -53,91 +73,143 @@ def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.Data
             continue
 
         # Filter holdings to recovery period
-        period_holdings = holdings[
-            (holdings['Date'] >= recovery_start) &
-            (holdings['Date'] <= recovery_end)
+        period_holdings = holdings_filtered[
+            (holdings_filtered['Date'] >= recovery_start) &
+            (holdings_filtered['Date'] <= recovery_end)
         ].copy()
 
         if len(period_holdings) < 10:
             continue
 
-        # Get tickers present in this period
-        tickers = list(period_holdings['Ticker'].unique())
-
-        # Filter out currency and money market tickers
-        if 'Bloomberg Name' in period_holdings.columns:
-            currency_tickers = period_holdings[
-                period_holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-            ]['Ticker'].unique()
-            tickers = [t for t in tickers if t not in currency_tickers]
-
-        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
-        tickers = [t for t in tickers if not any(t.split()[0].startswith(p) for p in money_market_prefixes)]
-
-        if len(tickers) < 2:
-            continue
+        # Get all tickers in this period
+        all_tickers_in_period = set(t.split()[0] for t in period_holdings['Ticker'].unique())
 
         # Pivot to get price matrix
-        price_matrix = period_holdings[period_holdings['Ticker'].isin(tickers)].pivot_table(
+        price_matrix = period_holdings.pivot_table(
             index='Date',
             columns='Ticker',
             values='Stock_Price',
             aggfunc='first'
         )
 
-        # Drop tickers with too many missing values
+        # Track tickers before filtering
+        tickers_before = set(t.split()[0] for t in price_matrix.columns)
+
+        # Drop tickers with too many missing values (< 50% data)
         min_data_points = len(price_matrix) * 0.5
         price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
 
         if len(price_matrix.columns) < 2:
             continue
 
-        # Calculate daily returns
-        returns = price_matrix.pct_change(fill_method=None).iloc[1:].dropna(axis=1)
+        # Calculate daily returns - use iloc[1:] to skip first NaN row, let corr() handle remaining NaNs
+        returns = price_matrix.pct_change(fill_method=None).iloc[1:]
 
-        if len(returns) < 10 or len(returns.columns) < 2:
+        if len(returns) < 10:
             continue
 
         # Calculate correlation matrix
         corr_matrix = returns.corr()
 
+        # Track tickers after filtering
+        tickers_after = set(t.split()[0] for t in corr_matrix.columns)
+        excluded_this_period = tickers_before - tickers_after
+        all_excluded.update(excluded_this_period)
+
         # Extract upper triangle (pairwise correlations)
         n = len(corr_matrix.columns)
+        if n < 2:
+            continue
+
         triu_i, triu_j = np.triu_indices(n, k=1)
         corr_values = corr_matrix.values[triu_i, triu_j]
         valid_mask = ~np.isnan(corr_values)
         valid_corrs = corr_values[valid_mask]
 
-        if len(valid_corrs) > 0:
-            recovery_corrs.extend(valid_corrs)
+        if len(valid_corrs) == 0:
+            continue
 
-            # Calculate weighted correlation using weights at recovery start
-            weights_at_start = period_holdings[period_holdings['Date'] == period_holdings['Date'].min()][['Ticker', 'Weight']]
-            weights_at_start = weights_at_start[weights_at_start['Ticker'].isin(corr_matrix.columns)]
+        # Calculate unweighted mean for this period
+        period_unweighted_means.append(np.mean(valid_corrs))
 
-            if len(weights_at_start) > 0:
-                weights_dict = dict(zip(weights_at_start['Ticker'], weights_at_start['Weight']))
-                weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
-                weight_mat = np.outer(weights_arr, weights_arr)
-                pair_weights = weight_mat[triu_i, triu_j]
-                valid_weight_mask = valid_mask & (pair_weights > 0)
-                if valid_weight_mask.any():
-                    weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
-                    recovery_weighted_corrs.append(weighted_mean)
-                    recovery_weights.append(valid_weight_mask.sum())
+        # Calculate weighted mean for this period
+        weights_at_start = period_holdings[period_holdings['Date'] == period_holdings['Date'].min()][['Ticker', 'Weight']]
+        weights_at_start = weights_at_start[weights_at_start['Ticker'].isin(corr_matrix.columns)]
 
-    if len(recovery_corrs) == 0:
-        return 0.0, 0.0
+        if len(weights_at_start) > 0:
+            weights_dict = dict(zip(weights_at_start['Ticker'], weights_at_start['Weight']))
+            weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
+            weight_mat = np.outer(weights_arr, weights_arr)
+            pair_weights = weight_mat[triu_i, triu_j]
+            valid_weight_mask = valid_mask & (pair_weights > 0)
+            if valid_weight_mask.any():
+                weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
+                period_weighted_means.append(weighted_mean)
+            else:
+                period_weighted_means.append(np.mean(valid_corrs))
+        else:
+            period_weighted_means.append(np.mean(valid_corrs))
 
-    unweighted_mean = np.mean(recovery_corrs)
+    if len(period_unweighted_means) == 0:
+        return result
 
-    if len(recovery_weighted_corrs) > 0:
-        # Weight each period's weighted correlation by number of valid pairs
-        weighted_mean = np.average(recovery_weighted_corrs, weights=recovery_weights)
-    else:
-        weighted_mean = unweighted_mean
+    # Average across all periods (each period weighted equally)
+    result['unweighted_mean'] = np.mean(period_unweighted_means)
+    result['weighted_mean'] = np.mean(period_weighted_means) if period_weighted_means else result['unweighted_mean']
+    result['excluded_tickers'] = all_excluded
 
-    return unweighted_mean, weighted_mean
+    return result
+
+
+def get_drawdown_excluded_tickers(files_hash, etf: str, stress_corr_df: pd.DataFrame) -> set:
+    """Get tickers excluded from drawdown correlation due to incomplete data."""
+    if len(stress_corr_df) == 0:
+        return set()
+
+    holdings = load_ark_holdings(files_hash, etf)
+    if len(holdings) == 0:
+        return set()
+
+    holdings_filtered = _filter_non_stocks(holdings)
+    all_excluded = set()
+
+    for _, dd_row in stress_corr_df.iterrows():
+        peak_date = dd_row['peak_date']
+        trough_date = dd_row['trough_date']
+
+        # Filter holdings to drawdown period
+        dd_holdings = holdings_filtered[
+            (holdings_filtered['Date'] >= peak_date) &
+            (holdings_filtered['Date'] <= trough_date)
+        ].copy()
+
+        if len(dd_holdings) == 0:
+            continue
+
+        # Get all tickers in this period
+        all_tickers = set(t.split()[0] for t in dd_holdings['Ticker'].unique())
+
+        # Pivot to get price matrix
+        price_matrix = dd_holdings.pivot_table(
+            index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
+        )
+
+        if len(price_matrix) < 5:
+            continue
+
+        # Drop tickers with < 50% data
+        min_data_points = len(price_matrix) * 0.5
+        price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
+
+        # Calculate returns
+        returns = price_matrix.pct_change(fill_method=None).iloc[1:]
+
+        # Get tickers that made it through
+        tickers_included = set(t.split()[0] for t in returns.columns)
+        excluded_this_period = all_tickers - tickers_included
+        all_excluded.update(excluded_this_period)
+
+    return all_excluded
 
 
 st.set_page_config(
@@ -184,13 +256,18 @@ files_hash = get_ark_files_hash()
 stress_corr = load_stress_correlations(selected_etf)
 
 # Calculate recovery correlation (both unweighted and weighted)
-recovery_corr_unweighted = 0.0
-recovery_corr_weighted = 0.0
+recovery_result = {'unweighted_mean': 0.0, 'weighted_mean': 0.0, 'excluded_tickers': set()}
 if len(stress_corr) >= 2:
-    recovery_corr_unweighted, recovery_corr_weighted = calculate_recovery_correlation(files_hash, selected_etf, stress_corr)
+    recovery_result = calculate_recovery_correlation(files_hash, selected_etf, stress_corr)
+
+# Get drawdown excluded tickers
+drawdown_excluded = set()
+if len(stress_corr) > 0:
+    drawdown_excluded = get_drawdown_excluded_tickers(files_hash, selected_etf, stress_corr)
 
 # Select the appropriate recovery correlation based on toggle
-recovery_corr = recovery_corr_weighted if use_weighted else recovery_corr_unweighted
+recovery_corr = recovery_result['weighted_mean'] if use_weighted else recovery_result['unweighted_mean']
+recovery_excluded = recovery_result['excluded_tickers']
 
 if len(stress_corr) > 0:
     # Check if weighted_mean_corr column exists
@@ -370,7 +447,14 @@ if len(stress_corr) > 0:
 
                 st.plotly_chart(fig_stress, use_container_width=True)
 
-                st.markdown("<small>*Colored regions show top 10 drawdown periods. Red line = stress correlation at midpoint of each drawdown. Blue dashed line = recovery correlation baseline.*</small>", unsafe_allow_html=True)
+                # Build caption with excluded tickers
+                dd_excluded_str = ', '.join(sorted(drawdown_excluded)) if drawdown_excluded else 'None'
+                rec_excluded_str = ', '.join(sorted(recovery_excluded)) if recovery_excluded else 'None'
+
+                caption_text = f"*Drawdown correlation excluded (not consistently in portfolio): {dd_excluded_str}*<br>"
+                caption_text += f"*Recovery correlation excluded (not consistently in portfolio): {rec_excluded_str}*"
+
+                st.markdown(f"<small>{caption_text}</small>", unsafe_allow_html=True)
             else:
                 st.warning(f"No price data available for {selected_etf}")
 
