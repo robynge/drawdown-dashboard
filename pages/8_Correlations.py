@@ -594,9 +594,13 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             n_tickers = len(clean_labels)
             is_large_matrix = n_tickers > 50
 
+            # Mask diagonal (self-correlation = 1.0) with NaN to avoid confusing AVGO-AVGO etc.
+            display_values = corr_matrix.values.copy()
+            np.fill_diagonal(display_values, np.nan)
+
             # Create heatmap - adjust for matrix size
             heatmap_kwargs = dict(
-                z=corr_matrix.values,
+                z=display_values,
                 x=clean_labels,
                 y=clean_labels,
                 colorscale='RdBu_r',
@@ -613,7 +617,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             # Only show text in cells for small matrices
             if not is_large_matrix:
-                heatmap_kwargs['text'] = np.round(corr_matrix.values, 2)
+                heatmap_kwargs['text'] = np.round(display_values, 2)
                 heatmap_kwargs['texttemplate'] = '%{text}'
                 heatmap_kwargs['textfont'] = {"size": 8}
 
