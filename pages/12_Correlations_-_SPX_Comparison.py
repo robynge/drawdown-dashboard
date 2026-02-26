@@ -113,6 +113,8 @@ with cols[0]:
             default=ARK_ETFS[0],
             label_visibility="collapsed"
         )
+        if selected_etf is None:
+            selected_etf = ARK_ETFS[0]
 
         "" # Space
 
@@ -128,6 +130,8 @@ with cols[0]:
             default="120 Days",
             label_visibility="collapsed"
         )
+        if selected_lookback is None:
+            selected_lookback = "120 Days"
         lookback_days = lookback_options[selected_lookback]
 
         "" # Space
@@ -160,10 +164,25 @@ if ark_corr is not None and len(ark_corr) > 0 and len(current_tickers) > 0:
     excluded_raw = current_clean - included
     ark_excluded_tickers = sorted([t for t in excluded_raw if not is_non_stock_ticker(t)])
 
-# Get ARK stats
+# Filter out tickers with no valid correlations before computing stats
+sp500_excluded_tickers = []
+if len(sp500_corr) > 0:
+    has_valid = (sp500_corr.notna().sum() > 1)
+    if not has_valid.all():
+        sp500_excluded_tickers = sorted(has_valid[~has_valid].index.tolist())
+        sp500_corr = sp500_corr.loc[has_valid[has_valid].index, has_valid[has_valid].index]
+
+if ark_corr is not None and len(ark_corr) > 0:
+    has_valid_ark = (ark_corr.notna().sum() > 1)
+    if not has_valid_ark.all():
+        newly_excluded = [t.split()[0] for t in has_valid_ark[~has_valid_ark].index]
+        newly_excluded = [t for t in newly_excluded if not is_non_stock_ticker(t)]
+        ark_excluded_tickers = sorted(set(ark_excluded_tickers) | set(newly_excluded))
+        ark_corr = ark_corr.loc[has_valid_ark[has_valid_ark].index, has_valid_ark[has_valid_ark].index]
+
+# Get stats after filtering
 ark_stats = get_correlation_stats(ark_corr) if ark_corr is not None and len(ark_corr) > 0 else None
 
-# Get S&P 500 stats
 sp500_stats = None
 if len(sp500_corr) > 0:
     sp500_stats = get_correlation_stats(sp500_corr)
@@ -229,14 +248,6 @@ with cols[1]:
 
         heatmap_card = st.container(border=True)
         with heatmap_card:
-            # Filter out tickers with no valid correlations (all NaN off-diagonal)
-            sp500_excluded_tickers = []
-            has_valid = (sp500_corr.notna().sum() > 1)
-            if not has_valid.all():
-                sp500_excluded_tickers = sorted(has_valid[~has_valid].index.tolist())
-                filtered_sp = has_valid[has_valid].index
-                sp500_corr = sp500_corr.loc[filtered_sp, filtered_sp]
-
             fig_sp500 = go.Figure(data=go.Heatmap(
                 z=sp500_corr.values,
                 x=sp500_corr.columns.tolist(),
