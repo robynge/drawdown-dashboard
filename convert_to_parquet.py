@@ -348,7 +348,7 @@ def _filter_non_stocks(holdings):
 
 
 def calculate_average_pair_weights(weight_matrix, tickers):
-    """Calculate average daily pair weights for weighted mean correlation.
+    """Calculate average daily pair weights for weighted mean correlation (vectorized).
 
     Instead of using single-day weights (e.g., at peak or period end), this calculates
     the average of daily pair weights over all overlapping days. This gives more
@@ -365,23 +365,32 @@ def calculate_average_pair_weights(weight_matrix, tickers):
     triu_i, triu_j = np.triu_indices(n, k=1)
 
     # Align weight_matrix to tickers, fill missing with 0
-    wm = weight_matrix.reindex(columns=tickers).fillna(0)
+    wm = weight_matrix.reindex(columns=tickers).fillna(0).values  # Shape: (T, n)
 
-    pair_weights = []
-    for i, j in zip(triu_i, triu_j):
-        w_A = wm.iloc[:, i].values
-        w_B = wm.iloc[:, j].values
+    # Vectorized calculation: for each pair (i, j), compute mean of w_i * w_j where both > 0
+    # Extract columns for all pairs at once
+    w_i = wm[:, triu_i]  # Shape: (T, num_pairs)
+    w_j = wm[:, triu_j]  # Shape: (T, num_pairs)
 
-        # Valid days: both stocks have positive weights
-        valid_mask = (w_A > 0) & (w_B > 0)
-        if valid_mask.sum() > 0:
-            # Average daily pair weight over overlapping days
-            pair_weight = np.mean(w_A[valid_mask] * w_B[valid_mask])
-        else:
-            pair_weight = 0.0
-        pair_weights.append(pair_weight)
+    # Pair products for all days and all pairs
+    pair_products = w_i * w_j  # Shape: (T, num_pairs)
 
-    return np.array(pair_weights)
+    # Valid mask: both weights > 0
+    valid_mask = (w_i > 0) & (w_j > 0)  # Shape: (T, num_pairs)
+
+    # Count valid days per pair
+    valid_counts = valid_mask.sum(axis=0)  # Shape: (num_pairs,)
+
+    # Sum of valid pair products
+    masked_products = np.where(valid_mask, pair_products, 0.0)
+    pair_sums = masked_products.sum(axis=0)  # Shape: (num_pairs,)
+
+    # Average (avoid division by zero warning)
+    pair_weights = np.zeros_like(pair_sums)
+    nonzero_mask = valid_counts > 0
+    pair_weights[nonzero_mask] = pair_sums[nonzero_mask] / valid_counts[nonzero_mask]
+
+    return pair_weights
 
 
 def precompute_etf_drawdowns():
@@ -586,49 +595,45 @@ def precompute_weighted_correlations():
                 # Initialize weighted correlation matrix
                 weighted_corr = pd.DataFrame(np.eye(n), index=tickers, columns=tickers)
 
-                # Calculate weighted correlation for each pair
-                for i in range(n):
-                    for j in range(i + 1, n):
-                        ticker_a, ticker_b = tickers[i], tickers[j]
+                # Vectorized weighted correlation calculation
+                R = returns.values  # Shape: (T, n)
+                W = weight_matrix.reindex(columns=tickers).fillna(0).values  # Shape: (T, n)
 
-                        R_A = returns[ticker_a].values
-                        R_B = returns[ticker_b].values
-                        W_A = weight_matrix[ticker_a].values if ticker_a in weight_matrix.columns else np.zeros(len(R_A))
-                        W_B = weight_matrix[ticker_b].values if ticker_b in weight_matrix.columns else np.zeros(len(R_B))
+                triu_i, triu_j = np.triu_indices(n, k=1)
 
-                        W_t = W_A * W_B
-                        valid_mask = (~np.isnan(R_A)) & (~np.isnan(R_B))
+                for pair_idx, (i, j) in enumerate(zip(triu_i, triu_j)):
+                    R_A, R_B = R[:, i], R[:, j]
+                    W_A, W_B = W[:, i], W[:, j]
 
-                        # Require at least 20 overlapping days
-                        if valid_mask.sum() < 20:
-                            corr_val = np.nan
+                    W_t = W_A * W_B
+                    valid_mask = (~np.isnan(R_A)) & (~np.isnan(R_B))
+
+                    # Require at least 20 overlapping days
+                    if valid_mask.sum() < 20:
+                        corr_val = np.nan
+                    else:
+                        mask = valid_mask & (W_t > 0)
+                        if mask.sum() < 20:
+                            # Fall back to unweighted if not enough weighted data
+                            corr_val = np.corrcoef(R_A[valid_mask], R_B[valid_mask])[0, 1]
                         else:
-                            mask = valid_mask & (W_t > 0)
-                            if mask.sum() < 20:
-                                # Fall back to unweighted if not enough weighted data
-                                corr_val = np.corrcoef(R_A[valid_mask], R_B[valid_mask])[0, 1]
+                            w = W_t[mask]
+                            w = w / w.sum()
+                            a, b = R_A[mask], R_B[mask]
+
+                            mu_a, mu_b = np.dot(w, a), np.dot(w, b)
+                            da, db = a - mu_a, b - mu_b
+                            cov_ab = np.dot(w, da * db)
+                            var_a, var_b = np.dot(w, da * da), np.dot(w, db * db)
+
+                            if var_a > 0 and var_b > 0:
+                                corr_val = cov_ab / np.sqrt(var_a * var_b)
+                                corr_val = np.clip(corr_val, -1, 1)
                             else:
-                                w = W_t[mask]
-                                w = w / w.sum()
-                                a = R_A[mask]
-                                b = R_B[mask]
+                                corr_val = np.nan
 
-                                mu_a = np.sum(w * a)
-                                mu_b = np.sum(w * b)
-                                da = a - mu_a
-                                db = b - mu_b
-                                cov_ab = np.sum(w * da * db)
-                                var_a = np.sum(w * da * da)
-                                var_b = np.sum(w * db * db)
-
-                                if var_a > 0 and var_b > 0:
-                                    corr_val = cov_ab / np.sqrt(var_a * var_b)
-                                    corr_val = np.clip(corr_val, -1, 1)
-                                else:
-                                    corr_val = np.nan
-
-                        weighted_corr.iloc[i, j] = corr_val
-                        weighted_corr.iloc[j, i] = corr_val
+                    weighted_corr.iloc[i, j] = corr_val
+                    weighted_corr.iloc[j, i] = corr_val
 
                 output_path = ARK_PRECOMPUTED_DIR / f'{etf}_weighted_correlation_matrix_{period_key}_{lookback_days}d.parquet'
                 weighted_corr.to_parquet(output_path)
@@ -1499,104 +1504,145 @@ def generate_metadata():
     print(f"  Saved metadata to {output_path}")
 
 
-if __name__ == '__main__':
+STEPS = {
+    1: ("ARK ETFs - Excel to Parquet", convert_ark_etfs),
+    2: ("Russell 3000 - Excel to Parquet", convert_russell_3000),
+    3: ("Peer Group Cache", precompute_peer_group_cache),
+    4: ("R3000 Drawdowns (legacy)", precompute_r3000_drawdowns),
+    5: ("ARK Stock Drawdowns", precompute_ark_drawdowns),
+    6: ("ARK Holdings Max Drawdowns", precompute_ark_holdings_max_drawdowns),
+    7: ("ETF-level Drawdowns", precompute_etf_drawdowns),
+    8: ("HHI Time Series", precompute_hhi_timeseries),
+    9: ("Correlation Matrices", precompute_correlation_matrices),
+    10: ("Weighted Correlation Matrices", precompute_weighted_correlations),
+    11: ("Rolling Correlations", precompute_rolling_correlations),
+    12: ("Holdings Drawdowns", precompute_holdings_drawdowns),
+    13: ("Concentration Performance", precompute_concentration_performance),
+    14: ("R3000 Drawdowns Full", precompute_r3000_drawdowns_full),
+    15: ("Position Changes", precompute_position_changes),
+    16: ("ARK Stock Drawdowns (full)", precompute_ark_stock_drawdowns_full),
+    17: ("R3000 Stock Drawdowns (full)", precompute_r3000_stock_drawdowns_full_detailed),
+    18: ("Peer Group Drawdowns", precompute_peer_group_drawdowns),
+    19: ("IWV Total MV Drawdowns", precompute_iwv_total_mv_drawdowns),
+    20: ("IWV ETF Drawdowns", precompute_iwv_etf_drawdowns),
+    21: ("S&P 500 Top 50 Correlations", precompute_sp500_correlations),
+    22: ("Stress Correlations", precompute_stress_correlations),
+    23: ("Generate Metadata", generate_metadata),
+}
+
+# Step groups for convenience
+STEP_GROUPS = {
+    'convert': [1, 2],
+    'correlations': [9, 10, 11, 21, 22],
+    'drawdowns': [4, 5, 6, 7, 14, 16, 17, 18, 19, 20],
+    'ark': [1, 5, 6, 7, 8, 9, 10, 11, 13, 15, 16, 22],
+    'r3000': [2, 3, 4, 14, 17, 18, 19, 20],
+}
+
+
+def run_step(step_num):
+    """Run a single step by number"""
+    if step_num not in STEPS:
+        print(f"Invalid step: {step_num}")
+        return
+    name, func = STEPS[step_num]
+    print(f"Step {step_num}/{len(STEPS)}: {name}")
+    func()
+    print()
+
+
+def run_steps(step_nums):
+    """Run multiple steps"""
+    for step_num in step_nums:
+        run_step(step_num)
+
+
+def run_all():
+    """Run all steps"""
     print("=" * 60)
     print("Converting Excel files to Parquet & Precomputing All Data")
     print("=" * 60)
     print()
 
-    print("Step 1/20: ARK ETFs - Excel to Parquet")
-    convert_ark_etfs()
-    print()
-
-    print("Step 2/20: Russell 3000 - Excel to Parquet")
-    convert_russell_3000()
-    print()
-
-    print("Step 3/20: Peer Group Cache (full time series)")
-    precompute_peer_group_cache()
-    print()
-
-    print("Step 4/20: R3000 Drawdowns (legacy cache)")
-    precompute_r3000_drawdowns()
-    print()
-
-    print("Step 5/20: ARK Stock Drawdowns")
-    precompute_ark_drawdowns()
-    print()
-
-    print("Step 6/20: ARK Holdings Max Drawdowns")
-    precompute_ark_holdings_max_drawdowns()
-    print()
-
-    print("Step 7/20: ETF-level Drawdowns")
-    precompute_etf_drawdowns()
-    print()
-
-    print("Step 8/20: HHI Time Series")
-    precompute_hhi_timeseries()
-    print()
-
-    print("Step 9/20: Correlation Matrices")
-    precompute_correlation_matrices()
-    print()
-
-    print("Step 10/20: Weighted Correlation Matrices")
-    precompute_weighted_correlations()
-    print()
-
-    print("Step 11/20: Rolling Correlations")
-    precompute_rolling_correlations()
-    print()
-
-    print("Step 12/20: Holdings Drawdowns")
-    precompute_holdings_drawdowns()
-    print()
-
-    print("Step 13/20: Concentration Performance")
-    precompute_concentration_performance()
-    print()
-
-    print("Step 14/20: R3000 Drawdowns Full (precomputed)")
-    precompute_r3000_drawdowns_full()
-    print()
-
-    print("Step 15/20: Position Changes")
-    precompute_position_changes()
-    print()
-
-    print("Step 16/20: ARK Stock Drawdowns (full details)")
-    precompute_ark_stock_drawdowns_full()
-    print()
-
-    print("Step 17/20: R3000 Stock Drawdowns (full details)")
-    precompute_r3000_stock_drawdowns_full_detailed()
-    print()
-
-    print("Step 18/20: Peer Group Drawdowns")
-    precompute_peer_group_drawdowns()
-    print()
-
-    print("Step 19/23: IWV Total MV Drawdowns")
-    precompute_iwv_total_mv_drawdowns()
-    print()
-
-    print("Step 20/23: IWV ETF Drawdowns")
-    precompute_iwv_etf_drawdowns()
-    print()
-
-    print("Step 21/23: S&P 500 Top 50 Correlations")
-    precompute_sp500_correlations()
-    print()
-
-    print("Step 22/23: Stress Correlations")
-    precompute_stress_correlations()
-    print()
-
-    print("Step 23/23: Generate Metadata")
-    generate_metadata()
-    print()
+    for step_num in sorted(STEPS.keys()):
+        run_step(step_num)
 
     print("=" * 60)
     print("Done! All data precomputed.")
     print("=" * 60)
+
+
+def print_help():
+    """Print usage help"""
+    print("Usage: python convert_to_parquet.py [options]")
+    print()
+    print("Options:")
+    print("  (no args)           Run all steps")
+    print("  --step N            Run step N only (e.g., --step 11)")
+    print("  --steps N,M,O       Run steps N, M, O (e.g., --steps 9,10,11)")
+    print("  --group NAME        Run a predefined group of steps")
+    print("  --list              List all steps")
+    print("  --help              Show this help")
+    print()
+    print("Step Groups:")
+    for group, steps in STEP_GROUPS.items():
+        print(f"  {group:15} Steps {steps}")
+    print()
+    print("Examples:")
+    print("  python convert_to_parquet.py --step 22           # Run stress correlations only")
+    print("  python convert_to_parquet.py --steps 9,10,11,22  # Run correlation-related steps")
+    print("  python convert_to_parquet.py --group correlations")
+
+
+def list_steps():
+    """List all available steps"""
+    print("Available steps:")
+    print()
+    for step_num, (name, _) in sorted(STEPS.items()):
+        print(f"  {step_num:2}: {name}")
+
+
+if __name__ == '__main__':
+    import sys
+
+    args = sys.argv[1:]
+
+    if not args:
+        run_all()
+    elif '--help' in args or '-h' in args:
+        print_help()
+    elif '--list' in args:
+        list_steps()
+    elif '--step' in args:
+        idx = args.index('--step')
+        if idx + 1 < len(args):
+            step_num = int(args[idx + 1])
+            ensure_dirs()
+            run_step(step_num)
+        else:
+            print("Error: --step requires a step number")
+    elif '--steps' in args:
+        idx = args.index('--steps')
+        if idx + 1 < len(args):
+            step_nums = [int(x.strip()) for x in args[idx + 1].split(',')]
+            ensure_dirs()
+            run_steps(step_nums)
+        else:
+            print("Error: --steps requires step numbers (comma-separated)")
+    elif '--group' in args:
+        idx = args.index('--group')
+        if idx + 1 < len(args):
+            group_name = args[idx + 1]
+            if group_name in STEP_GROUPS:
+                ensure_dirs()
+                print(f"Running group '{group_name}': steps {STEP_GROUPS[group_name]}")
+                print()
+                run_steps(STEP_GROUPS[group_name])
+            else:
+                print(f"Unknown group: {group_name}")
+                print(f"Available groups: {list(STEP_GROUPS.keys())}")
+        else:
+            print("Error: --group requires a group name")
+    else:
+        print(f"Unknown argument: {args[0]}")
+        print("Use --help for usage information")

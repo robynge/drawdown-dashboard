@@ -32,7 +32,7 @@ def _filter_non_stocks(holdings):
 
 
 def calculate_average_pair_weights(weight_matrix, tickers):
-    """Calculate average daily pair weights for weighted mean correlation.
+    """Calculate average daily pair weights for weighted mean correlation (vectorized).
 
     Instead of using single-day weights (e.g., at peak or period end), this calculates
     the average of daily pair weights over all overlapping days. This gives more
@@ -49,23 +49,25 @@ def calculate_average_pair_weights(weight_matrix, tickers):
     triu_i, triu_j = np.triu_indices(n, k=1)
 
     # Align weight_matrix to tickers, fill missing with 0
-    wm = weight_matrix.reindex(columns=tickers).fillna(0)
+    wm = weight_matrix.reindex(columns=tickers).fillna(0).values  # Shape: (T, n)
 
-    pair_weights = []
-    for i, j in zip(triu_i, triu_j):
-        w_A = wm.iloc[:, i].values
-        w_B = wm.iloc[:, j].values
+    # Vectorized calculation
+    w_i = wm[:, triu_i]  # Shape: (T, num_pairs)
+    w_j = wm[:, triu_j]  # Shape: (T, num_pairs)
 
-        # Valid days: both stocks have positive weights
-        valid_mask = (w_A > 0) & (w_B > 0)
-        if valid_mask.sum() > 0:
-            # Average daily pair weight over overlapping days
-            pair_weight = np.mean(w_A[valid_mask] * w_B[valid_mask])
-        else:
-            pair_weight = 0.0
-        pair_weights.append(pair_weight)
+    pair_products = w_i * w_j
+    valid_mask = (w_i > 0) & (w_j > 0)
+    valid_counts = valid_mask.sum(axis=0)
 
-    return np.array(pair_weights)
+    masked_products = np.where(valid_mask, pair_products, 0.0)
+    pair_sums = masked_products.sum(axis=0)
+
+    # Average (avoid division by zero warning)
+    pair_weights = np.zeros_like(pair_sums)
+    nonzero_mask = valid_counts > 0
+    pair_weights[nonzero_mask] = pair_sums[nonzero_mask] / valid_counts[nonzero_mask]
+
+    return pair_weights
 
 
 def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.DataFrame) -> dict:
