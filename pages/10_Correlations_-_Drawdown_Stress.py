@@ -427,7 +427,7 @@ if len(stress_corr) > 0:
                     yaxis2=dict(title=f"{corr_label} Correlation", overlaying='y', side='right', range=[0, 1], showgrid=False)
                 )
 
-                st.plotly_chart(fig_stress, use_container_width=True)
+                st.plotly_chart(fig_stress, width='stretch')
 
                 # Show excluded tickers caption if any were excluded
                 if recovery_excluded:
@@ -476,7 +476,7 @@ if len(stress_corr) > 0:
         st.dataframe(
             display_df[display_cols],
             hide_index=True,
-            use_container_width=True
+            width='stretch'
         )
 
 else:

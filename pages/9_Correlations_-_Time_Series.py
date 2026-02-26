@@ -187,7 +187,7 @@ with cols[1]:
                 yaxis=dict(gridcolor='lightgray')
             )
 
-            st.plotly_chart(fig_ts, use_container_width=True)
+            st.plotly_chart(fig_ts, width='stretch')
         else:
             st.warning(f"No precomputed rolling correlations available for {selected_etf} with {rolling_window}-day window. Run `python convert_to_parquet.py` to generate.")
 
@@ -256,7 +256,7 @@ with perf_card:
             fig_perf.update_yaxes(title_text="Cumulative Return (%)", secondary_y=False, gridcolor='lightgray')
             fig_perf.update_yaxes(title_text=f"{corr_label} Correlation", secondary_y=True)
 
-            st.plotly_chart(fig_perf, use_container_width=True)
+            st.plotly_chart(fig_perf, width='stretch')
 
             ""  # Space
 
@@ -328,7 +328,7 @@ with download_card:
 
         st.dataframe(
             display_df.round(4),
-            use_container_width=True,
+            width='stretch',
             height=300
         )
 
