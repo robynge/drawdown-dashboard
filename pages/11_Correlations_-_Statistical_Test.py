@@ -92,7 +92,7 @@ def prepare_returns_data(_files_hash, etf, lookback_days, period_key, _start_dat
         currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
         current_tickers = [t for t in current_tickers if t not in currency_tickers]
 
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
     current_tickers = [t for t in current_tickers if not any(t.split()[0].startswith(p) for p in money_market_prefixes)]
 
     # Calculate start date for lookback period
@@ -112,26 +112,11 @@ def prepare_returns_data(_files_hash, etf, lookback_days, period_key, _start_dat
         aggfunc='first'
     )
 
-    # Track stocks before filtering
-    stocks_before = set(price_matrix.columns)
-
-    # Drop tickers with too many missing values (less than 50% data)
-    min_data_points = len(price_matrix) * 0.5
-    price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
-
     # Calculate daily returns
-    returns = price_matrix.pct_change()
+    # Don't filter stocks - let corr(min_periods=20) handle pairwise calculations
+    returns = price_matrix.pct_change(fill_method=None).iloc[1:]
 
-    # Drop first row (NaN from pct_change) and any stocks with missing data
-    returns = returns.iloc[1:]  # Remove first row
-    returns = returns.dropna(axis=1)  # Remove columns (stocks) with any NaN
-
-    # Track which stocks were dropped
-    stocks_after = set(returns.columns)
-    dropped_stocks = stocks_before - stocks_after
-    dropped_stocks = [t.split()[0] for t in dropped_stocks]  # Clean ticker names
-
-    return returns, sorted(dropped_stocks)
+    return returns, []  # No stocks dropped - using pairwise correlation
 
 def extract_pairwise_correlations(corr_matrix):
     """Extract upper triangle of correlation matrix as a flat array"""
@@ -220,10 +205,6 @@ with st.spinner("Loading data..."):
             files_hash, selected_etf, lookback_days, period_key, start_date, end_date, holdings
         )
 
-# Show dropped stocks if any
-if dropped_stocks:
-    st.caption(f"⚠️ Excluded due to incomplete data: {', '.join(dropped_stocks)}")
-
 if len(returns) >= window_size * 2:
     # Define two non-overlapping windows
     # Window B (recent): last window_size days
@@ -239,14 +220,27 @@ if len(returns) >= window_size * 2:
         returns_a = returns.iloc[window_a_start:window_a_end]
         returns_b = returns.iloc[window_b_start:window_b_end]
 
-        # Calculate correlation matrices
-        corr_a = returns_a.corr()
-        corr_b = returns_b.corr()
+        # Track all original tickers
+        all_tickers = set(t.split()[0] for t in returns.columns)
+
+        # Calculate correlation matrices with min_periods=20
+        corr_a = returns_a.corr(min_periods=20)
+        corr_b = returns_b.corr(min_periods=20)
+
+        # Remove stocks with no valid correlations (all NaN off-diagonal)
+        has_valid_a = corr_a.notna().sum() > 1
+        has_valid_b = corr_b.notna().sum() > 1
+        corr_a = corr_a.loc[has_valid_a, has_valid_a]
+        corr_b = corr_b.loc[has_valid_b, has_valid_b]
 
         # Use common columns
         common_cols = corr_a.columns.intersection(corr_b.columns)
         corr_a = corr_a.loc[common_cols, common_cols]
         corr_b = corr_b.loc[common_cols, common_cols]
+
+        # Track excluded tickers
+        included_tickers = set(t.split()[0] for t in common_cols)
+        excluded_tickers = sorted(all_tickers - included_tickers)
 
         # Extract pairwise correlations
         rho_a = extract_pairwise_correlations(corr_a)
@@ -281,7 +275,10 @@ if len(returns) >= window_size * 2:
                 st.markdown(f"Mean Correlation: **{np.mean(rho_b):.4f}**")
                 st.markdown(f"Median Correlation: **{np.median(rho_b):.4f}**")
 
-        st.markdown(f"<small>*{n_stocks} stocks, {n_pairs} pairwise correlations per window</small>", unsafe_allow_html=True)
+        st.markdown(f"<small>*{n_stocks} stocks, {n_pairs} pairwise correlations per window*</small>", unsafe_allow_html=True)
+        if excluded_tickers:
+            excluded_str = ', '.join(excluded_tickers)
+            st.markdown(f"<small>*Excluded (less than 20 overlapping days with all other stocks): {excluded_str}*</small>", unsafe_allow_html=True)
 
         ""  # Space
 

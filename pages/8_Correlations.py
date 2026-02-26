@@ -183,39 +183,88 @@ def calculate_correlation_from_returns(returns_df, weights_df=None):
                    Weighting is now only applied in statistics calculation
 
     Returns:
-        Correlation matrix DataFrame (always unweighted - weighting affects stats only)
+        tuple: (correlation matrix DataFrame, list of excluded ticker names)
     """
     if len(returns_df) < 10:  # Need minimum data points
-        return pd.DataFrame()
+        return pd.DataFrame(), []
 
     # Drop Date column if present and calculate correlations
     ticker_cols = [col for col in returns_df.columns if col not in ['Date', 'index']]
     if len(ticker_cols) == 0:
-        return pd.DataFrame()
+        return pd.DataFrame(), []
 
     returns_only = returns_df[ticker_cols]
 
     # Filter columns that have at least some data (at least 1 non-NaN value)
     valid_cols = returns_only.columns[returns_only.notna().sum() > 0]
     if len(valid_cols) < 2:
-        return pd.DataFrame()
+        return pd.DataFrame(), []
 
     returns_filtered = returns_only[valid_cols]
+    all_tickers = set(t.split()[0] for t in returns_filtered.columns)
 
     # Always calculate unweighted correlation matrix
     # Weighting is applied only in statistics (get_correlation_stats)
-    corr_matrix = returns_filtered.corr()
+    # Use min_periods=20 to require at least 20 overlapping days for each pair
+    corr_matrix = returns_filtered.corr(min_periods=20)
 
     # Remove stocks that have NO valid correlation with any other stock
-    # (all off-diagonal values are NaN)
+    # (all off-diagonal values are NaN - less than 20 overlapping days with ALL other stocks)
     has_valid_corr = (corr_matrix.notna().sum() > 1)  # >1 because diagonal is always 1.0
     corr_matrix = corr_matrix.loc[has_valid_corr, has_valid_corr]
 
-    return corr_matrix
+    # Track excluded tickers
+    included_tickers = set(t.split()[0] for t in corr_matrix.columns)
+    excluded_tickers = sorted(all_tickers - included_tickers)
+
+    return corr_matrix, excluded_tickers
 
 
-def get_correlation_stats(corr_matrix, weights_df=None):
-    """Calculate summary statistics for correlation matrix (vectorized)"""
+def calculate_average_pair_weights(weight_matrix, tickers):
+    """Calculate average daily pair weights for weighted mean correlation.
+
+    Instead of using single-day weights (e.g., at peak or period end), this calculates
+    the average of daily pair weights over all overlapping days. This gives more
+    representative weights for stocks with varying presence in the portfolio.
+
+    Args:
+        weight_matrix: DataFrame (Date x Ticker) with daily weights
+        tickers: List of tickers to calculate weights for (must match correlation matrix columns)
+
+    Returns:
+        pair_weights: 1D array of upper triangle pair weights (length = n*(n-1)/2)
+    """
+    n = len(tickers)
+    triu_i, triu_j = np.triu_indices(n, k=1)
+
+    # Align weight_matrix to tickers, fill missing with 0
+    wm = weight_matrix.reindex(columns=tickers).fillna(0)
+
+    pair_weights = []
+    for i, j in zip(triu_i, triu_j):
+        w_A = wm.iloc[:, i].values
+        w_B = wm.iloc[:, j].values
+
+        # Valid days: both stocks have positive weights
+        valid_mask = (w_A > 0) & (w_B > 0)
+        if valid_mask.sum() > 0:
+            # Average daily pair weight over overlapping days
+            pair_weight = np.mean(w_A[valid_mask] * w_B[valid_mask])
+        else:
+            pair_weight = 0.0
+        pair_weights.append(pair_weight)
+
+    return np.array(pair_weights)
+
+
+def get_correlation_stats(corr_matrix, weight_matrix=None):
+    """Calculate summary statistics for correlation matrix (vectorized)
+
+    Args:
+        corr_matrix: Correlation matrix DataFrame
+        weight_matrix: DataFrame (Date x Ticker) with daily weights for weighted stats.
+                       If None, weighted stats equal unweighted stats.
+    """
     n = len(corr_matrix.columns)
     if n < 2:
         return None
@@ -240,13 +289,9 @@ def get_correlation_stats(corr_matrix, weights_df=None):
         'max': np.max(correlations)
     }
 
-    # Calculate weighted correlation if weights provided (vectorized)
-    if weights_df is not None and len(weights_df) > 0:
-        weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
-        weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
-
-        weight_matrix = np.outer(weights_arr, weights_arr)
-        pair_weights = weight_matrix[triu_i, triu_j]
+    # Calculate weighted correlation using average daily pair weights
+    if weight_matrix is not None and len(weight_matrix) > 0:
+        pair_weights = calculate_average_pair_weights(weight_matrix, corr_matrix.columns.tolist())
 
         valid_weight_mask = valid_mask & (pair_weights > 0)
         if valid_weight_mask.any():
@@ -343,6 +388,56 @@ with cols[0]:
         st.markdown("##### Correlation Type")
         use_weighted_corr = st.toggle("Weighted Correlation", value=False)
 
+def _filter_non_stocks(holdings):
+    """Filter out currency and money market tickers"""
+    result = holdings.copy()
+    if 'Bloomberg Name' in result.columns:
+        result = result[~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
+    ticker_symbols = result['Ticker'].str.split().str[0]
+    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
+    result = result[~is_mm]
+    return result
+
+
+@st.cache_data
+def load_weight_matrix(etf, period_start, period_end):
+    """Load weight matrix (Date x Ticker) for the given period.
+
+    Returns DataFrame with Date as index and Tickers as columns, containing daily weights.
+    """
+    files_hash = get_ark_files_hash()
+    holdings = load_ark_holdings(files_hash, etf)
+
+    if len(holdings) == 0:
+        return pd.DataFrame()
+
+    # Filter non-stocks
+    holdings_filtered = _filter_non_stocks(holdings)
+
+    # Filter to period
+    holdings_period = holdings_filtered[
+        (holdings_filtered['Date'] >= period_start) &
+        (holdings_filtered['Date'] <= period_end)
+    ].copy()
+
+    if len(holdings_period) == 0:
+        return pd.DataFrame()
+
+    # Pivot to get weight matrix (Date x Ticker)
+    weight_matrix = holdings_period.pivot_table(
+        index='Date',
+        columns='Ticker',
+        values='Weight',
+        aggfunc='first'
+    )
+
+    # Forward fill weights (holdings may not change daily)
+    weight_matrix = weight_matrix.ffill()
+
+    return weight_matrix
+
+
 # Load data based on correlation mode
 with st.spinner("Loading correlations..."):
     # Load ETF drawdowns for period-based calculations
@@ -359,7 +454,23 @@ with st.spinner("Loading correlations..."):
     else:
         returns = load_correlation_returns(selected_etf, period_key, lookback_days)
 
+    # Load weight matrix for the analysis period (for weighted stats)
+    # For Overall mode: use lookback period ending at period_end
+    # For Drawdown/Recovery: use full historical data
+    if correlation_mode == "Overall":
+        period_start_for_weights = end_date - pd.Timedelta(days=lookback_days)
+        weight_matrix = load_weight_matrix(selected_etf, period_start_for_weights, end_date)
+    else:
+        # For Drawdown/Recovery, load full historical weight matrix
+        files_hash = get_ark_files_hash()
+        holdings = load_ark_holdings(files_hash, selected_etf)
+        if len(holdings) > 0:
+            weight_matrix = load_weight_matrix(selected_etf, holdings['Date'].min(), holdings['Date'].max())
+        else:
+            weight_matrix = pd.DataFrame()
+
     # Calculate correlation matrix based on mode
+    excluded_tickers = []  # Track excluded tickers for caption
     if correlation_mode == "Overall":
         # Use precomputed correlation matrices
         if use_weighted_corr:
@@ -370,14 +481,25 @@ with st.spinner("Loading correlations..."):
         period_info = f"Full {lookback_days}-day period"
         num_periods = 1
         total_days = lookback_days
+        # For precomputed data, determine excluded tickers by comparing with current holdings
+        if len(corr_matrix) > 0 and len(current_tickers) > 0:
+            included = set(t.split()[0] for t in corr_matrix.columns)
+            current_clean = set(t.split()[0] for t in current_tickers)
+            excluded_tickers = sorted(current_clean - included)
 
     elif correlation_mode == "Drawdown":
         # Filter returns to drawdown periods only
         filtered_returns = pd.DataFrame()
+        excluded_tickers = []
         if len(returns) > 0 and len(drawdown_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, drawdown_periods)
-            corr_matrix = calculate_correlation_from_returns(filtered_returns)
+            corr_matrix, excluded_tickers = calculate_correlation_from_returns(filtered_returns)
             total_days = len(filtered_returns)
+            # Filter weight_matrix to drawdown periods for weighted stats
+            if len(weight_matrix) > 0:
+                weight_matrix = filter_returns_by_periods(weight_matrix.reset_index(), drawdown_periods)
+                if len(weight_matrix) > 0 and 'Date' in weight_matrix.columns:
+                    weight_matrix = weight_matrix.set_index('Date')
         else:
             corr_matrix = pd.DataFrame()
             total_days = 0
@@ -387,10 +509,16 @@ with st.spinner("Loading correlations..."):
     else:  # Recovery
         # Filter returns to recovery periods only
         filtered_returns = pd.DataFrame()
+        excluded_tickers = []
         if len(returns) > 0 and len(recovery_periods) > 0:
             filtered_returns = filter_returns_by_periods(returns, recovery_periods)
-            corr_matrix = calculate_correlation_from_returns(filtered_returns)
+            corr_matrix, excluded_tickers = calculate_correlation_from_returns(filtered_returns)
             total_days = len(filtered_returns)
+            # Filter weight_matrix to recovery periods for weighted stats
+            if len(weight_matrix) > 0:
+                weight_matrix = filter_returns_by_periods(weight_matrix.reset_index(), recovery_periods)
+                if len(weight_matrix) > 0 and 'Date' in weight_matrix.columns:
+                    weight_matrix = weight_matrix.set_index('Date')
         else:
             corr_matrix = pd.DataFrame()
             total_days = 0
@@ -400,8 +528,8 @@ with st.spinner("Loading correlations..."):
     # Rolling correlations will be loaded later with user-selected window
 
 if corr_matrix is not None and len(corr_matrix) > 0:
-    # Get statistics
-    stats = get_correlation_stats(corr_matrix, current_weights)
+    # Get statistics using weight_matrix for average daily pair weights
+    stats = get_correlation_stats(corr_matrix, weight_matrix)
 
     # Display statistics in left panel
     with cols[0]:
@@ -499,14 +627,10 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             st.plotly_chart(fig, width='stretch')
 
-            if correlation_mode == "Drawdown":
-                st.markdown("<small>*Drawdown correlation: calculated using returns only during drawdown periods (peak → trough). Shows how holdings correlate when ETF is declining.*</small>", unsafe_allow_html=True)
-            elif correlation_mode == "Recovery":
-                st.markdown("<small>*Recovery correlation: calculated using returns only during recovery periods (trough → next peak). Shows how holdings correlate when ETF is recovering.*</small>", unsafe_allow_html=True)
-            elif use_weighted_corr:
-                st.markdown("<small>*Weighted correlation: each day's weight = w_A × w_B (product of both stocks' portfolio weights). Days when positions are larger contribute more to the correlation.*</small>", unsafe_allow_html=True)
-            else:
-                st.markdown("<small>*Holdings with less than 50% price data in the lookback period are excluded from the matrix.*</small>", unsafe_allow_html=True)
+            # Show excluded tickers caption if any were excluded
+            if excluded_tickers:
+                excluded_str = ', '.join(excluded_tickers)
+                st.markdown(f"<small>*Excluded (less than 20 overlapping days with all other stocks): {excluded_str}*</small>", unsafe_allow_html=True)
 
             ""  # Space
 

@@ -131,7 +131,7 @@ def precompute_ark_holdings_max_drawdowns():
             currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
             holdings = holdings[~holdings['Ticker'].isin(currency_tickers)]
 
-        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
         holdings = holdings[~holdings['Ticker'].str.split().str[0].apply(
             lambda t: any(t.startswith(p) for p in money_market_prefixes)
         )]
@@ -339,12 +339,49 @@ def _filter_non_stocks(holdings):
         result = result[~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
 
     # Filter out money market funds
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
     ticker_symbols = result['Ticker'].str.split().str[0]
     is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
     result = result[~is_mm]
 
     return result
+
+
+def calculate_average_pair_weights(weight_matrix, tickers):
+    """Calculate average daily pair weights for weighted mean correlation.
+
+    Instead of using single-day weights (e.g., at peak or period end), this calculates
+    the average of daily pair weights over all overlapping days. This gives more
+    representative weights for stocks with varying presence in the portfolio.
+
+    Args:
+        weight_matrix: DataFrame (Date x Ticker) with daily weights
+        tickers: List of tickers to calculate weights for (must match correlation matrix columns)
+
+    Returns:
+        pair_weights: 1D array of upper triangle pair weights (length = n*(n-1)/2)
+    """
+    n = len(tickers)
+    triu_i, triu_j = np.triu_indices(n, k=1)
+
+    # Align weight_matrix to tickers, fill missing with 0
+    wm = weight_matrix.reindex(columns=tickers).fillna(0)
+
+    pair_weights = []
+    for i, j in zip(triu_i, triu_j):
+        w_A = wm.iloc[:, i].values
+        w_B = wm.iloc[:, j].values
+
+        # Valid days: both stocks have positive weights
+        valid_mask = (w_A > 0) & (w_B > 0)
+        if valid_mask.sum() > 0:
+            # Average daily pair weight over overlapping days
+            pair_weight = np.mean(w_A[valid_mask] * w_B[valid_mask])
+        else:
+            pair_weight = 0.0
+        pair_weights.append(pair_weight)
+
+    return np.array(pair_weights)
 
 
 def precompute_etf_drawdowns():
@@ -456,16 +493,13 @@ def precompute_correlation_matrices():
                     index='Date', columns='Ticker', values='Stock_Price', aggfunc='first'
                 )
 
-                # Drop tickers with too many missing values
-                min_data_points = len(price_matrix) * 0.5
-                price_matrix = price_matrix.dropna(axis=1, thresh=int(min_data_points))
-
                 if len(price_matrix.columns) < 2:
                     continue
 
                 # Calculate returns and correlation
-                returns = price_matrix.pct_change(fill_method=None).dropna()
-                corr_matrix = returns.corr()
+                # Use min_periods=20 to require at least 20 overlapping days for each pair
+                returns = price_matrix.pct_change(fill_method=None).iloc[1:]
+                corr_matrix = returns.corr(min_periods=20)
 
                 # Save correlation matrix with period key in filename
                 output_path = ARK_PRECOMPUTED_DIR / f'{etf}_correlation_matrix_{period_key}_{lookback_days}d.parquet'
@@ -538,17 +572,11 @@ def precompute_weighted_correlations():
                     index='Date', columns='Ticker', values='Weight', aggfunc='first'
                 )
 
-                # Drop tickers with too many missing values
-                min_data_points = len(price_matrix) * 0.5
-                valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
-                price_matrix = price_matrix[valid_tickers]
-                weight_matrix = weight_matrix[valid_tickers]
-
-                if len(valid_tickers) < 2:
+                if len(price_matrix.columns) < 2:
                     continue
 
                 # Calculate returns
-                returns = price_matrix.pct_change(fill_method=None).dropna(how='all')
+                returns = price_matrix.pct_change(fill_method=None).iloc[1:]
                 weight_matrix = weight_matrix.ffill()
                 weight_matrix = weight_matrix.loc[returns.index]
 
@@ -569,33 +597,35 @@ def precompute_weighted_correlations():
                         W_B = weight_matrix[ticker_b].values if ticker_b in weight_matrix.columns else np.zeros(len(R_B))
 
                         W_t = W_A * W_B
-                        mask = (~np.isnan(R_A)) & (~np.isnan(R_B)) & (W_t > 0)
+                        valid_mask = (~np.isnan(R_A)) & (~np.isnan(R_B))
 
-                        if mask.sum() < 2:
-                            valid_mask = (~np.isnan(R_A)) & (~np.isnan(R_B))
-                            if valid_mask.sum() > 1:
+                        # Require at least 20 overlapping days
+                        if valid_mask.sum() < 20:
+                            corr_val = np.nan
+                        else:
+                            mask = valid_mask & (W_t > 0)
+                            if mask.sum() < 20:
+                                # Fall back to unweighted if not enough weighted data
                                 corr_val = np.corrcoef(R_A[valid_mask], R_B[valid_mask])[0, 1]
                             else:
-                                corr_val = np.nan
-                        else:
-                            w = W_t[mask]
-                            w = w / w.sum()
-                            a = R_A[mask]
-                            b = R_B[mask]
+                                w = W_t[mask]
+                                w = w / w.sum()
+                                a = R_A[mask]
+                                b = R_B[mask]
 
-                            mu_a = np.sum(w * a)
-                            mu_b = np.sum(w * b)
-                            da = a - mu_a
-                            db = b - mu_b
-                            cov_ab = np.sum(w * da * db)
-                            var_a = np.sum(w * da * da)
-                            var_b = np.sum(w * db * db)
+                                mu_a = np.sum(w * a)
+                                mu_b = np.sum(w * b)
+                                da = a - mu_a
+                                db = b - mu_b
+                                cov_ab = np.sum(w * da * db)
+                                var_a = np.sum(w * da * da)
+                                var_b = np.sum(w * db * db)
 
-                            if var_a > 0 and var_b > 0:
-                                corr_val = cov_ab / np.sqrt(var_a * var_b)
-                                corr_val = np.clip(corr_val, -1, 1)
-                            else:
-                                corr_val = np.nan
+                                if var_a > 0 and var_b > 0:
+                                    corr_val = cov_ab / np.sqrt(var_a * var_b)
+                                    corr_val = np.clip(corr_val, -1, 1)
+                                else:
+                                    corr_val = np.nan
 
                         weighted_corr.iloc[i, j] = corr_val
                         weighted_corr.iloc[j, i] = corr_val
@@ -662,13 +692,7 @@ def precompute_rolling_correlations():
                 index='Date', columns='Ticker', values='Weight', aggfunc='first'
             )
 
-            # Drop tickers with too many missing values (require 50% data)
-            min_data_points = len(price_matrix) * 0.5
-            valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
-            price_matrix = price_matrix[valid_tickers]
-            weight_matrix = weight_matrix[valid_tickers]
-
-            returns = price_matrix.pct_change(fill_method=None).dropna()
+            returns = price_matrix.pct_change(fill_method=None).iloc[1:]
             weight_matrix = weight_matrix.ffill()
 
             n_tickers = len(returns.columns)
@@ -694,7 +718,8 @@ def precompute_rolling_correlations():
                     if current_date < period_start:
                         continue
 
-                    corr_matrix = window_returns.corr()
+                    # Use min_periods=20 to require at least 20 overlapping days
+                    corr_matrix = window_returns.corr(min_periods=20)
 
                     corr_values = corr_matrix.values[triu_i, triu_j]
                     valid_mask = ~np.isnan(corr_values)
@@ -706,27 +731,15 @@ def precompute_rolling_correlations():
                     mean_corr = np.mean(valid_corrs)
                     median_corr = np.median(valid_corrs)
 
-                    # Weighted correlation
-                    valid_dates = holdings_dates[holdings_dates <= current_date]
-                    if len(valid_dates) == 0:
-                        weighted_mean = mean_corr
-                    else:
-                        closest_date = valid_dates[-1]
-                        weights_df = holdings_full[holdings_full['Date'] == closest_date][['Ticker', 'Weight']]
-                        weights_df = weights_df[weights_df['Ticker'].isin(corr_matrix.columns)]
+                    # Weighted correlation using average daily pair weights over the window
+                    window_weight_matrix = weight_matrix.iloc[i - rolling_window:i]
+                    pair_weights = calculate_average_pair_weights(window_weight_matrix, corr_matrix.columns.tolist())
 
-                        if len(weights_df) > 0:
-                            weights_dict = dict(zip(weights_df['Ticker'], weights_df['Weight']))
-                            weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
-                            weight_mat = np.outer(weights_arr, weights_arr)
-                            pair_weights = weight_mat[triu_i, triu_j]
-                            valid_weight_mask = valid_mask & (pair_weights > 0)
-                            if valid_weight_mask.any():
-                                weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
-                            else:
-                                weighted_mean = mean_corr
-                        else:
-                            weighted_mean = mean_corr
+                    valid_weight_mask = valid_mask & (pair_weights > 0)
+                    if valid_weight_mask.any():
+                        weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
+                    else:
+                        weighted_mean = mean_corr
 
                     results.append({
                         'Date': current_date,
@@ -1087,7 +1100,7 @@ def precompute_ark_stock_drawdowns_full():
             currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
             holdings = holdings[~holdings['Ticker'].isin(currency_tickers)]
 
-        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
         holdings = holdings[~holdings['Ticker'].str.split().str[0].apply(
             lambda t: any(t.startswith(p) for p in money_market_prefixes)
         )]
@@ -1249,7 +1262,7 @@ def precompute_position_changes():
                     mask = ~df['Bloomberg Name'].str.contains('curncy', case=False, na=False)
                     df.drop(df[~mask].index, inplace=True)
 
-            money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX']
+            money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX']
             for df in [peak_holdings, trough_holdings]:
                 ticker_symbols = df['Ticker'].str.split().str[0]
                 is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
@@ -1318,16 +1331,13 @@ def precompute_sp500_correlations():
         # Filter to lookback period
         prices_lookback = prices[prices.index >= lookback_start].copy()
 
-        # Drop tickers with too many missing values
-        min_data_points = len(prices_lookback) * 0.5
-        prices_lookback = prices_lookback.dropna(axis=1, thresh=int(min_data_points))
-
         if len(prices_lookback.columns) < 2:
             continue
 
         # Calculate returns and correlation
-        returns = prices_lookback.pct_change().dropna()
-        corr_matrix = returns.corr()
+        # Use min_periods=20 to require at least 20 overlapping days
+        returns = prices_lookback.pct_change().iloc[1:]
+        corr_matrix = returns.corr(min_periods=20)
 
         # Save correlation matrix
         output_path = ARK_PRECOMPUTED_DIR / f'SP500_top50_correlation_matrix_{lookback_days}d.parquet'
@@ -1399,23 +1409,17 @@ def precompute_stress_correlations():
             if len(price_matrix) < 5:
                 continue
 
-            # Drop tickers with too many missing values (>50% missing)
-            min_data_points = len(price_matrix) * 0.5
-            valid_tickers = price_matrix.dropna(axis=1, thresh=int(min_data_points)).columns
-            price_matrix = price_matrix[valid_tickers]
-            weight_matrix = weight_matrix[valid_tickers]
-
             if len(price_matrix.columns) < 2:
                 continue
 
             # Calculate returns and correlation
-            # Use iloc[1:] to skip first row (NaN from pct_change), don't dropna to preserve data
-            # corr() handles NaN automatically with pairwise correlation
+            # Use iloc[1:] to skip first row (NaN from pct_change)
+            # corr(min_periods=20) requires at least 20 overlapping days for each pair
             returns = price_matrix.pct_change(fill_method=None).iloc[1:]
             if len(returns) < 3:
                 continue
 
-            corr_matrix = returns.corr()
+            corr_matrix = returns.corr(min_periods=20)
 
             # Get upper triangle correlations
             n = len(corr_matrix.columns)
@@ -1427,20 +1431,12 @@ def precompute_stress_correlations():
             if len(valid_corrs) == 0:
                 continue
 
-            # Calculate weighted correlation using weights at peak date
-            weights_at_peak = dd_holdings[dd_holdings['Date'] == dd_holdings['Date'].min()][['Ticker', 'Weight']]
-            weights_at_peak = weights_at_peak[weights_at_peak['Ticker'].isin(corr_matrix.columns)]
+            # Calculate weighted correlation using average daily pair weights over the drawdown period
+            pair_weights = calculate_average_pair_weights(weight_matrix, corr_matrix.columns.tolist())
 
-            if len(weights_at_peak) > 0:
-                weights_dict = dict(zip(weights_at_peak['Ticker'], weights_at_peak['Weight']))
-                weights_arr = np.array([weights_dict.get(t, 0) for t in corr_matrix.columns])
-                weight_mat = np.outer(weights_arr, weights_arr)
-                pair_weights = weight_mat[triu_i, triu_j]
-                valid_weight_mask = valid_mask & (pair_weights > 0)
-                if valid_weight_mask.any():
-                    weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
-                else:
-                    weighted_mean = np.mean(valid_corrs)
+            valid_weight_mask = valid_mask & (pair_weights > 0)
+            if valid_weight_mask.any():
+                weighted_mean = np.average(corr_values[valid_weight_mask], weights=pair_weights[valid_weight_mask])
             else:
                 weighted_mean = np.mean(valid_corrs)
 
