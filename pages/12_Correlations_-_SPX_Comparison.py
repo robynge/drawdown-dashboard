@@ -14,6 +14,7 @@ from config import ARK_ETFS
 from precomputed_loader import (
     load_correlation_matrix,
     load_sp500_correlation_matrix,
+    load_current_weights,
     check_precomputed_exists
 )
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
@@ -83,10 +84,18 @@ def get_correlation_stats(corr_matrix):
 
     def get_pair(idx):
         i, j = triu_i[idx], triu_j[idx]
-        return (tickers_clean[i], tickers_clean[j], corr_values[idx])
+        t1, t2 = tickers_clean[i], tickers_clean[j]
+        # Skip pairs where cleaned ticker names are identical
+        if t1 == t2:
+            return None
+        return (t1, t2, corr_values[idx])
 
-    stats['highest_pairs'] = [get_pair(idx) for idx in sorted_indices[-5:][::-1]]
-    stats['lowest_pairs'] = [get_pair(idx) for idx in sorted_indices[:5]]
+    # Get pairs, filtering out None (same-ticker pairs)
+    highest_pairs = [p for p in (get_pair(idx) for idx in sorted_indices[::-1]) if p is not None][:5]
+    lowest_pairs = [p for p in (get_pair(idx) for idx in sorted_indices) if p is not None][:5]
+
+    stats['highest_pairs'] = highest_pairs
+    stats['lowest_pairs'] = lowest_pairs
 
     return stats
 
@@ -130,6 +139,17 @@ with cols[0]:
 # Load correlation matrices
 ark_corr = load_correlation_matrix(selected_etf, period_key, lookback_days)
 sp500_corr = load_sp500_correlation_matrix(lookback_days)
+
+# Load current weights to determine excluded tickers
+current_weights = load_current_weights(selected_etf, period_key)
+current_tickers = set(current_weights['Ticker'].tolist()) if len(current_weights) > 0 else set()
+
+# Determine excluded tickers for ARK
+ark_excluded_tickers = []
+if ark_corr is not None and len(ark_corr) > 0 and len(current_tickers) > 0:
+    included = set(t.split()[0] for t in ark_corr.columns)
+    current_clean = set(t.split()[0] for t in current_tickers)
+    ark_excluded_tickers = sorted(current_clean - included)
 
 # Get ARK stats
 ark_stats = get_correlation_stats(ark_corr) if ark_corr is not None and len(ark_corr) > 0 else None
@@ -301,6 +321,11 @@ with cols[1]:
             )
 
             st.plotly_chart(fig_dist, width='stretch')
+
+            # Show excluded tickers caption if any were excluded
+            if ark_excluded_tickers:
+                excluded_str = ', '.join(ark_excluded_tickers)
+                st.markdown(f"<small>*{selected_etf} excluded (less than 20 overlapping days with all other stocks): {excluded_str}*</small>", unsafe_allow_html=True)
 
             # Insight
             if sp500_stats and ark_stats:
