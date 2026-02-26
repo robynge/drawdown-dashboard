@@ -1439,12 +1439,12 @@ def precompute_stress_correlations():
 
             # Calculate returns and correlation
             # Use iloc[1:] to skip first row (NaN from pct_change)
-            # corr(min_periods=20) requires at least 20 overlapping days for each pair
             returns = price_matrix.pct_change(fill_method=None).iloc[1:]
             if len(returns) < 3:
                 continue
 
-            corr_matrix = returns.corr(min_periods=20)
+            # Use min_periods=3 (matching minimum return days filter) for stress correlations
+            corr_matrix = returns.corr(min_periods=3)
 
             # Get upper triangle correlations
             n = len(corr_matrix.columns)
