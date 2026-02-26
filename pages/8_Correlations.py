@@ -152,7 +152,8 @@ def calculate_holdings_returns(etf):
     if len(holdings) == 0:
         return pd.DataFrame()
 
-    # Filter to stocks only (exclude non-stock tickers)
+    # Filter out money market funds, currency instruments, and null tickers
+    holdings = _filter_non_stocks(holdings)
     holdings = holdings[holdings['Ticker'].notna()].copy()
 
     # Use Stock_Price column
