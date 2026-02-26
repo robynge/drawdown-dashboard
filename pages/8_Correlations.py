@@ -589,18 +589,20 @@ if corr_matrix is not None and len(corr_matrix) > 0:
     with cols[1]:
         heatmap_card = st.container(border=True)
         with heatmap_card:
+            # Filter out tickers with no valid correlations (all NaN off-diagonal)
+            has_valid = (corr_matrix.notna().sum() > 1)  # >1 because diagonal may be 1.0
+            if not has_valid.all():
+                filtered_tickers = has_valid[has_valid].index
+                corr_matrix = corr_matrix.loc[filtered_tickers, filtered_tickers]
+
             # Clean ticker names for display
             clean_labels = [t.split()[0] if isinstance(t, str) else t for t in corr_matrix.columns]
             n_tickers = len(clean_labels)
             is_large_matrix = n_tickers > 50
 
-            # Mask diagonal (self-correlation = 1.0) with NaN to avoid confusing AVGO-AVGO etc.
-            display_values = corr_matrix.values.copy()
-            np.fill_diagonal(display_values, np.nan)
-
             # Create heatmap - adjust for matrix size
             heatmap_kwargs = dict(
-                z=display_values,
+                z=corr_matrix.values,
                 x=clean_labels,
                 y=clean_labels,
                 colorscale='RdBu_r',
@@ -617,7 +619,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
 
             # Only show text in cells for small matrices
             if not is_large_matrix:
-                heatmap_kwargs['text'] = np.round(display_values, 2)
+                heatmap_kwargs['text'] = np.round(corr_matrix.values, 2)
                 heatmap_kwargs['texttemplate'] = '%{text}'
                 heatmap_kwargs['textfont'] = {"size": 8}
 

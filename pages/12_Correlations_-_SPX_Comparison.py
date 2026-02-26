@@ -229,19 +229,21 @@ with cols[1]:
 
         heatmap_card = st.container(border=True)
         with heatmap_card:
-            # Mask diagonal (self-correlation) with NaN
-            sp500_display = sp500_corr.values.copy()
-            np.fill_diagonal(sp500_display, np.nan)
+            # Filter out tickers with no valid correlations (all NaN off-diagonal)
+            has_valid = (sp500_corr.notna().sum() > 1)
+            if not has_valid.all():
+                filtered_sp = has_valid[has_valid].index
+                sp500_corr = sp500_corr.loc[filtered_sp, filtered_sp]
 
             fig_sp500 = go.Figure(data=go.Heatmap(
-                z=sp500_display,
+                z=sp500_corr.values,
                 x=sp500_corr.columns.tolist(),
                 y=sp500_corr.columns.tolist(),
                 colorscale='RdBu_r',
                 zmid=0,
                 zmin=-1,
                 zmax=1,
-                text=np.round(sp500_display, 2),
+                text=np.round(sp500_corr.values, 2),
                 texttemplate='%{text}',
                 textfont={"size": 6},
                 hovertemplate='%{x} - %{y}<br>Correlation: %{z:.3f}<extra></extra>',

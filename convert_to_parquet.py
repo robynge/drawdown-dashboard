@@ -510,6 +510,10 @@ def precompute_correlation_matrices():
                 returns = price_matrix.pct_change(fill_method=None).iloc[1:]
                 corr_matrix = returns.corr(min_periods=20)
 
+                # Remove tickers with no valid correlations (all NaN off-diagonal)
+                has_valid = (corr_matrix.notna().sum() > 1)  # >1 because diagonal is 1.0
+                corr_matrix = corr_matrix.loc[has_valid, has_valid]
+
                 # Save correlation matrix with period key in filename
                 output_path = ARK_PRECOMPUTED_DIR / f'{etf}_correlation_matrix_{period_key}_{lookback_days}d.parquet'
                 corr_matrix.to_parquet(output_path)
@@ -635,9 +639,13 @@ def precompute_weighted_correlations():
                     weighted_corr.iloc[i, j] = corr_val
                     weighted_corr.iloc[j, i] = corr_val
 
+                # Remove tickers with no valid correlations (all NaN off-diagonal)
+                has_valid = (weighted_corr.notna().sum() > 1)  # >1 because diagonal is 1.0
+                weighted_corr = weighted_corr.loc[has_valid, has_valid]
+
                 output_path = ARK_PRECOMPUTED_DIR / f'{etf}_weighted_correlation_matrix_{period_key}_{lookback_days}d.parquet'
                 weighted_corr.to_parquet(output_path)
-                print(f"    Saved {period_key} {lookback_days}d weighted correlation matrix ({n}x{n})")
+                print(f"    Saved {period_key} {lookback_days}d weighted correlation matrix ({len(weighted_corr)}x{len(weighted_corr)})")
 
 
 def precompute_rolling_correlations():
@@ -1351,6 +1359,10 @@ def precompute_sp500_correlations():
             # Use min_periods=20 to require at least 20 overlapping days
             returns = prices_lookback.pct_change().iloc[1:]
             corr_matrix = returns.corr(min_periods=20)
+
+            # Remove tickers with no valid correlations (all NaN off-diagonal)
+            has_valid = (corr_matrix.notna().sum() > 1)
+            corr_matrix = corr_matrix.loc[has_valid, has_valid]
 
             # Save correlation matrix with period key in filename
             output_path = ARK_PRECOMPUTED_DIR / f'SP500_top50_correlation_matrix_{period_key}_{lookback_days}d.parquet'
