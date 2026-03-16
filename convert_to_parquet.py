@@ -1524,6 +1524,159 @@ def generate_metadata():
     print(f"  Saved metadata to {output_path}")
 
 
+def precompute_conviction_drawdowns():
+    """Step 24: Precompute conviction vs drawdown data for each ARK ETF
+
+    Uses yfinance-downloaded prices (from fetch_ark_holdings_prices.py)
+    and holdings weights to classify drawdowns by conviction level.
+    """
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+    from config import ARK_ETFS, ANALYSIS_PERIODS
+    from data_loader import load_ark_holdings, get_ark_files_hash
+    from drawdown_calculator import calculate_drawdowns
+
+    ensure_dirs()
+
+    # Load yfinance prices
+    prices_path = OUTPUT_DIR / 'ark_holdings_prices.parquet'
+    if not prices_path.exists():
+        print(f"    Prices file not found: {prices_path}")
+        print("    Run: python src/fetch_ark_holdings_prices.py")
+        return
+
+    prices_wide = pd.read_parquet(prices_path)
+    prices_wide['Date'] = pd.to_datetime(prices_wide['Date'])
+
+    # Get full date range across all periods
+    all_starts = [p["start"] for p in ANALYSIS_PERIODS.values()]
+    all_ends = [p["end"] for p in ANALYSIS_PERIODS.values()]
+    global_start = min(all_starts)
+    global_end = max(all_ends)
+
+    files_hash = get_ark_files_hash()
+
+    for etf in ARK_ETFS:
+        print(f"  Processing {etf}...")
+        holdings = load_ark_holdings(files_hash, etf)
+        if len(holdings) == 0:
+            print(f"    No holdings data for {etf}")
+            continue
+
+        # Filter non-stocks
+        holdings_filtered = _filter_non_stocks(holdings)
+
+        # Get unique tickers (clean names)
+        ticker_map = {}  # clean -> full
+        for t in holdings_filtered['Ticker'].unique():
+            clean = t.split()[0] if pd.notna(t) and ' ' in t else t
+            if pd.notna(clean):
+                ticker_map[clean] = t
+
+        all_rows = []
+
+        for clean_ticker, full_ticker in ticker_map.items():
+            # Check if we have price data for this ticker
+            if clean_ticker not in prices_wide.columns:
+                continue
+
+            # Build price DataFrame
+            price_df = prices_wide[['Date', clean_ticker]].copy()
+            price_df.columns = ['Date', 'Close']
+            price_df = price_df.dropna()
+
+            if len(price_df) < 30:
+                continue
+
+            # Calculate drawdowns for full date range
+            dd_data = calculate_drawdowns(
+                price_df, start_date=global_start, end_date=global_end
+            )
+
+            if len(dd_data) == 0:
+                continue
+
+            # Get holdings weight data for this ticker
+            ticker_holdings = holdings_filtered[
+                holdings_filtered['Ticker'] == full_ticker
+            ][['Date', 'Weight']].copy()
+            ticker_holdings = ticker_holdings.sort_values('Date')
+
+            if len(ticker_holdings) == 0:
+                continue
+
+            # Process each drawdown (exclude Current)
+            for _, dd_row in dd_data.iterrows():
+                if dd_row['rank'] == 'Current':
+                    continue
+
+                peak_date = dd_row['peak_date']
+                trough_date = dd_row['trough_date']
+                peak_price = dd_row['peak_price']
+                depth_pct = dd_row['depth_pct']
+
+                # Find weight at peak_date: closest holdings date <= peak_date
+                holdings_before_peak = ticker_holdings[
+                    ticker_holdings['Date'] <= peak_date
+                ]
+                if len(holdings_before_peak) == 0:
+                    weight_at_peak = 0.0
+                else:
+                    weight_at_peak = holdings_before_peak.iloc[-1]['Weight']
+
+                # Classify conviction (weights are in decimal form, e.g., 0.05 = 5%)
+                if weight_at_peak >= 0.05:
+                    conviction = 'High'
+                elif weight_at_peak >= 0.01:
+                    conviction = 'Mid'
+                else:
+                    conviction = 'Low'
+
+                # Duration in calendar days
+                duration_days = (trough_date - peak_date).days
+
+                # Check recovery: did price reach peak_price after trough?
+                future_prices = price_df[price_df['Date'] > trough_date]
+                recovered = False
+                recovery_date = None
+                days_to_recover = None
+
+                if len(future_prices) > 0:
+                    recovery_prices = future_prices[future_prices['Close'] >= peak_price]
+                    if len(recovery_prices) > 0:
+                        recovered = True
+                        recovery_date = recovery_prices.iloc[0]['Date']
+                        days_to_recover = (recovery_date - trough_date).days
+
+                all_rows.append({
+                    'etf': etf,
+                    'ticker': clean_ticker,
+                    'conviction': conviction,
+                    'weight_at_peak': round(weight_at_peak * 100, 2),
+                    'peak_date': peak_date,
+                    'trough_date': trough_date,
+                    'peak_price': peak_price,
+                    'trough_price': dd_row['trough_price'],
+                    'depth_pct': depth_pct,
+                    'duration_days': duration_days,
+                    'recovered': recovered,
+                    'recovery_date': recovery_date,
+                    'days_to_recover': days_to_recover,
+                })
+
+        if all_rows:
+            result_df = pd.DataFrame(all_rows)
+            output_path = ARK_PRECOMPUTED_DIR / f'{etf}_conviction_drawdowns.parquet'
+            result_df.to_parquet(output_path, index=False)
+            print(f"    Saved {len(result_df)} conviction drawdown records "
+                  f"({len(result_df[result_df['conviction']=='High'])} High, "
+                  f"{len(result_df[result_df['conviction']=='Mid'])} Mid, "
+                  f"{len(result_df[result_df['conviction']=='Low'])} Low)")
+        else:
+            print(f"    No conviction drawdown data for {etf}")
+
+
 STEPS = {
     1: ("ARK ETFs - Excel to Parquet", convert_ark_etfs),
     2: ("Russell 3000 - Excel to Parquet", convert_russell_3000),
@@ -1548,14 +1701,15 @@ STEPS = {
     21: ("S&P 500 Top 50 Correlations", precompute_sp500_correlations),
     22: ("Stress Correlations", precompute_stress_correlations),
     23: ("Generate Metadata", generate_metadata),
+    24: ("Conviction vs Drawdown", precompute_conviction_drawdowns),
 }
 
 # Step groups for convenience
 STEP_GROUPS = {
     'convert': [1, 2],
     'correlations': [9, 10, 11, 21, 22],
-    'drawdowns': [4, 5, 6, 7, 14, 16, 17, 18, 19, 20],
-    'ark': [1, 5, 6, 7, 8, 9, 10, 11, 13, 15, 16, 22],
+    'drawdowns': [4, 5, 6, 7, 14, 16, 17, 18, 19, 20, 24],
+    'ark': [1, 5, 6, 7, 8, 9, 10, 11, 13, 15, 16, 22, 24],
     'r3000': [2, 3, 4, 14, 17, 18, 19, 20],
 }
 

@@ -503,6 +503,26 @@ def load_sp500_correlation_matrix(lookback_days: int = 120, period_key: str = No
     return pd.read_parquet(path)
 
 
+def load_conviction_drawdowns(etf: str) -> pd.DataFrame:
+    """Load precomputed conviction vs drawdown data for an ETF
+
+    Args:
+        etf: ETF name (e.g., 'ARKK')
+
+    Returns:
+        DataFrame with conviction drawdown data
+        Columns: etf, ticker, conviction, weight_at_peak, peak_date, trough_date,
+                 peak_price, trough_price, depth_pct, duration_days,
+                 recovered, recovery_date, days_to_recover
+    """
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_conviction_drawdowns.parquet'
+    if not path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_parquet(path)
+    return _ensure_datetime(df, ['peak_date', 'trough_date', 'recovery_date'])
+
+
 def load_stress_correlations(etf: str) -> pd.DataFrame:
     """Load precomputed stress correlations for an ETF
 
