@@ -16,6 +16,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, OUTPUT_DIR
+
+# ARKF excluded: insufficient stock price data for conviction analysis
+CONVICTION_ETFS = [e for e in ARK_ETFS if e != 'ARKF']
 from precomputed_loader import (
     load_conviction_drawdowns,
     check_precomputed_exists,
@@ -37,16 +40,17 @@ start_date, end_date = get_current_dates()
 st.title("Conviction vs Drawdown Analysis")
 st.markdown(f"**Analysis Period**: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
-# ETF selector
+# ETF selector (ARKF excluded due to insufficient price data)
 selected_etf = st.pills(
     "ETF",
-    options=ARK_ETFS,
-    default=ARK_ETFS[0],
+    options=CONVICTION_ETFS,
+    default=CONVICTION_ETFS[0],
     label_visibility="collapsed",
     key="conviction_etf_selector"
 )
 if selected_etf is None:
-    selected_etf = ARK_ETFS[0]
+    selected_etf = CONVICTION_ETFS[0]
+st.caption("ARKF is excluded from this analysis due to insufficient stock price data.")
 
 # Section 1: Failed Downloads
 failed_file = OUTPUT_DIR / 'ark_holdings_prices_failed.txt'

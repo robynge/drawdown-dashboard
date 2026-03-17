@@ -1557,7 +1557,10 @@ def precompute_conviction_drawdowns():
 
     files_hash = get_ark_files_hash()
 
-    for etf in ARK_ETFS:
+    # ARKF excluded: insufficient stock price data for conviction analysis
+    conviction_etfs = [e for e in ARK_ETFS if e != 'ARKF']
+
+    for etf in conviction_etfs:
         print(f"  Processing {etf}...")
         holdings = load_ark_holdings(files_hash, etf)
         if len(holdings) == 0:
