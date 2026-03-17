@@ -25,6 +25,10 @@ from session_utils import init_session_state, get_current_dates, render_period_s
 
 st.set_page_config(page_title="Conviction vs Drawdown", layout="wide")
 
+# Display labels for conviction levels
+WEIGHT_LABELS = {'High': '≥5%', 'Mid': '1%-5%', 'Low': '<1%'}
+WEIGHT_ORDER = ['≥5%', '1%-5%', '<1%']
+
 # Initialize session state
 init_session_state()
 
@@ -73,16 +77,19 @@ if len(df_period) == 0:
     st.info("No drawdown events in this analysis period.")
     st.stop()
 
+# Map conviction to weight labels for display
+df_period['weight'] = df_period['conviction'].map(WEIGHT_LABELS)
+
 # Section 2: Summary Statistics
 st.header("Summary Statistics")
 
 # Build summary table
 summary_rows = []
-for conv in ['High', 'Mid', 'Low']:
+for conv, label in WEIGHT_LABELS.items():
     group = df_period[df_period['conviction'] == conv]
     if len(group) == 0:
         summary_rows.append({
-            'Conviction': conv,
+            'Weight': label,
             'Holdings': 0,
             'Drawdown Events': 0,
             'Avg Depth (%)': None,
@@ -103,7 +110,7 @@ for conv in ['High', 'Mid', 'Low']:
     med_recovery = recovered_group['days_to_recover'].median() if len(recovered_group) > 0 else None
 
     summary_rows.append({
-        'Conviction': conv,
+        'Weight': label,
         'Holdings': n_tickers,
         'Drawdown Events': n_events,
         'Avg Depth (%)': round(avg_depth, 2),
@@ -117,25 +124,25 @@ summary_df = pd.DataFrame(summary_rows)
 st.dataframe(summary_df, width='stretch', hide_index=True)
 
 # Section 3: Drawdown Depth Box Plot
-st.header("Drawdown Depth by Conviction Level")
+st.header("Drawdown Depth by Weight")
 
 fig_box = go.Figure()
-colors = {'High': '#EF553B', 'Mid': '#FFA15A', 'Low': '#636EFA'}
+colors = {'≥5%': '#EF553B', '1%-5%': '#FFA15A', '<1%': '#636EFA'}
 
-for conv in ['High', 'Mid', 'Low']:
+for conv, label in WEIGHT_LABELS.items():
     group = df_period[df_period['conviction'] == conv]
     if len(group) == 0:
         continue
     fig_box.add_trace(go.Box(
         y=group['depth_pct'],
-        name=f"{conv} ({len(group)})",
-        marker_color=colors[conv],
+        name=f"{label} ({len(group)})",
+        marker_color=colors[label],
         boxpoints='outliers',
     ))
 
 fig_box.update_layout(
     yaxis_title="Drawdown Depth (%)",
-    xaxis_title="Conviction Level",
+    xaxis_title="Weight",
     height=500,
     showlegend=False,
 )
@@ -151,10 +158,10 @@ df_period['depth_bucket'] = pd.cut(
     right=True
 )
 
-# Group by bucket and conviction
+# Group by bucket and weight
 recovery_data = []
 for bucket in ['0-10%', '10-20%', '20-30%', '30-50%', '50%+']:
-    for conv in ['High', 'Mid', 'Low']:
+    for conv, label in WEIGHT_LABELS.items():
         group = df_period[
             (df_period['depth_bucket'] == bucket) &
             (df_period['conviction'] == conv)
@@ -163,7 +170,7 @@ for bucket in ['0-10%', '10-20%', '20-30%', '30-50%', '50%+']:
             continue
         recovery_data.append({
             'Depth Bucket': bucket,
-            'Conviction': conv,
+            'Weight': label,
             'Recovery Rate (%)': round(group['recovered'].mean() * 100, 1),
             'Count': len(group),
         })
@@ -174,9 +181,10 @@ if recovery_data:
         recovery_df,
         x='Depth Bucket',
         y='Recovery Rate (%)',
-        color='Conviction',
+        color='Weight',
         barmode='group',
         color_discrete_map=colors,
+        category_orders={'Weight': WEIGHT_ORDER},
         text='Count',
         height=500,
     )
@@ -193,13 +201,14 @@ fig_scatter = px.scatter(
     df_period,
     x='weight_at_peak',
     y='depth_pct',
-    color='conviction',
+    color='weight',
     color_discrete_map=colors,
+    category_orders={'weight': WEIGHT_ORDER},
     hover_data=['ticker', 'peak_date', 'duration_days', 'recovered'],
     labels={
         'weight_at_peak': 'Weight at Peak (%)',
         'depth_pct': 'Drawdown Depth (%)',
-        'conviction': 'Conviction',
+        'weight': 'Weight',
     },
     height=500,
 )
@@ -212,7 +221,7 @@ st.plotly_chart(fig_scatter, width='stretch')
 # Section 6: Detailed Table
 with st.expander("Detailed Data Table", expanded=False):
     display_df = df_period[[
-        'ticker', 'conviction', 'weight_at_peak', 'peak_date', 'trough_date',
+        'ticker', 'weight', 'weight_at_peak', 'peak_date', 'trough_date',
         'peak_price', 'trough_price', 'depth_pct', 'duration_days',
         'recovered', 'recovery_date', 'days_to_recover'
     ]].copy()
