@@ -1623,14 +1623,14 @@ def precompute_conviction_drawdowns():
                 peak_price = dd_row['peak_price']
                 depth_pct = dd_row['depth_pct']
 
-                # Find weight at peak_date: closest holdings date <= peak_date
+                # Find weight at peak_date: average of last 10 holdings dates <= peak_date
                 holdings_before_peak = ticker_holdings[
                     ticker_holdings['Date'] <= peak_date
                 ]
                 if len(holdings_before_peak) == 0:
                     weight_at_peak = 0.0
                 else:
-                    weight_at_peak = holdings_before_peak.iloc[-1]['Weight']
+                    weight_at_peak = holdings_before_peak.tail(10)['Weight'].mean()
 
                 # Classify conviction (weights are in decimal form, e.g., 0.05 = 5%)
                 if weight_at_peak >= 0.05:
