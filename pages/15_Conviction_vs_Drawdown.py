@@ -28,6 +28,24 @@ st.set_page_config(page_title="Conviction vs Drawdown", layout="wide")
 # Display labels for conviction levels
 WEIGHT_LABELS = {'High': '≥5%', 'Mid': '1%-5%', 'Low': '<1%'}
 WEIGHT_ORDER = ['≥5%', '1%-5%', '<1%']
+# Semantic colors: blue=key group, teal=secondary, grey=baseline
+COLORS = {'≥5%': '#0F4D92', '1%-5%': '#42949E', '<1%': '#CFCECE'}
+
+# Shared layout: remove top/right spines, light grid, clean font
+AXIS_STYLE = dict(
+    showline=True, linewidth=2, linecolor='#272727',
+    showgrid=True, gridcolor='rgba(0,0,0,0.07)',
+)
+LAYOUT_COMMON = dict(
+    font_family='Arial, Helvetica, sans-serif',
+    font_size=14,
+    plot_bgcolor='white',
+    legend=dict(
+        bgcolor='rgba(0,0,0,0)', borderwidth=0,
+        font_size=13,
+    ),
+    margin=dict(t=40, b=60),
+)
 
 # Initialize session state
 init_session_state()
@@ -80,23 +98,20 @@ if len(df_period) == 0:
 # Map conviction to weight labels for display
 df_period['weight'] = df_period['conviction'].map(WEIGHT_LABELS)
 
-# Section 2: Summary Statistics
+# ============================================================================
+# Section 1: Summary Statistics
+# ============================================================================
 st.header("Summary Statistics")
 
-# Build summary table
 summary_rows = []
 for conv, label in WEIGHT_LABELS.items():
     group = df_period[df_period['conviction'] == conv]
     if len(group) == 0:
         summary_rows.append({
-            'Weight': label,
-            'Holdings': 0,
-            'Drawdown Events': 0,
-            'Avg Depth (%)': None,
-            'Median Depth (%)': None,
+            'Weight': label, 'Holdings': 0, 'Drawdown Events': 0,
+            'Avg Depth (%)': None, 'Median Depth (%)': None,
             'Recovery Rate (%)': None,
-            'Avg Recovery Days': None,
-            'Median Recovery Days': None,
+            'Avg Recovery Days': None, 'Median Recovery Days': None,
         })
         continue
 
@@ -123,102 +138,205 @@ for conv, label in WEIGHT_LABELS.items():
 summary_df = pd.DataFrame(summary_rows)
 st.dataframe(summary_df, width='stretch', hide_index=True)
 
-# Section 3: Drawdown Depth Box Plot
-st.header("Drawdown Depth by Weight")
+# ============================================================================
+# Section 2: Drawdown Depth — Violin + Strip
+# ============================================================================
+st.header("Drawdown Depth Distribution by Weight")
 
-fig_box = go.Figure()
-colors = {'≥5%': '#EF553B', '1%-5%': '#FFA15A', '<1%': '#636EFA'}
+fig_violin = go.Figure()
 
 for conv, label in WEIGHT_LABELS.items():
     group = df_period[df_period['conviction'] == conv]
     if len(group) == 0:
         continue
-    fig_box.add_trace(go.Box(
+    color = COLORS[label]
+
+    # Violin (distribution shape)
+    fig_violin.add_trace(go.Violin(
         y=group['depth_pct'],
-        name=f"{label} ({len(group)})",
-        marker_color=colors[label],
-        boxpoints='outliers',
+        name=f"{label} (n={len(group)})",
+        legendgroup=label,
+        line_color=color,
+        fillcolor=color,
+        opacity=0.35,
+        meanline_visible=True,
+        box_visible=True,
+        points=False,
+        side='both',
+        scalemode='width',
+        width=0.8,
     ))
 
-fig_box.update_layout(
-    yaxis_title="Drawdown Depth (%)",
-    xaxis_title="Weight",
-    height=500,
-    showlegend=False,
+    # Strip (individual data points with jitter)
+    jitter = np.random.default_rng(42).uniform(-0.12, 0.12, size=len(group))
+    x_pos = list(WEIGHT_LABELS.values()).index(label)
+    fig_violin.add_trace(go.Scatter(
+        x=x_pos + jitter,
+        y=group['depth_pct'],
+        mode='markers',
+        name=label,
+        legendgroup=label,
+        showlegend=False,
+        marker=dict(
+            color=color, size=4, opacity=0.5,
+            line=dict(width=0),
+        ),
+        hovertext=group['ticker'],
+        hovertemplate='%{hovertext}<br>Depth: %{y:.1f}%<extra></extra>',
+    ))
+
+fig_violin.update_layout(
+    **LAYOUT_COMMON,
+    height=520,
+    yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
+    xaxis=dict(
+        title='Weight', **AXIS_STYLE,
+        tickmode='array',
+        tickvals=list(range(len(WEIGHT_ORDER))),
+        ticktext=[f"{l}" for l in WEIGHT_ORDER],
+    ),
+    showlegend=True,
+    violingap=0.3,
 )
-st.plotly_chart(fig_box, width='stretch')
+st.plotly_chart(fig_violin, width='stretch')
 
-# Section 4: Recovery Rate by Depth Bucket
-st.header("Recovery Rate by Depth Bucket")
+# ============================================================================
+# Section 3: Recovery Curve (Kaplan-Meier style)
+# ============================================================================
+st.header("Recovery Curve by Weight")
+st.caption("Cumulative % of drawdowns that recovered within N days after trough")
 
-df_period['depth_bucket'] = pd.cut(
-    df_period['depth_pct'].abs(),
-    bins=[0, 10, 20, 30, 50, 100],
-    labels=['0-10%', '10-20%', '20-30%', '30-50%', '50%+'],
-    right=True
+fig_km = go.Figure()
+
+max_days = 500  # x-axis limit
+day_range = np.arange(0, max_days + 1, 1)
+
+for conv, label in WEIGHT_LABELS.items():
+    group = df_period[df_period['conviction'] == conv]
+    if len(group) == 0:
+        continue
+
+    n_total = len(group)
+    recovery_days = group['days_to_recover'].copy()
+    # Not recovered → treated as censored (not counted as recovered)
+    not_recovered_count = recovery_days.isna().sum()
+
+    cumulative_pct = []
+    for d in day_range:
+        recovered_by_d = (recovery_days <= d).sum()
+        cumulative_pct.append(recovered_by_d / n_total * 100)
+
+    color = COLORS[label]
+    fig_km.add_trace(go.Scatter(
+        x=day_range,
+        y=cumulative_pct,
+        mode='lines',
+        name=f"{label} (n={n_total})",
+        line=dict(color=color, width=2.5),
+        hovertemplate='Day %{x}: %{y:.1f}% recovered<extra></extra>',
+    ))
+
+# Reference line at 50%
+fig_km.add_hline(y=50, line_dash='dot', line_color='#767676', line_width=1,
+                 annotation_text='50%', annotation_position='left')
+
+fig_km.update_layout(
+    **LAYOUT_COMMON,
+    height=480,
+    xaxis=dict(title='Days After Trough', **AXIS_STYLE, range=[0, max_days]),
+    yaxis=dict(title='Cumulative Recovery Rate (%)', **AXIS_STYLE, range=[0, 105]),
 )
+st.plotly_chart(fig_km, width='stretch')
 
-# Group by bucket and weight
-recovery_data = []
-for bucket in ['0-10%', '10-20%', '20-30%', '30-50%', '50%+']:
+# ============================================================================
+# Section 4: Recovery Days Distribution by Weight
+# ============================================================================
+st.header("Recovery Speed by Weight")
+
+recovered_df = df_period[df_period['recovered'] & df_period['days_to_recover'].notna()].copy()
+
+if len(recovered_df) > 0:
+    fig_rec = go.Figure()
+
     for conv, label in WEIGHT_LABELS.items():
-        group = df_period[
-            (df_period['depth_bucket'] == bucket) &
-            (df_period['conviction'] == conv)
-        ]
+        group = recovered_df[recovered_df['conviction'] == conv]
         if len(group) == 0:
             continue
-        recovery_data.append({
-            'Depth Bucket': bucket,
-            'Weight': label,
-            'Recovery Rate (%)': round(group['recovered'].mean() * 100, 1),
-            'Count': len(group),
-        })
+        color = COLORS[label]
+        fig_rec.add_trace(go.Box(
+            y=group['days_to_recover'],
+            name=f"{label} (n={len(group)})",
+            marker_color=color,
+            line_color=color,
+            boxpoints='outliers',
+            marker=dict(outliercolor=color, size=3, opacity=0.5),
+            boxmean=True,
+        ))
 
-if recovery_data:
-    recovery_df = pd.DataFrame(recovery_data)
-    fig_bar = px.bar(
-        recovery_df,
-        x='Depth Bucket',
-        y='Recovery Rate (%)',
-        color='Weight',
-        barmode='group',
-        color_discrete_map=colors,
-        category_orders={'Weight': WEIGHT_ORDER},
-        text='Count',
-        height=500,
+    fig_rec.update_layout(
+        **LAYOUT_COMMON,
+        height=480,
+        yaxis=dict(title='Days to Recovery', **AXIS_STYLE),
+        xaxis=dict(title='Weight', **AXIS_STYLE),
+        showlegend=False,
     )
-    fig_bar.update_traces(textposition='outside')
-    fig_bar.update_layout(yaxis_range=[0, 110])
-    st.plotly_chart(fig_bar, width='stretch')
+    st.plotly_chart(fig_rec, width='stretch')
 else:
-    st.info("Not enough data for recovery rate comparison.")
+    st.info("No recovered drawdowns in this period.")
 
-# Section 5: Weight vs Depth Scatter
+# ============================================================================
+# Section 5: Weight vs Depth Scatter + Trend Lines
+# ============================================================================
 st.header("Weight at Peak vs Drawdown Depth")
 
-fig_scatter = px.scatter(
-    df_period,
-    x='weight_at_peak',
-    y='depth_pct',
-    color='weight',
-    color_discrete_map=colors,
-    category_orders={'weight': WEIGHT_ORDER},
-    hover_data=['ticker', 'peak_date', 'duration_days', 'recovered'],
-    labels={
-        'weight_at_peak': 'Weight at Peak (%)',
-        'depth_pct': 'Drawdown Depth (%)',
-        'weight': 'Weight',
-    },
-    height=500,
-)
+fig_scatter = go.Figure()
+
+for conv, label in WEIGHT_LABELS.items():
+    group = df_period[df_period['conviction'] == conv]
+    if len(group) == 0:
+        continue
+    color = COLORS[label]
+
+    fig_scatter.add_trace(go.Scatter(
+        x=group['weight_at_peak'],
+        y=group['depth_pct'],
+        mode='markers',
+        name=f"{label} (n={len(group)})",
+        marker=dict(color=color, size=6, opacity=0.6,
+                    line=dict(width=0.5, color='#272727')),
+        hovertext=group['ticker'],
+        hovertemplate='%{hovertext}<br>Weight: %{x:.1f}%<br>Depth: %{y:.1f}%<extra></extra>',
+    ))
+
+    # OLS trend line per group
+    if len(group) >= 5:
+        x = group['weight_at_peak'].values
+        y = group['depth_pct'].values
+        mask = np.isfinite(x) & np.isfinite(y)
+        if mask.sum() >= 5:
+            coeffs = np.polyfit(x[mask], y[mask], 1)
+            x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
+            y_line = np.polyval(coeffs, x_line)
+            fig_scatter.add_trace(go.Scatter(
+                x=x_line, y=y_line,
+                mode='lines',
+                name=f"{label} trend",
+                line=dict(color=color, width=2, dash='dash'),
+                showlegend=False,
+                hoverinfo='skip',
+            ))
+
 fig_scatter.update_layout(
-    xaxis_title="Weight at Peak (%)",
-    yaxis_title="Drawdown Depth (%)",
+    **LAYOUT_COMMON,
+    height=520,
+    xaxis=dict(title='Weight at Peak (%)', **AXIS_STYLE),
+    yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
 )
 st.plotly_chart(fig_scatter, width='stretch')
 
+# ============================================================================
 # Section 6: Detailed Table
+# ============================================================================
 with st.expander("Detailed Data Table", expanded=False):
     display_df = df_period[[
         'ticker', 'weight', 'weight_at_peak', 'peak_date', 'trough_date',
@@ -233,7 +351,6 @@ with st.expander("Detailed Data Table", expanded=False):
     display_df = display_df.sort_values('depth_pct', ascending=True)
     st.dataframe(display_df, width='stretch', hide_index=True)
 
-    # Download button
     csv = display_df.to_csv(index=False)
     st.download_button(
         label="Download CSV",
