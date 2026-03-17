@@ -1606,13 +1606,17 @@ def precompute_conviction_drawdowns():
             if len(ticker_holdings) == 0:
                 continue
 
-            # Process each drawdown (exclude Current)
+            # Process each drawdown (exclude Current, require >= 7 calendar days)
             for _, dd_row in dd_data.iterrows():
                 if dd_row['rank'] == 'Current':
                     continue
 
                 peak_date = dd_row['peak_date']
                 trough_date = dd_row['trough_date']
+
+                # Skip short drawdowns (less than 1 week)
+                if (trough_date - peak_date).days < 7:
+                    continue
                 peak_price = dd_row['peak_price']
                 depth_pct = dd_row['depth_pct']
 
