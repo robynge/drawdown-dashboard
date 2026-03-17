@@ -15,10 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import ARK_ETFS, OUTPUT_DIR
-
-# ARKF excluded: insufficient stock price data for conviction analysis
-CONVICTION_ETFS = [e for e in ARK_ETFS if e != 'ARKF']
+from config import ARK_ETFS
 from precomputed_loader import (
     load_conviction_drawdowns,
     check_precomputed_exists,
@@ -40,29 +37,16 @@ start_date, end_date = get_current_dates()
 st.title("Conviction vs Drawdown Analysis")
 st.markdown(f"**Analysis Period**: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
-# ETF selector (ARKF excluded due to insufficient price data)
+# ETF selector
 selected_etf = st.pills(
     "ETF",
-    options=CONVICTION_ETFS,
-    default=CONVICTION_ETFS[0],
+    options=ARK_ETFS,
+    default=ARK_ETFS[0],
     label_visibility="collapsed",
     key="conviction_etf_selector"
 )
 if selected_etf is None:
-    selected_etf = CONVICTION_ETFS[0]
-st.caption("ARKF is excluded from this analysis due to insufficient stock price data.")
-
-# Section 1: Failed Downloads
-failed_file = OUTPUT_DIR / 'ark_holdings_prices_failed.txt'
-if failed_file.exists():
-    failed_text = failed_file.read_text().strip()
-    if failed_text:
-        failed_tickers = [t for t in failed_text.split('\n') if t.strip()]
-        if failed_tickers:
-            st.warning(
-                f"**{len(failed_tickers)} tickers failed to download prices**: "
-                f"{', '.join(failed_tickers)}"
-            )
+    selected_etf = ARK_ETFS[0]
 
 # Check precomputed data
 if not check_precomputed_exists():
@@ -76,7 +60,7 @@ with st.spinner(f"Loading conviction drawdown data for {selected_etf}..."):
 if len(df) == 0:
     st.warning(
         f"No conviction drawdown data for {selected_etf}. "
-        "Run `python src/fetch_ark_holdings_prices.py` then `python convert_to_parquet.py --step 24`."
+        "Run `python convert_to_parquet.py --step 24`."
     )
     st.stop()
 

@@ -1531,29 +1531,9 @@ def precompute_conviction_drawdowns():
     from drawdown_calculator import calculate_drawdowns
 
     ensure_dirs()
-
-    # Load yfinance prices
-    prices_path = OUTPUT_DIR / 'ark_holdings_prices.parquet'
-    if not prices_path.exists():
-        print(f"    Prices file not found: {prices_path}")
-        print("    Run: python src/fetch_ark_holdings_prices.py")
-        return
-
-    prices_wide = pd.read_parquet(prices_path)
-    prices_wide['Date'] = pd.to_datetime(prices_wide['Date'])
-
-    # Get full date range across all periods
-    all_starts = [p["start"] for p in ANALYSIS_PERIODS.values()]
-    all_ends = [p["end"] for p in ANALYSIS_PERIODS.values()]
-    global_start = min(all_starts)
-    global_end = max(all_ends)
-
     files_hash = get_ark_files_hash()
 
-    # ARKF excluded: insufficient stock price data for conviction analysis
-    conviction_etfs = [e for e in ARK_ETFS if e != 'ARKF']
-
-    for etf in conviction_etfs:
+    for etf in ARK_ETFS:
         print(f"  Processing {etf}...")
         holdings = load_ark_holdings(files_hash, etf)
         if len(holdings) == 0:
@@ -1563,22 +1543,21 @@ def precompute_conviction_drawdowns():
         # Filter non-stocks
         holdings_filtered = _filter_non_stocks(holdings)
 
-        # Get unique tickers (clean names)
-        ticker_map = {}  # clean -> full
-        for t in holdings_filtered['Ticker'].unique():
-            clean = t.split()[0] if pd.notna(t) and ' ' in t else t
-            if pd.notna(clean):
-                ticker_map[clean] = t
-
+        all_tickers = holdings_filtered['Ticker'].unique()
         all_rows = []
 
-        for clean_ticker, full_ticker in ticker_map.items():
-            # Check if we have price data for this ticker
-            if clean_ticker not in prices_wide.columns:
+        for full_ticker in all_tickers:
+            stock_data = holdings_filtered[
+                holdings_filtered['Ticker'] == full_ticker
+            ].copy()
+
+            if len(stock_data) < 30:
                 continue
 
-            # Build price DataFrame
-            price_df = prices_wide[['Date', clean_ticker]].copy()
+            clean_ticker = full_ticker.split()[0] if ' ' in full_ticker else full_ticker
+
+            # Build price DataFrame from Stock_Price in holdings
+            price_df = stock_data[['Date', 'Stock_Price']].copy()
             price_df.columns = ['Date', 'Close']
             price_df = price_df.dropna()
 
@@ -1587,20 +1566,16 @@ def precompute_conviction_drawdowns():
 
             # Calculate drawdowns for full date range
             dd_data = calculate_drawdowns(
-                price_df, start_date=global_start, end_date=global_end
+                price_df,
+                start_date=price_df['Date'].min(),
+                end_date=price_df['Date'].max()
             )
 
             if len(dd_data) == 0:
                 continue
 
-            # Get holdings weight data for this ticker
-            ticker_holdings = holdings_filtered[
-                holdings_filtered['Ticker'] == full_ticker
-            ][['Date', 'Weight']].copy()
-            ticker_holdings = ticker_holdings.sort_values('Date')
-
-            if len(ticker_holdings) == 0:
-                continue
+            # Get weight data for this ticker
+            ticker_weights = stock_data[['Date', 'Weight']].sort_values('Date')
 
             # Process each drawdown (exclude Current, require >= 7 calendar days)
             for _, dd_row in dd_data.iterrows():
@@ -1613,17 +1588,18 @@ def precompute_conviction_drawdowns():
                 # Skip short drawdowns (less than 1 week)
                 if (trough_date - peak_date).days < 7:
                     continue
+
                 peak_price = dd_row['peak_price']
                 depth_pct = dd_row['depth_pct']
 
                 # Find weight at peak_date: average of last 10 holdings dates <= peak_date
-                holdings_before_peak = ticker_holdings[
-                    ticker_holdings['Date'] <= peak_date
+                weights_before_peak = ticker_weights[
+                    ticker_weights['Date'] <= peak_date
                 ]
-                if len(holdings_before_peak) == 0:
+                if len(weights_before_peak) == 0:
                     weight_at_peak = 0.0
                 else:
-                    weight_at_peak = holdings_before_peak.tail(10)['Weight'].mean()
+                    weight_at_peak = weights_before_peak.tail(10)['Weight'].mean()
 
                 # Classify conviction (weights are in decimal form, e.g., 0.05 = 5%)
                 if weight_at_peak >= 0.05:
