@@ -28,8 +28,7 @@ st.set_page_config(page_title="Conviction vs Drawdown", layout="wide")
 # Display labels for conviction levels
 WEIGHT_LABELS = {'High': '≥5%', 'Mid': '1%-5%', 'Low': '<1%'}
 WEIGHT_ORDER = ['≥5%', '1%-5%', '<1%']
-# Semantic colors: blue=key group, teal=secondary, grey=baseline
-COLORS = {'≥5%': '#0F4D92', '1%-5%': '#42949E', '<1%': '#CFCECE'}
+COLORS = {'≥5%': '#D62728', '1%-5%': '#1F77B4', '<1%': '#F5A623'}
 
 # Shared layout: remove top/right spines, light grid, clean font
 AXIS_STYLE = dict(
