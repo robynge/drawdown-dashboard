@@ -114,11 +114,7 @@ def load_ark_stock_prices(_files_hash, etf, ticker, _start_date, _end_date):
         if len(stock_data) == 0:
             return pd.DataFrame()
 
-        # Determine which price column to use
-        if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-            stock_data = stock_data.rename(columns={'YFinance Close Price': 'Close'})
-        else:
-            stock_data = stock_data.rename(columns={'Stock_Price': 'Close'})
+        stock_data = stock_data.rename(columns={'Stock_Price': 'Close'})
         stock_data = stock_data[['Date', 'Close']].sort_values('Date')
 
         return stock_data

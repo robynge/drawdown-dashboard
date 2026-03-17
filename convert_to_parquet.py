@@ -265,10 +265,7 @@ def precompute_ark_drawdowns():
                 if len(stock_data) < 30:
                     continue
 
-                if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                    price_col = 'YFinance Close Price'
-                else:
-                    price_col = 'Stock_Price'
+                price_col = 'Stock_Price'
 
                 price_df = stock_data[['Date', price_col]].copy()
                 price_df.columns = ['Date', 'Close']
@@ -1127,11 +1124,7 @@ def precompute_ark_stock_drawdowns_full():
             if len(stock_data) < 30:
                 continue
 
-            # Determine which price column to use
-            if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                price_col = 'YFinance Close Price'
-            else:
-                price_col = 'Stock_Price'
+            price_col = 'Stock_Price'
 
             price_df = stock_data[['Date', price_col]].copy()
             price_df.columns = ['Date', 'Close']

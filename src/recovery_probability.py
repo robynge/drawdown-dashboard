@@ -82,10 +82,7 @@ def _calculate_all_stock_drawdowns_full(_files_hash):
                     continue
 
                 # Determine which price column to use
-                if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                    price_col = 'YFinance Close Price'
-                else:
-                    price_col = 'Stock_Price'
+                price_col = 'Stock_Price'
 
                 # Prepare price dataframe
                 price_df = stock_data[['Date', price_col]].copy()
@@ -333,11 +330,7 @@ def get_drawdowns_in_depth_range(depth_range_label, period_key=None, start_date=
                 if len(stock_data) == 0:
                     recovery_rate = 0.0
                 else:
-                    # Determine price column
-                    if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                        price_col = 'YFinance Close Price'
-                    else:
-                        price_col = 'Stock_Price'
+                    price_col = 'Stock_Price'
 
                     # Get latest price after trough
                     after_trough = stock_data[stock_data['Date'] > trough_date]
@@ -407,11 +400,7 @@ def get_stock_drawdowns_in_depth_range(ticker, etf, depth_range_label, period_ke
         if len(stock_data) < 30:
             return pd.DataFrame()
 
-        # Determine price column
-        if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-            price_col = 'YFinance Close Price'
-        else:
-            price_col = 'Stock_Price'
+        price_col = 'Stock_Price'
 
         # Prepare price dataframe
         price_df = stock_data[['Date', price_col]].copy()
@@ -581,11 +570,7 @@ def get_etf_drawdowns_in_depth_range(etf, depth_range_label, period_key=None, _s
                 if len(stock_data) == 0:
                     recovery_rate = 0.0
                 else:
-                    # Determine price column
-                    if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-                        price_col = 'YFinance Close Price'
-                    else:
-                        price_col = 'Stock_Price'
+                    price_col = 'Stock_Price'
 
                     # Get latest price after trough
                     after_trough = stock_data[stock_data['Date'] > trough_date]

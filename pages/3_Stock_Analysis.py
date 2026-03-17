@@ -50,9 +50,7 @@ if not check_precomputed_exists():
 
 
 def get_price_column(stock_data):
-    """Detect which price column has actual data"""
-    if 'YFinance Close Price' in stock_data.columns and stock_data['YFinance Close Price'].notna().any():
-        return 'YFinance Close Price'
+    """Return the price column to use"""
     return 'Stock_Price'
 
 
