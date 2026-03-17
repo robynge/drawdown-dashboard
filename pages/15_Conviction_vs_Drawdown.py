@@ -339,7 +339,7 @@ fig_depth.update_layout(
     **LAYOUT_COMMON,
     height=520,
     xaxis=dict(title='Weight at Peak (%)', **AXIS_STYLE),
-    yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
+    yaxis=dict(title='Drawdown Depth (%)', autorange='reversed', **AXIS_STYLE),
 )
 
 with col_depth:
@@ -391,7 +391,7 @@ fig_pnl.update_layout(
     **LAYOUT_COMMON,
     height=520,
     xaxis=dict(title='Weight at Peak (%)', **AXIS_STYLE),
-    yaxis=dict(title='Portfolio PnL Contribution (%)', **AXIS_STYLE),
+    yaxis=dict(title='Portfolio PnL Contribution (%)', autorange='reversed', **AXIS_STYLE),
 )
 
 with col_pnl:
