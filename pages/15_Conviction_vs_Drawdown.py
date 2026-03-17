@@ -151,52 +151,31 @@ for conv, label in WEIGHT_LABELS.items():
         continue
     color = COLORS[label]
 
-    # Violin (distribution shape)
     fig_violin.add_trace(go.Violin(
         y=group['depth_pct'],
         name=f"{label} (n={len(group)})",
-        legendgroup=label,
         line_color=color,
         fillcolor=color,
-        opacity=0.35,
+        opacity=0.4,
         meanline_visible=True,
         box_visible=True,
-        points=False,
-        side='both',
+        points='all',
+        jitter=0.35,
+        pointpos=0,
+        marker=dict(color=color, size=3, opacity=0.45),
         scalemode='width',
-        width=0.8,
-    ))
-
-    # Strip (individual data points with jitter)
-    jitter = np.random.default_rng(42).uniform(-0.12, 0.12, size=len(group))
-    x_pos = list(WEIGHT_LABELS.values()).index(label)
-    fig_violin.add_trace(go.Scatter(
-        x=x_pos + jitter,
-        y=group['depth_pct'],
-        mode='markers',
-        name=label,
-        legendgroup=label,
-        showlegend=False,
-        marker=dict(
-            color=color, size=4, opacity=0.5,
-            line=dict(width=0),
-        ),
-        hovertext=group['ticker'],
-        hovertemplate='%{hovertext}<br>Depth: %{y:.1f}%<extra></extra>',
+        width=0.7,
+        hoverinfo='y',
     ))
 
 fig_violin.update_layout(
     **LAYOUT_COMMON,
     height=520,
     yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
-    xaxis=dict(
-        title='Weight', **AXIS_STYLE,
-        tickmode='array',
-        tickvals=list(range(len(WEIGHT_ORDER))),
-        ticktext=[f"{l}" for l in WEIGHT_ORDER],
-    ),
+    xaxis=dict(title='Weight', **AXIS_STYLE),
     showlegend=True,
-    violingap=0.3,
+    violingap=0.35,
+    violinmode='group',
 )
 st.plotly_chart(fig_violin, width='stretch')
 
