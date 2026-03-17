@@ -227,38 +227,55 @@ fig_km.update_layout(
 st.plotly_chart(fig_km, width='stretch')
 
 # ============================================================================
-# Section 4: Recovery Days Distribution by Weight
+# Section 4: Drawdown Depth vs Recovery Days (scatter, color=weight)
 # ============================================================================
-st.header("Recovery Speed by Weight")
+st.header("Drawdown Depth vs Recovery Days")
 
 recovered_df = df_period[df_period['recovered'] & df_period['days_to_recover'].notna()].copy()
 
 if len(recovered_df) > 0:
-    fig_rec = go.Figure()
+    recovered_df['weight'] = recovered_df['conviction'].map(WEIGHT_LABELS)
+    fig_depth_rec = go.Figure()
 
     for conv, label in WEIGHT_LABELS.items():
         group = recovered_df[recovered_df['conviction'] == conv]
         if len(group) == 0:
             continue
         color = COLORS[label]
-        fig_rec.add_trace(go.Box(
+
+        fig_depth_rec.add_trace(go.Scatter(
+            x=group['depth_pct'].abs(),
             y=group['days_to_recover'],
+            mode='markers',
             name=f"{label} (n={len(group)})",
-            marker_color=color,
-            line_color=color,
-            boxpoints='outliers',
-            marker=dict(outliercolor=color, size=3, opacity=0.5),
-            boxmean=True,
+            marker=dict(color=color, size=6, opacity=0.6,
+                        line=dict(width=0.5, color='#272727')),
+            hovertext=group['ticker'],
+            hovertemplate='%{hovertext}<br>Depth: -%{x:.1f}%<br>Recovery: %{y:.0f} days<extra></extra>',
         ))
 
-    fig_rec.update_layout(
+        # Trend line
+        if len(group) >= 5:
+            x = group['depth_pct'].abs().values
+            y = group['days_to_recover'].values
+            mask = np.isfinite(x) & np.isfinite(y)
+            if mask.sum() >= 5:
+                coeffs = np.polyfit(x[mask], y[mask], 1)
+                x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
+                y_line = np.polyval(coeffs, x_line)
+                fig_depth_rec.add_trace(go.Scatter(
+                    x=x_line, y=y_line, mode='lines',
+                    line=dict(color=color, width=2, dash='dash'),
+                    showlegend=False, hoverinfo='skip',
+                ))
+
+    fig_depth_rec.update_layout(
         **LAYOUT_COMMON,
-        height=480,
+        height=520,
+        xaxis=dict(title='Drawdown Depth (%, absolute)', **AXIS_STYLE),
         yaxis=dict(title='Days to Recovery', **AXIS_STYLE),
-        xaxis=dict(title='Weight', **AXIS_STYLE),
-        showlegend=False,
     )
-    st.plotly_chart(fig_rec, width='stretch')
+    st.plotly_chart(fig_depth_rec, width='stretch')
 else:
     st.info("No recovered drawdowns in this period.")
 
@@ -313,7 +330,54 @@ fig_scatter.update_layout(
 st.plotly_chart(fig_scatter, width='stretch')
 
 # ============================================================================
-# Section 6: Detailed Table
+# Section 6: Duration vs Depth Scatter (color=weight)
+# ============================================================================
+st.header("Drawdown Duration vs Depth")
+
+fig_dur = go.Figure()
+
+for conv, label in WEIGHT_LABELS.items():
+    group = df_period[df_period['conviction'] == conv]
+    if len(group) == 0:
+        continue
+    color = COLORS[label]
+
+    fig_dur.add_trace(go.Scatter(
+        x=group['duration_days'],
+        y=group['depth_pct'],
+        mode='markers',
+        name=f"{label} (n={len(group)})",
+        marker=dict(color=color, size=6, opacity=0.6,
+                    line=dict(width=0.5, color='#272727')),
+        hovertext=group['ticker'],
+        hovertemplate='%{hovertext}<br>Duration: %{x} days<br>Depth: %{y:.1f}%<extra></extra>',
+    ))
+
+    # Trend line
+    if len(group) >= 5:
+        x = group['duration_days'].values.astype(float)
+        y = group['depth_pct'].values
+        mask = np.isfinite(x) & np.isfinite(y)
+        if mask.sum() >= 5:
+            coeffs = np.polyfit(x[mask], y[mask], 1)
+            x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
+            y_line = np.polyval(coeffs, x_line)
+            fig_dur.add_trace(go.Scatter(
+                x=x_line, y=y_line, mode='lines',
+                line=dict(color=color, width=2, dash='dash'),
+                showlegend=False, hoverinfo='skip',
+            ))
+
+fig_dur.update_layout(
+    **LAYOUT_COMMON,
+    height=520,
+    xaxis=dict(title='Duration (days, peak to trough)', **AXIS_STYLE),
+    yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
+)
+st.plotly_chart(fig_dur, width='stretch')
+
+# ============================================================================
+# Section 7: Detailed Table
 # ============================================================================
 with st.expander("Detailed Data Table", expanded=False):
     display_df = df_period[[
