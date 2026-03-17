@@ -130,7 +130,7 @@ for conv in ['High', 'Mid', 'Low']:
     })
 
 summary_df = pd.DataFrame(summary_rows)
-st.dataframe(summary_df, use_container_width=True, hide_index=True)
+st.dataframe(summary_df, width='stretch', hide_index=True)
 
 # Section 3: Drawdown Depth Box Plot
 st.header("Drawdown Depth by Conviction Level")
@@ -155,7 +155,7 @@ fig_box.update_layout(
     height=500,
     showlegend=False,
 )
-st.plotly_chart(fig_box, use_container_width=True)
+st.plotly_chart(fig_box, width='stretch')
 
 # Section 4: Recovery Rate by Depth Bucket
 st.header("Recovery Rate by Depth Bucket")
@@ -198,7 +198,7 @@ if recovery_data:
     )
     fig_bar.update_traces(textposition='outside')
     fig_bar.update_layout(yaxis_range=[0, 110])
-    st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(fig_bar, width='stretch')
 else:
     st.info("Not enough data for recovery rate comparison.")
 
@@ -223,7 +223,7 @@ fig_scatter.update_layout(
     xaxis_title="Weight at Peak (%)",
     yaxis_title="Drawdown Depth (%)",
 )
-st.plotly_chart(fig_scatter, use_container_width=True)
+st.plotly_chart(fig_scatter, width='stretch')
 
 # Section 6: Detailed Table
 with st.expander("Detailed Data Table", expanded=False):
@@ -238,7 +238,7 @@ with st.expander("Detailed Data Table", expanded=False):
         lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else ''
     )
     display_df = display_df.sort_values('depth_pct', ascending=True)
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    st.dataframe(display_df, width='stretch', hide_index=True)
 
     # Download button
     csv = display_df.to_csv(index=False)
