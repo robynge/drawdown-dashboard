@@ -97,6 +97,9 @@ if len(df_period) == 0:
 # Map conviction to weight labels for display
 df_period['weight'] = df_period['conviction'].map(WEIGHT_LABELS)
 
+# Compute portfolio-level drawdown PnL contribution (%)
+df_period['drawdown_pnl'] = df_period['weight_at_peak'] * df_period['depth_pct'] / 100
+
 # ============================================================================
 # Section 1: Summary Statistics
 # ============================================================================
@@ -243,6 +246,10 @@ if len(recovered_df) > 0:
             continue
         color = COLORS[label]
 
+        hover_texts = [
+            f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
+        ]
+
         fig_depth_rec.add_trace(go.Scatter(
             x=group['depth_pct'].abs(),
             y=group['days_to_recover'],
@@ -250,7 +257,7 @@ if len(recovered_df) > 0:
             name=f"{label} (n={len(group)})",
             marker=dict(color=color, size=6, opacity=0.6,
                         line=dict(width=0.5, color='#272727')),
-            hovertext=group['ticker'],
+            hovertext=hover_texts,
             hovertemplate='%{hovertext}<br>Depth: -%{x:.1f}%<br>Recovery: %{y:.0f} days<extra></extra>',
         ))
 
@@ -280,11 +287,14 @@ else:
     st.info("No recovered drawdowns in this period.")
 
 # ============================================================================
-# Section 5: Weight vs Depth Scatter + Trend Lines
+# Section 5: Weight vs Depth & Weight vs PnL (side by side)
 # ============================================================================
-st.header("Weight at Peak vs Drawdown Depth")
+st.header("Weight at Peak vs Drawdown Depth / PnL")
 
-fig_scatter = go.Figure()
+col_depth, col_pnl = st.columns(2)
+
+# --- Left: Weight at Peak vs Drawdown Depth ---
+fig_depth = go.Figure()
 
 for conv, label in WEIGHT_LABELS.items():
     group = df_period[df_period['conviction'] == conv]
@@ -292,14 +302,19 @@ for conv, label in WEIGHT_LABELS.items():
         continue
     color = COLORS[label]
 
-    fig_scatter.add_trace(go.Scatter(
+    # Build hover text with ticker and drawdown rank
+    hover_texts = [
+        f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
+    ]
+
+    fig_depth.add_trace(go.Scatter(
         x=group['weight_at_peak'],
         y=group['depth_pct'],
         mode='markers',
         name=f"{label} (n={len(group)})",
         marker=dict(color=color, size=6, opacity=0.6,
                     line=dict(width=0.5, color='#272727')),
-        hovertext=group['ticker'],
+        hovertext=hover_texts,
         hovertemplate='%{hovertext}<br>Weight: %{x:.1f}%<br>Depth: %{y:.1f}%<extra></extra>',
     ))
 
@@ -312,22 +327,76 @@ for conv, label in WEIGHT_LABELS.items():
             coeffs = np.polyfit(x[mask], y[mask], 1)
             x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
             y_line = np.polyval(coeffs, x_line)
-            fig_scatter.add_trace(go.Scatter(
+            fig_depth.add_trace(go.Scatter(
                 x=x_line, y=y_line,
                 mode='lines',
-                name=f"{label} trend",
                 line=dict(color=color, width=2, dash='dash'),
                 showlegend=False,
                 hoverinfo='skip',
             ))
 
-fig_scatter.update_layout(
+fig_depth.update_layout(
     **LAYOUT_COMMON,
     height=520,
     xaxis=dict(title='Weight at Peak (%)', **AXIS_STYLE),
     yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
 )
-st.plotly_chart(fig_scatter, width='stretch')
+
+with col_depth:
+    st.subheader("Depth")
+    st.plotly_chart(fig_depth, width='stretch')
+
+# --- Right: Weight at Peak vs Drawdown PnL ---
+fig_pnl = go.Figure()
+
+for conv, label in WEIGHT_LABELS.items():
+    group = df_period[df_period['conviction'] == conv]
+    if len(group) == 0:
+        continue
+    color = COLORS[label]
+
+    hover_texts = [
+        f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
+    ]
+
+    fig_pnl.add_trace(go.Scatter(
+        x=group['weight_at_peak'],
+        y=group['drawdown_pnl'],
+        mode='markers',
+        name=f"{label} (n={len(group)})",
+        marker=dict(color=color, size=6, opacity=0.6,
+                    line=dict(width=0.5, color='#272727')),
+        hovertext=hover_texts,
+        hovertemplate='%{hovertext}<br>Weight: %{x:.1f}%<br>PnL: %{y:.2f}%<extra></extra>',
+    ))
+
+    # OLS trend line per group
+    if len(group) >= 5:
+        x = group['weight_at_peak'].values
+        y = group['drawdown_pnl'].values
+        mask = np.isfinite(x) & np.isfinite(y)
+        if mask.sum() >= 5:
+            coeffs = np.polyfit(x[mask], y[mask], 1)
+            x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
+            y_line = np.polyval(coeffs, x_line)
+            fig_pnl.add_trace(go.Scatter(
+                x=x_line, y=y_line,
+                mode='lines',
+                line=dict(color=color, width=2, dash='dash'),
+                showlegend=False,
+                hoverinfo='skip',
+            ))
+
+fig_pnl.update_layout(
+    **LAYOUT_COMMON,
+    height=520,
+    xaxis=dict(title='Weight at Peak (%)', **AXIS_STYLE),
+    yaxis=dict(title='Portfolio PnL Contribution (%)', **AXIS_STYLE),
+)
+
+with col_pnl:
+    st.subheader("PnL Impact")
+    st.plotly_chart(fig_pnl, width='stretch')
 
 # ============================================================================
 # Section 6: Duration vs Depth Scatter (color=weight)
@@ -342,6 +411,10 @@ for conv, label in WEIGHT_LABELS.items():
         continue
     color = COLORS[label]
 
+    hover_texts = [
+        f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
+    ]
+
     fig_dur.add_trace(go.Scatter(
         x=group['duration_days'],
         y=group['depth_pct'],
@@ -349,7 +422,7 @@ for conv, label in WEIGHT_LABELS.items():
         name=f"{label} (n={len(group)})",
         marker=dict(color=color, size=6, opacity=0.6,
                     line=dict(width=0.5, color='#272727')),
-        hovertext=group['ticker'],
+        hovertext=hover_texts,
         hovertemplate='%{hovertext}<br>Duration: %{x} days<br>Depth: %{y:.1f}%<extra></extra>',
     ))
 
@@ -381,8 +454,8 @@ st.plotly_chart(fig_dur, width='stretch')
 # ============================================================================
 with st.expander("Detailed Data Table", expanded=False):
     display_df = df_period[[
-        'ticker', 'weight', 'weight_at_peak', 'peak_date', 'trough_date',
-        'peak_price', 'trough_price', 'depth_pct', 'duration_days',
+        'ticker', 'rank', 'weight', 'weight_at_peak', 'peak_date', 'trough_date',
+        'peak_price', 'trough_price', 'depth_pct', 'drawdown_pnl', 'duration_days',
         'recovered', 'recovery_date', 'days_to_recover'
     ]].copy()
     display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')

@@ -1630,6 +1630,7 @@ def precompute_conviction_drawdowns():
                     'ticker': clean_ticker,
                     'conviction': conviction,
                     'weight_at_peak': round(weight_at_peak * 100, 2),
+                    'rank': dd_row['rank'],
                     'peak_date': peak_date,
                     'trough_date': trough_date,
                     'peak_price': peak_price,
