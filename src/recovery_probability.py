@@ -69,13 +69,6 @@ def _calculate_all_stock_drawdowns_full(_files_hash):
 
             # Get unique tickers
             for ticker in holdings['Ticker'].unique():
-                # Skip currency tickers
-                ticker_holdings = holdings[holdings['Ticker'] == ticker]
-                if 'Bloomberg Name' in ticker_holdings.columns:
-                    bloomberg_name = ticker_holdings['Bloomberg Name'].iloc[0]
-                    if isinstance(bloomberg_name, str) and 'curncy' in bloomberg_name.lower():
-                        continue
-
                 stock_data = holdings[holdings['Ticker'] == ticker].copy()
 
                 if len(stock_data) < 30:  # Need at least 30 data points

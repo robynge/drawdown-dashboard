@@ -31,16 +31,6 @@ for etf in ARK_ETFS:
     if len(holdings) == 0:
         continue
 
-    # Filter out currency tickers
-    if 'Bloomberg Name' in holdings.columns:
-        holdings = holdings[~holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
-
-    # Filter out money market funds
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-    ticker_symbols = holdings['Ticker'].str.split().str[0]
-    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
-    holdings = holdings[~is_mm]
-
     for t in holdings['Ticker'].unique():
         clean = t.split()[0] if pd.notna(t) and ' ' in t else t
         if pd.notna(clean):

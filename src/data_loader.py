@@ -29,6 +29,39 @@ def get_r3000_files_hash():
     return 0
 
 
+MONEY_MARKET_PREFIXES = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
+
+
+def filter_non_stocks(holdings):
+    """Filter out currency tickers and money market funds from holdings DataFrame
+
+    Use this to get only actual stock holdings from ARK ETF data.
+    """
+    result = holdings.copy()
+
+    # Filter out currency tickers
+    if 'Bloomberg Name' in result.columns:
+        result = result[
+            ~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)
+        ]
+
+    # Filter out money market funds (match prefix)
+    if 'Ticker' in result.columns:
+        ticker_symbols = result['Ticker'].str.split().str[0]
+        is_money_market = ticker_symbols.apply(
+            lambda x: any(x.startswith(prefix) for prefix in MONEY_MARKET_PREFIXES) if pd.notna(x) else False
+        )
+        result = result[~is_money_market]
+
+    return result
+
+
+def is_non_stock_ticker(ticker):
+    """Check if a single ticker is a money market fund or cash instrument"""
+    ticker_clean = ticker.split()[0] if isinstance(ticker, str) else ticker
+    return any(ticker_clean.startswith(p) for p in MONEY_MARKET_PREFIXES)
+
+
 @st.cache_data
 def load_ark_holdings(_files_hash, etf):
     """Load ARK ETF holdings from Parquet (fast) or Excel (fallback)
@@ -47,7 +80,7 @@ def load_ark_holdings(_files_hash, etf):
         if 'CUSIP' in df.columns:
             df['CUSIP'] = df['CUSIP'].astype(str)
 
-    return df
+    return filter_non_stocks(df)
 
 
 @st.cache_data
@@ -227,30 +260,6 @@ def load_etf_prices(etf):
     return df
 
 
-def filter_non_stocks(holdings):
-    """Filter out currency tickers and money market funds from holdings DataFrame
-
-    Use this to get only actual stock holdings from ARK ETF data.
-    """
-    result = holdings.copy()
-
-    # Filter out currency tickers
-    if 'Bloomberg Name' in result.columns:
-        result = result[
-            ~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-        ]
-
-    # Filter out money market funds (match prefix)
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-    ticker_symbols = result['Ticker'].str.split().str[0]
-    is_money_market = ticker_symbols.apply(
-        lambda x: any(x.startswith(prefix) for prefix in money_market_prefixes) if pd.notna(x) else False
-    )
-    result = result[~is_money_market]
-
-    return result
-
-
 def get_r3000_ticker_list():
     """Get list of unique R3000 tickers from precomputed file (fast)"""
     cache_file = INPUT_DIR / 'russell_3000' / 'ticker_list.csv'
@@ -348,12 +357,6 @@ def get_stocks_for_etf(_files_hash, etf, start_date, end_date):
         (holdings['Date'] >= start_date) &
         (holdings['Date'] <= end_date)
     ].copy()
-
-    # Filter out currency tickers (vectorized)
-    if 'Bloomberg Name' in holdings_filtered.columns:
-        holdings_filtered = holdings_filtered[
-            ~holdings_filtered['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-        ]
 
     # Count rows per ticker using groupby (vectorized)
     ticker_counts = holdings_filtered.groupby('Ticker').size()

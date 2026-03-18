@@ -87,14 +87,6 @@ def prepare_returns_data(_files_hash, etf, lookback_days, period_key, _start_dat
     latest_date = holdings['Date'].max()
     current_tickers = holdings[holdings['Date'] == latest_date]['Ticker'].unique()
 
-    # Filter out currency tickers and money market funds
-    if 'Bloomberg Name' in holdings.columns:
-        currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
-        current_tickers = [t for t in current_tickers if t not in currency_tickers]
-
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-    current_tickers = [t for t in current_tickers if not any(t.split()[0].startswith(p) for p in money_market_prefixes)]
-
     # Calculate start date for lookback period
     lookback_start = latest_date - pd.Timedelta(days=lookback_days)
 

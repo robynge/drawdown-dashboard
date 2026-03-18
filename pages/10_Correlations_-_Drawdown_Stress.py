@@ -19,18 +19,6 @@ from data_loader import load_etf_prices, load_ark_holdings, get_ark_files_hash
 from session_utils import init_session_state, get_current_dates, render_period_selector
 
 
-def _filter_non_stocks(holdings):
-    """Filter out currency and money market tickers"""
-    result = holdings.copy()
-    if 'Bloomberg Name' in result.columns:
-        result = result[~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-    ticker_symbols = result['Ticker'].str.split().str[0]
-    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
-    result = result[~is_mm]
-    return result
-
-
 def calculate_average_pair_weights(weight_matrix, tickers):
     """Calculate average daily pair weights for weighted mean correlation (vectorized).
 
@@ -93,7 +81,7 @@ def calculate_recovery_correlation(files_hash, etf: str, stress_corr_df: pd.Data
     if len(holdings) == 0:
         return result
 
-    holdings_filtered = _filter_non_stocks(holdings)
+    holdings_filtered = holdings
 
     # Sort drawdowns by trough_date to get chronological order
     sorted_dd = stress_corr_df.sort_values('trough_date').reset_index(drop=True)

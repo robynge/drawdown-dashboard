@@ -126,17 +126,7 @@ def precompute_ark_holdings_max_drawdowns():
         if len(holdings) == 0:
             continue
 
-        # Filter out currency and money market funds
-        if 'Bloomberg Name' in holdings.columns:
-            currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
-            holdings = holdings[~holdings['Ticker'].isin(currency_tickers)]
-
-        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-        holdings = holdings[~holdings['Ticker'].str.split().str[0].apply(
-            lambda t: any(t.startswith(p) for p in money_market_prefixes)
-        )]
-
-        # Get all unique tickers
+        # Get all unique tickers (non-stocks already filtered by load_ark_holdings)
         all_tickers = holdings['Ticker'].unique()
 
         for ticker in all_tickers:
@@ -328,20 +318,13 @@ def precompute_ark_drawdowns():
 # ============================================================================
 
 def _filter_non_stocks(holdings):
-    """Filter out currency and money market tickers"""
-    result = holdings.copy()
+    """Filter out currency and money market tickers.
 
-    # Filter out currency tickers
-    if 'Bloomberg Name' in result.columns:
-        result = result[~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
-
-    # Filter out money market funds
-    money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-    ticker_symbols = result['Ticker'].str.split().str[0]
-    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
-    result = result[~is_mm]
-
-    return result
+    Note: load_ark_holdings() already filters, so this is a no-op safety net.
+    Kept for code paths that may load data outside of load_ark_holdings().
+    """
+    from data_loader import filter_non_stocks
+    return filter_non_stocks(holdings)
 
 
 def calculate_average_pair_weights(weight_matrix, tickers):
@@ -1105,16 +1088,6 @@ def precompute_ark_stock_drawdowns_full():
         if len(holdings) == 0:
             continue
 
-        # Filter out currency and money market funds
-        if 'Bloomberg Name' in holdings.columns:
-            currency_tickers = holdings[holdings['Bloomberg Name'].str.contains('curncy', case=False, na=False)]['Ticker'].unique()
-            holdings = holdings[~holdings['Ticker'].isin(currency_tickers)]
-
-        money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-        holdings = holdings[~holdings['Ticker'].str.split().str[0].apply(
-            lambda t: any(t.startswith(p) for p in money_market_prefixes)
-        )]
-
         all_tickers = holdings['Ticker'].unique()
         all_drawdowns = []
 
@@ -1262,17 +1235,7 @@ def precompute_position_changes():
             trough_date_actual = trough_holdings['Date'].max()
             trough_holdings = trough_holdings[trough_holdings['Date'] == trough_date_actual].copy()
 
-            # Filter out currency and money market
-            for df in [peak_holdings, trough_holdings]:
-                if 'Bloomberg Name' in df.columns:
-                    mask = ~df['Bloomberg Name'].str.contains('curncy', case=False, na=False)
-                    df.drop(df[~mask].index, inplace=True)
-
-            money_market_prefixes = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-            for df in [peak_holdings, trough_holdings]:
-                ticker_symbols = df['Ticker'].str.split().str[0]
-                is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in money_market_prefixes) if pd.notna(x) else False)
-                df.drop(df[is_mm].index, inplace=True)
+            # Non-stocks already filtered by load_ark_holdings
 
             # Create comparison
             peak_positions = peak_holdings.set_index('Ticker')[['Weight', 'Position']].add_suffix('_peak')

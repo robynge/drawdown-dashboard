@@ -17,6 +17,7 @@ from precomputed_loader import (
     load_current_weights,
     check_precomputed_exists
 )
+from data_loader import is_non_stock_ticker
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
 st.set_page_config(
@@ -143,14 +144,6 @@ with cols[0]:
 # Load correlation matrices
 ark_corr = load_correlation_matrix(selected_etf, period_key, lookback_days)
 sp500_corr = load_sp500_correlation_matrix(lookback_days, period_key=period_key)
-
-# Money market fund prefixes to filter from excluded list
-MONEY_MARKET_PREFIXES = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-
-def is_non_stock_ticker(ticker):
-    """Check if a ticker is a money market fund or cash instrument"""
-    ticker_clean = ticker.split()[0] if isinstance(ticker, str) else ticker
-    return any(ticker_clean.startswith(p) for p in MONEY_MARKET_PREFIXES)
 
 # Load current weights to determine excluded tickers
 current_weights = load_current_weights(selected_etf, period_key)

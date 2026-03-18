@@ -20,7 +20,7 @@ from precomputed_loader import (
     check_precomputed_exists,
     ARK_PRECOMPUTED_DIR
 )
-from data_loader import load_ark_holdings, get_ark_files_hash
+from data_loader import load_ark_holdings, get_ark_files_hash, is_non_stock_ticker
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
 st.set_page_config(
@@ -152,7 +152,7 @@ def calculate_holdings_returns(etf):
         return pd.DataFrame()
 
     # Filter out money market funds, currency instruments, and null tickers
-    holdings = _filter_non_stocks(holdings)
+    holdings = holdings
     holdings = holdings[holdings['Ticker'].notna()].copy()
 
     # Use Stock_Price column
@@ -496,24 +496,6 @@ with cols[0]:
         st.markdown("##### Correlation Type")
         use_weighted_corr = st.toggle("Weighted Correlation", value=False)
 
-MONEY_MARKET_PREFIXES = ['FTOXX', 'FIRXX', 'FEDXX', 'FDRXX', 'SPRXX', 'DGCXX', 'MVRXX']
-
-
-def _filter_non_stocks(holdings):
-    """Filter out currency and money market tickers"""
-    result = holdings.copy()
-    if 'Bloomberg Name' in result.columns:
-        result = result[~result['Bloomberg Name'].str.contains('curncy', case=False, na=False)]
-    ticker_symbols = result['Ticker'].str.split().str[0]
-    is_mm = ticker_symbols.apply(lambda x: any(x.startswith(p) for p in MONEY_MARKET_PREFIXES) if pd.notna(x) else False)
-    result = result[~is_mm]
-    return result
-
-
-def is_non_stock_ticker(ticker):
-    """Check if a ticker is a money market fund or cash instrument"""
-    ticker_clean = ticker.split()[0] if isinstance(ticker, str) else ticker
-    return any(ticker_clean.startswith(p) for p in MONEY_MARKET_PREFIXES)
 
 
 @st.cache_data
@@ -529,7 +511,7 @@ def load_weight_matrix(etf, period_start, period_end):
         return pd.DataFrame()
 
     # Filter non-stocks
-    holdings_filtered = _filter_non_stocks(holdings)
+    holdings_filtered = holdings
 
     # Filter to period
     holdings_period = holdings_filtered[
