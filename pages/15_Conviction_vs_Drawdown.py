@@ -382,13 +382,24 @@ fig_agg.add_trace(go.Bar(
     hovertemplate='%{x}<br>Recovery PnL: $%{y:,.0f}<extra></extra>',
 ))
 
-# Net PnL as diamond markers
+# Net PnL as small circles with dashed lines to y-axis
+for _, row in agg_df.iterrows():
+    # Dashed line from y-axis (x=label) to the net PnL point
+    fig_agg.add_trace(go.Scatter(
+        x=[row['label'], row['label']],
+        y=[0, row['Net PnL']],
+        mode='lines',
+        line=dict(color='#272727', width=1.5, dash='dash'),
+        showlegend=False,
+        hoverinfo='skip',
+    ))
+
 fig_agg.add_trace(go.Scatter(
     x=agg_df['label'],
     y=agg_df['Net PnL'],
     mode='markers+text',
     name='Net PnL',
-    marker=dict(color='#272727', size=14, symbol='diamond'),
+    marker=dict(color='#272727', size=8, symbol='circle'),
     text=[f"${v:,.0f}" for v in agg_df['Net PnL']],
     textposition='top center',
     textfont=dict(size=12, color='#272727'),
@@ -421,16 +432,12 @@ for conv in CONVICTION_ORDER:
     # (drawdown PnL is typically negative, so we use abs)
     efficiency = (total_rec_pnl / abs(total_dd_pnl) * 100) if total_dd_pnl != 0 else 0
 
-    # Recovery rate: % of events that fully recovered
-    recovery_rate = group['recovered'].mean() * 100
-
     # Net negative rate: % of events with net negative PnL
     net_negative_rate = (group['net_pnl'] < 0).mean() * 100
 
     eff_data.append({
         'label': label,
         'Recovery Efficiency (%)': efficiency,
-        'Recovery Rate (%)': recovery_rate,
         'Net Negative Rate (%)': net_negative_rate,
     })
 
@@ -445,15 +452,6 @@ fig_eff.add_trace(go.Bar(
     marker_color='#2CA02C',
     opacity=0.8,
     hovertemplate='%{x}<br>Recovery Efficiency: %{y:.1f}%<extra></extra>',
-))
-
-fig_eff.add_trace(go.Bar(
-    x=eff_df['label'],
-    y=eff_df['Recovery Rate (%)'],
-    name='Event Recovery Rate',
-    marker_color='#1F77B4',
-    opacity=0.8,
-    hovertemplate='%{x}<br>Recovery Rate: %{y:.1f}%<extra></extra>',
 ))
 
 fig_eff.add_trace(go.Bar(
