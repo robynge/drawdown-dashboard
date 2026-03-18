@@ -1596,22 +1596,38 @@ def precompute_conviction_drawdowns():
                 peak_price = dd_row['peak_price']
                 depth_pct = dd_row['depth_pct']
 
-                # Find weight at peak_date: average of last 10 holdings dates <= peak_date
-                weights_before_peak = ticker_weights[
-                    ticker_weights['Date'] <= peak_date
-                ]
-                if len(weights_before_peak) == 0:
-                    weight_at_peak = 0.0
-                else:
-                    weight_at_peak = weights_before_peak.tail(10)['Weight'].mean()
+                # Classify conviction by majority weight level during drawdown
+                # Look at daily weights from peak_date to trough_date
+                dd_weights = ticker_weights[
+                    (ticker_weights['Date'] >= peak_date) &
+                    (ticker_weights['Date'] <= trough_date)
+                ]['Weight']
 
-                # Classify conviction (weights are in decimal form, e.g., 0.05 = 5%)
-                if weight_at_peak >= 0.05:
-                    conviction = 'High'
-                elif weight_at_peak >= 0.01:
-                    conviction = 'Mid'
+                if len(dd_weights) == 0:
+                    # Fallback: use last known weight before peak
+                    weights_before_peak = ticker_weights[
+                        ticker_weights['Date'] <= peak_date
+                    ]
+                    weight_at_peak = weights_before_peak.tail(10)['Weight'].mean() if len(weights_before_peak) > 0 else 0.0
+                    if weight_at_peak >= 0.05:
+                        conviction = 'High'
+                    elif weight_at_peak >= 0.01:
+                        conviction = 'Mid'
+                    else:
+                        conviction = 'Low'
                 else:
-                    conviction = 'Low'
+                    # Count days in each conviction level
+                    n_high = (dd_weights >= 0.05).sum()
+                    n_mid = ((dd_weights >= 0.01) & (dd_weights < 0.05)).sum()
+                    n_low = (dd_weights < 0.01).sum()
+                    # Majority wins
+                    if n_high >= n_mid and n_high >= n_low:
+                        conviction = 'High'
+                    elif n_mid >= n_high and n_mid >= n_low:
+                        conviction = 'Mid'
+                    else:
+                        conviction = 'Low'
+                    weight_at_peak = dd_weights.mean()
 
                 # Duration in calendar days
                 duration_days = (trough_date - peak_date).days
