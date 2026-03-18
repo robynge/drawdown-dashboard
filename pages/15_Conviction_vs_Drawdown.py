@@ -159,10 +159,7 @@ for conv, label in WEIGHT_LABELS.items():
         opacity=0.4,
         meanline_visible=True,
         box_visible=True,
-        points='all',
-        jitter=0.35,
-        pointpos=0,
-        marker=dict(color=color, size=3, opacity=0.45),
+        points=False,
         scalemode='width',
         width=0.7,
         hoverinfo='y',
@@ -382,17 +379,15 @@ fig_agg.add_trace(go.Bar(
     hovertemplate='%{x}<br>Recovery PnL: $%{y:,.0f}<extra></extra>',
 ))
 
-# Net PnL as small circles with dashed lines to y-axis
-for _, row in agg_df.iterrows():
-    # Dashed line from y-axis (x=label) to the net PnL point
-    fig_agg.add_trace(go.Scatter(
-        x=[row['label'], row['label']],
-        y=[0, row['Net PnL']],
-        mode='lines',
+# Net PnL as small circles with horizontal dashed line from y-axis
+for i, row in agg_df.iterrows():
+    fig_agg.add_shape(
+        type='line',
+        x0=0, x1=row['label'],
+        y0=row['Net PnL'], y1=row['Net PnL'],
+        xref='paper', yref='y',
         line=dict(color='#272727', width=1.5, dash='dash'),
-        showlegend=False,
-        hoverinfo='skip',
-    ))
+    )
 
 fig_agg.add_trace(go.Scatter(
     x=agg_df['label'],
