@@ -1603,12 +1603,20 @@ def precompute_conviction_drawdowns():
                     (ticker_weights['Date'] <= trough_date)
                 ]['Weight']
 
+                if len(dd_weights) > 0:
+                    avg_weight = dd_weights.mean()
+                    # Skip ghost positions (avg weight < 0.01% = 0.0001)
+                    if avg_weight < 0.0001:
+                        continue
+
                 if len(dd_weights) == 0:
                     # Fallback: use last known weight before peak
                     weights_before_peak = ticker_weights[
                         ticker_weights['Date'] <= peak_date
                     ]
                     weight_at_peak = weights_before_peak.tail(10)['Weight'].mean() if len(weights_before_peak) > 0 else 0.0
+                    if weight_at_peak < 0.0001:
+                        continue
                     if weight_at_peak >= 0.05:
                         conviction = 'High'
                     elif weight_at_peak >= 0.01:
