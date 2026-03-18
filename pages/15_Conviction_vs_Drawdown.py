@@ -1,6 +1,6 @@
-"""Conviction vs Drawdown Analysis Page
+"""Conviction vs Pullback Analysis Page
 
-Compares drawdown depth and recovery speed between high-conviction (high weight)
+Compares pullback depth and recovery speed between high-conviction (high weight)
 and low-conviction (low weight) holdings in ARK ETFs.
 """
 import streamlit as st
@@ -22,7 +22,7 @@ from precomputed_loader import (
 )
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
-st.set_page_config(page_title="Conviction vs Drawdown", layout="wide")
+st.set_page_config(page_title="Conviction vs Pullback", layout="wide")
 
 # Display labels for conviction levels
 WEIGHT_LABELS = {'High': '≥5%', 'Mid': '1%-5%', 'Low': '<1%'}
@@ -55,7 +55,7 @@ with st.sidebar:
 
 start_date, end_date = get_current_dates()
 
-st.title("Conviction vs Drawdown Analysis")
+st.title("Conviction vs Pullback Analysis")
 st.markdown(f"**Analysis Period**: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
 # ETF selector
@@ -77,12 +77,12 @@ if not check_precomputed_exists():
 # Load data
 period_key = get_current_period()
 
-with st.spinner(f"Loading conviction drawdown data for {selected_etf}..."):
+with st.spinner(f"Loading conviction pullback data for {selected_etf}..."):
     df_period = load_conviction_drawdowns(selected_etf, period_key=period_key)
 
 if len(df_period) == 0:
     st.warning(
-        f"No conviction drawdown data for {selected_etf} ({period_key}). "
+        f"No conviction pullback data for {selected_etf} ({period_key}). "
         "Run `python convert_to_parquet.py --step 24`."
     )
     st.stop()
@@ -92,7 +92,7 @@ df_period = df_period.copy()
 # Map conviction to weight labels for display
 df_period['weight'] = df_period['conviction'].map(WEIGHT_LABELS)
 
-# Compute net PnL per event (drawdown + recovery, recovery is 0 if not recovered)
+# Compute net PnL per event (pullback + recovery, recovery is 0 if not recovered)
 df_period['net_pnl'] = df_period['adj_pnl'] + df_period['recovery_adj_pnl'].fillna(0)
 
 # ============================================================================
@@ -105,11 +105,12 @@ for conv, label in WEIGHT_LABELS.items():
     group = df_period[df_period['conviction'] == conv]
     if len(group) == 0:
         summary_rows.append({
-            'Weight': label, 'Holdings': 0, 'Drawdown Events': 0,
+            'Weight': label, 'Holdings': 0, 'Pullback Events': 0,
             'Avg Depth (%)': None, 'Median Depth (%)': None,
+            'Avg Duration (days)': None, 'Median Duration (days)': None,
             'Recovery Rate (%)': None,
             'Avg Recovery Days': None, 'Median Recovery Days': None,
-            'Total Drawdown PnL ($)': None, 'Total Net PnL ($)': None,
+            'Total Pullback PnL ($)': None, 'Total Net PnL ($)': None,
         })
         continue
 
@@ -117,6 +118,8 @@ for conv, label in WEIGHT_LABELS.items():
     n_events = len(group)
     avg_depth = group['depth_pct'].mean()
     med_depth = group['depth_pct'].median()
+    avg_duration = group['duration_days'].mean()
+    med_duration = group['duration_days'].median()
     recovery_rate = group['recovered'].mean() * 100
     recovered_group = group[group['recovered'] & group['days_to_recover'].notna()]
     avg_recovery = recovered_group['days_to_recover'].mean() if len(recovered_group) > 0 else None
@@ -125,13 +128,15 @@ for conv, label in WEIGHT_LABELS.items():
     summary_rows.append({
         'Weight': label,
         'Holdings': n_tickers,
-        'Drawdown Events': n_events,
+        'Pullback Events': n_events,
         'Avg Depth (%)': round(avg_depth, 2),
         'Median Depth (%)': round(med_depth, 2),
+        'Avg Duration (days)': round(avg_duration),
+        'Median Duration (days)': round(med_duration),
         'Recovery Rate (%)': round(recovery_rate, 1),
         'Avg Recovery Days': round(avg_recovery) if avg_recovery is not None else None,
         'Median Recovery Days': round(med_recovery) if med_recovery is not None else None,
-        'Total Drawdown PnL ($)': f"${group['adj_pnl'].sum():,.0f}",
+        'Total Pullback PnL ($)': f"${group['adj_pnl'].sum():,.0f}",
         'Total Net PnL ($)': f"${group['net_pnl'].sum():,.0f}",
     })
 
@@ -139,9 +144,9 @@ summary_df = pd.DataFrame(summary_rows)
 st.dataframe(summary_df, width='stretch', hide_index=True)
 
 # ============================================================================
-# Section 2: Drawdown Depth Distribution — Violin + Strip
+# Section 2: Pullback Depth Distribution — Violin
 # ============================================================================
-st.header("Drawdown Depth Distribution by Weight")
+st.header("Pullback Depth Distribution by Weight")
 
 fig_violin = go.Figure()
 
@@ -168,7 +173,7 @@ for conv, label in WEIGHT_LABELS.items():
 fig_violin.update_layout(
     **LAYOUT_COMMON,
     height=520,
-    yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
+    yaxis=dict(title='Pullback Depth (%)', **AXIS_STYLE),
     xaxis=dict(title='Weight', **AXIS_STYLE),
     showlegend=True,
     violingap=0.35,
@@ -177,9 +182,9 @@ fig_violin.update_layout(
 st.plotly_chart(fig_violin, width='stretch')
 
 # ============================================================================
-# Section 3: Weight vs Drawdown Depth (full width)
+# Section 3: Weight vs Pullback Depth (full width)
 # ============================================================================
-st.header("Weight vs Drawdown Depth")
+st.header("Weight vs Pullback Depth")
 
 fig_depth = go.Figure()
 
@@ -224,7 +229,7 @@ fig_depth.update_layout(
     **LAYOUT_COMMON,
     height=520,
     xaxis=dict(title='Weight (%)', **AXIS_STYLE),
-    yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
+    yaxis=dict(title='Pullback Depth (%)', **AXIS_STYLE),
 )
 st.plotly_chart(fig_depth, width='stretch')
 
@@ -235,7 +240,7 @@ st.header("Aggregate PnL Impact by Conviction")
 
 col_agg_pnl, col_eff = st.columns(2)
 
-# --- Left: Total Drawdown PnL vs Recovery PnL vs Net PnL ---
+# --- Left: Total Pullback PnL vs Recovery PnL vs Net PnL ---
 agg_data = []
 for conv in CONVICTION_ORDER:
     label = WEIGHT_LABELS[conv]
@@ -256,14 +261,14 @@ agg_df = pd.DataFrame(agg_data)
 
 fig_agg = go.Figure()
 
-# Drawdown PnL bars (expect negative)
+# Pullback PnL bars (expect negative)
 fig_agg.add_trace(go.Bar(
     x=agg_df['label'],
     y=agg_df['Drawdown PnL'],
-    name='Drawdown PnL',
+    name='Pullback PnL',
     marker_color='#D62728',
     opacity=0.8,
-    hovertemplate='%{x}<br>Drawdown PnL: $%{y:,.0f}<extra></extra>',
+    hovertemplate='%{x}<br>Pullback PnL: $%{y:,.0f}<extra></extra>',
 ))
 
 # Recovery PnL bars (expect positive)
@@ -319,8 +324,8 @@ for conv in CONVICTION_ORDER:
 
     total_dd_pnl = group['adj_pnl'].sum()
     total_rec_pnl = group['recovery_adj_pnl'].fillna(0).sum()
-    # Recovery efficiency: how much of the drawdown loss was recovered
-    # (drawdown PnL is typically negative, so we use abs)
+    # Recovery efficiency: how much of the pullback loss was recovered
+    # (pullback PnL is typically negative, so we use abs)
     efficiency = (total_rec_pnl / abs(total_dd_pnl) * 100) if total_dd_pnl != 0 else 0
 
     # Net negative rate: % of events with net negative PnL
@@ -369,9 +374,9 @@ with col_eff:
 # ============================================================================
 # Section 7: "Death by a Thousand Cuts" — Per-Stock Net PnL for Low Conviction
 # ============================================================================
-st.header("Small Position Net Drawdown Impact by Stock")
+st.header("Small Position Net Pullback Impact by Stock")
 st.caption(
-    "Net PnL (Drawdown + Recovery) summed per stock for **<1% weight** positions. "
+    "Net PnL (Pullback + Recovery) summed per stock for **<1% weight** positions. "
     "Red = net loss, green = net gain."
 )
 
@@ -436,12 +441,12 @@ if len(low_df) > 0:
     mc3.metric("Total Net Loss", f"${total_loss:,.0f}")
     mc4.metric("Total Net Gain", f"${total_gain:,.0f}")
 else:
-    st.info("No Low conviction drawdown events in this period.")
+    st.info("No Low conviction pullback events in this period.")
 
 # ============================================================================
 # Section 8: Duration vs Depth Scatter (color=weight)
 # ============================================================================
-st.header("Drawdown Duration vs Depth")
+st.header("Pullback Duration vs Depth")
 
 fig_dur = go.Figure()
 
@@ -485,7 +490,7 @@ fig_dur.update_layout(
     **LAYOUT_COMMON,
     height=520,
     xaxis=dict(title='Duration (days, peak to trough)', **AXIS_STYLE),
-    yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
+    yaxis=dict(title='Pullback Depth (%)', **AXIS_STYLE),
 )
 st.plotly_chart(fig_dur, width='stretch')
 
