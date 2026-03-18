@@ -177,53 +177,7 @@ fig_violin.update_layout(
 st.plotly_chart(fig_violin, width='stretch')
 
 # ============================================================================
-# Section 3: Recovery Curve (Kaplan-Meier style)
-# ============================================================================
-st.header("Recovery Curve by Weight")
-st.caption("Cumulative % of drawdowns that recovered within N days after trough")
-
-fig_km = go.Figure()
-
-max_days = 500  # x-axis limit
-day_range = np.arange(0, max_days + 1, 1)
-
-for conv, label in WEIGHT_LABELS.items():
-    group = df_period[df_period['conviction'] == conv]
-    if len(group) == 0:
-        continue
-
-    n_total = len(group)
-    recovery_days = group['days_to_recover'].copy()
-
-    cumulative_pct = []
-    for d in day_range:
-        recovered_by_d = (recovery_days <= d).sum()
-        cumulative_pct.append(recovered_by_d / n_total * 100)
-
-    color = COLORS[label]
-    fig_km.add_trace(go.Scatter(
-        x=day_range,
-        y=cumulative_pct,
-        mode='lines',
-        name=f"{label} (n={n_total})",
-        line=dict(color=color, width=2.5),
-        hovertemplate='Day %{x}: %{y:.1f}% recovered<extra></extra>',
-    ))
-
-# Reference line at 50%
-fig_km.add_hline(y=50, line_dash='dot', line_color='#767676', line_width=1,
-                 annotation_text='50%', annotation_position='left')
-
-fig_km.update_layout(
-    **LAYOUT_COMMON,
-    height=480,
-    xaxis=dict(title='Days After Trough', **AXIS_STYLE, range=[0, max_days]),
-    yaxis=dict(title='Cumulative Recovery Rate (%)', **AXIS_STYLE, range=[0, 105]),
-)
-st.plotly_chart(fig_km, width='stretch')
-
-# ============================================================================
-# Section 4: Drawdown Depth vs Recovery Days (scatter, color=weight)
+# Section 3: Drawdown Depth vs Recovery Days (scatter, color=weight)
 # ============================================================================
 st.header("Drawdown Depth vs Recovery Days")
 
