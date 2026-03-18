@@ -97,9 +97,6 @@ if len(df_period) == 0:
 # Map conviction to weight labels for display
 df_period['weight'] = df_period['conviction'].map(WEIGHT_LABELS)
 
-# Compute portfolio-level drawdown PnL contribution (%)
-df_period['drawdown_pnl'] = df_period['weight_at_peak'] * df_period['depth_pct'] / 100
-
 # ============================================================================
 # Section 1: Summary Statistics
 # ============================================================================
@@ -361,19 +358,19 @@ for conv, label in WEIGHT_LABELS.items():
 
     fig_pnl.add_trace(go.Scatter(
         x=group['weight_at_peak'],
-        y=group['drawdown_pnl'],
+        y=group['adj_pnl'],
         mode='markers',
         name=f"{label} (n={len(group)})",
         marker=dict(color=color, size=6, opacity=0.6,
                     line=dict(width=0.5, color='#272727')),
         hovertext=hover_texts,
-        hovertemplate='%{hovertext}<br>Weight: %{x:.1f}%<br>PnL: %{y:.2f}%<extra></extra>',
+        hovertemplate='%{hovertext}<br>Weight: %{x:.1f}%<br>Adj PnL: $%{y:,.0f}<extra></extra>',
     ))
 
     # OLS trend line per group
     if len(group) >= 5:
         x = group['weight_at_peak'].values
-        y = group['drawdown_pnl'].values
+        y = group['adj_pnl'].values
         mask = np.isfinite(x) & np.isfinite(y)
         if mask.sum() >= 5:
             coeffs = np.polyfit(x[mask], y[mask], 1)
@@ -391,7 +388,7 @@ fig_pnl.update_layout(
     **LAYOUT_COMMON,
     height=520,
     xaxis=dict(title='Weight at Peak (%)', **AXIS_STYLE),
-    yaxis=dict(title='Portfolio PnL Contribution (%)', autorange='reversed', **AXIS_STYLE),
+    yaxis=dict(title='Adjusted PnL ($)', **AXIS_STYLE),
 )
 
 with col_pnl:
@@ -455,7 +452,7 @@ st.plotly_chart(fig_dur, width='stretch')
 with st.expander("Detailed Data Table", expanded=False):
     display_df = df_period[[
         'ticker', 'rank', 'weight', 'weight_at_peak', 'peak_date', 'trough_date',
-        'peak_price', 'trough_price', 'depth_pct', 'drawdown_pnl', 'duration_days',
+        'peak_price', 'trough_price', 'depth_pct', 'adj_pnl', 'duration_days',
         'recovered', 'recovery_date', 'days_to_recover'
     ]].copy()
     display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')

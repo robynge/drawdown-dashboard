@@ -1577,6 +1577,10 @@ def precompute_conviction_drawdowns():
             # Get weight data for this ticker
             ticker_weights = stock_data[['Date', 'Weight']].sort_values('Date')
 
+            # Prepare daily holdings for Adjusted PnL (sorted by date)
+            ticker_daily = stock_data[['Date', 'Position', 'Stock_Price', 'Market Value']].copy()
+            ticker_daily = ticker_daily.sort_values('Date').reset_index(drop=True)
+
             # Process each drawdown (exclude Current, require >= 7 calendar days)
             for _, dd_row in dd_data.iterrows():
                 if dd_row['rank'] == 'Current':
@@ -1625,6 +1629,60 @@ def precompute_conviction_drawdowns():
                         recovery_date = recovery_prices.iloc[0]['Date']
                         days_to_recover = (recovery_date - trough_date).days
 
+                # --- Adjusted PnL for drawdown period ---
+                # Get daily data covering peak_date through trough_date
+                # Include one day before peak for Day0 values
+                before_peak = ticker_daily[ticker_daily['Date'] < peak_date]
+                if len(before_peak) > 0:
+                    dd_start = before_peak['Date'].iloc[-1]
+                else:
+                    dd_start = peak_date
+                dd_daily = ticker_daily[
+                    (ticker_daily['Date'] >= dd_start) &
+                    (ticker_daily['Date'] <= trough_date)
+                ].copy()
+
+                adj_pnl = 0.0
+                if len(dd_daily) >= 2:
+                    dd_daily = dd_daily.sort_values('Date').reset_index(drop=True)
+                    for i in range(1, len(dd_daily)):
+                        day0 = dd_daily.iloc[i - 1]
+                        day1 = dd_daily.iloc[i]
+
+                        # Skip if gap > 7 days
+                        if (day1['Date'] - day0['Date']).days > 7:
+                            continue
+
+                        d0_pos = day0['Position']
+                        d1_pos = day1['Position']
+                        d0_price = day0['Stock_Price']
+                        d1_price = day1['Stock_Price']
+                        d0_mv = day0['Market Value']
+                        d1_mv = day1['Market Value']
+
+                        # Skip entry/exit days
+                        if pd.isna(d0_pos) or d0_pos == 0 or pd.isna(d1_pos) or d1_pos == 0:
+                            continue
+
+                        # Stock split detection
+                        if d0_pos > 0 and d1_pos > 0 and d0_price > 0 and d1_price > 0:
+                            pos_ratio = d0_pos / d1_pos
+                            price_ratio = d1_price / d0_price
+                            price_big = price_ratio > 1.5 or price_ratio < 0.67
+                            pos_big = pos_ratio > 1.5 or pos_ratio < 0.67
+                            opposite = (price_ratio > 1 and pos_ratio > 1) or \
+                                       (price_ratio < 1 and pos_ratio < 1)
+                            mv_ratio = price_ratio / pos_ratio if pos_ratio != 0 else 999
+                            mv_preserved = 0.5 <= mv_ratio <= 2.0
+                            if price_big and pos_big and opposite and mv_preserved:
+                                d0_price = d0_price * pos_ratio
+                                d0_pos = d1_pos
+
+                        dollar_pnl = d1_mv - d0_mv
+                        avg_price = (d1_price + d0_price) / 2 if (d0_price + d1_price) > 0 else 0
+                        inflows_outflows = (d1_pos - d0_pos) * avg_price
+                        adj_pnl += dollar_pnl - inflows_outflows
+
                 all_rows.append({
                     'etf': etf,
                     'ticker': clean_ticker,
@@ -1640,6 +1698,7 @@ def precompute_conviction_drawdowns():
                     'recovered': recovered,
                     'recovery_date': recovery_date,
                     'days_to_recover': days_to_recover,
+                    'adj_pnl': round(adj_pnl, 2),
                 })
 
         if all_rows:
