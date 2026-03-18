@@ -177,64 +177,7 @@ fig_violin.update_layout(
 st.plotly_chart(fig_violin, width='stretch')
 
 # ============================================================================
-# Section 3: Drawdown Depth vs Recovery Days (scatter, color=weight)
-# ============================================================================
-st.header("Drawdown Depth vs Recovery Days")
-
-recovered_df = df_period[df_period['recovered'] & df_period['days_to_recover'].notna()].copy()
-
-if len(recovered_df) > 0:
-    recovered_df['weight'] = recovered_df['conviction'].map(WEIGHT_LABELS)
-    fig_depth_rec = go.Figure()
-
-    for conv, label in WEIGHT_LABELS.items():
-        group = recovered_df[recovered_df['conviction'] == conv]
-        if len(group) == 0:
-            continue
-        color = COLORS[label]
-
-        hover_texts = [
-            f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
-        ]
-
-        fig_depth_rec.add_trace(go.Scatter(
-            x=group['depth_pct'].abs(),
-            y=group['days_to_recover'],
-            mode='markers',
-            name=f"{label} (n={len(group)})",
-            marker=dict(color=color, size=6, opacity=0.6,
-                        line=dict(width=0.5, color='#272727')),
-            hovertext=hover_texts,
-            hovertemplate='%{hovertext}<br>Depth: -%{x:.1f}%<br>Recovery: %{y:.0f} days<extra></extra>',
-        ))
-
-        # Trend line
-        if len(group) >= 5:
-            x = group['depth_pct'].abs().values
-            y = group['days_to_recover'].values
-            mask = np.isfinite(x) & np.isfinite(y)
-            if mask.sum() >= 5:
-                coeffs = np.polyfit(x[mask], y[mask], 1)
-                x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
-                y_line = np.polyval(coeffs, x_line)
-                fig_depth_rec.add_trace(go.Scatter(
-                    x=x_line, y=y_line, mode='lines',
-                    line=dict(color=color, width=2, dash='dash'),
-                    showlegend=False, hoverinfo='skip',
-                ))
-
-    fig_depth_rec.update_layout(
-        **LAYOUT_COMMON,
-        height=520,
-        xaxis=dict(title='Drawdown Depth (%, absolute)', **AXIS_STYLE),
-        yaxis=dict(title='Days to Recovery', **AXIS_STYLE),
-    )
-    st.plotly_chart(fig_depth_rec, width='stretch')
-else:
-    st.info("No recovered drawdowns in this period.")
-
-# ============================================================================
-# Section 5: Weight vs Drawdown Depth (full width)
+# Section 3: Weight vs Drawdown Depth (full width)
 # ============================================================================
 st.header("Weight vs Drawdown Depth")
 
