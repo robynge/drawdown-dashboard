@@ -284,13 +284,10 @@ else:
     st.info("No recovered drawdowns in this period.")
 
 # ============================================================================
-# Section 5: Weight vs Depth & Weight vs PnL (side by side)
+# Section 5: Weight vs Drawdown Depth (full width)
 # ============================================================================
-st.header("Weight vs Drawdown Depth / PnL")
+st.header("Weight vs Drawdown Depth")
 
-col_depth, col_pnl = st.columns(2)
-
-# --- Left: Weight at Peak vs Drawdown Depth ---
 fig_depth = go.Figure()
 
 for conv, label in WEIGHT_LABELS.items():
@@ -299,7 +296,6 @@ for conv, label in WEIGHT_LABELS.items():
         continue
     color = COLORS[label]
 
-    # Build hover text with ticker and drawdown rank
     hover_texts = [
         f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
     ]
@@ -315,7 +311,6 @@ for conv, label in WEIGHT_LABELS.items():
         hovertemplate='%{hovertext}<br>Weight: %{x:.4f}%<br>Depth: %{y:.1f}%<extra></extra>',
     ))
 
-    # OLS trend line per group
     if len(group) >= 5:
         x = group['weight_at_peak'].values
         y = group['depth_pct'].values
@@ -338,13 +333,17 @@ fig_depth.update_layout(
     xaxis=dict(title='Weight (%)', **AXIS_STYLE),
     yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
 )
+st.plotly_chart(fig_depth, width='stretch')
 
-with col_depth:
-    st.subheader("Depth")
-    st.plotly_chart(fig_depth, width='stretch')
+# ============================================================================
+# Section 5b: Drawdown PnL vs Recovery PnL (side by side)
+# ============================================================================
+st.header("Adjusted PnL: Drawdown vs Recovery")
 
-# --- Right: Weight at Peak vs Drawdown PnL ---
-fig_pnl = go.Figure()
+col_dd_pnl, col_rec_pnl = st.columns(2)
+
+# --- Left: Drawdown PnL (peak → trough) ---
+fig_dd_pnl = go.Figure()
 
 for conv, label in WEIGHT_LABELS.items():
     group = df_period[df_period['conviction'] == conv]
@@ -356,7 +355,7 @@ for conv, label in WEIGHT_LABELS.items():
         f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
     ]
 
-    fig_pnl.add_trace(go.Scatter(
+    fig_dd_pnl.add_trace(go.Scatter(
         x=group['weight_at_peak'],
         y=group['adj_pnl'],
         mode='markers',
@@ -367,7 +366,6 @@ for conv, label in WEIGHT_LABELS.items():
         hovertemplate='%{hovertext}<br>Weight: %{x:.4f}%<br>Adj PnL: $%{y:,.0f}<extra></extra>',
     ))
 
-    # OLS trend line per group
     if len(group) >= 5:
         x = group['weight_at_peak'].values
         y = group['adj_pnl'].values
@@ -376,7 +374,7 @@ for conv, label in WEIGHT_LABELS.items():
             coeffs = np.polyfit(x[mask], y[mask], 1)
             x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
             y_line = np.polyval(coeffs, x_line)
-            fig_pnl.add_trace(go.Scatter(
+            fig_dd_pnl.add_trace(go.Scatter(
                 x=x_line, y=y_line,
                 mode='lines',
                 line=dict(color=color, width=2, dash='dash'),
@@ -384,16 +382,69 @@ for conv, label in WEIGHT_LABELS.items():
                 hoverinfo='skip',
             ))
 
-fig_pnl.update_layout(
+fig_dd_pnl.update_layout(
     **LAYOUT_COMMON,
     height=520,
     xaxis=dict(title='Weight (%)', **AXIS_STYLE),
-    yaxis=dict(title='Adjusted PnL ($)', **AXIS_STYLE),
+    yaxis=dict(title='Drawdown Adj PnL ($)', **AXIS_STYLE),
 )
 
-with col_pnl:
-    st.subheader("PnL Impact")
-    st.plotly_chart(fig_pnl, width='stretch')
+with col_dd_pnl:
+    st.subheader("Drawdown (Peak → Trough)")
+    st.plotly_chart(fig_dd_pnl, width='stretch')
+
+# --- Right: Recovery PnL (trough → recovery_date) ---
+fig_rec_pnl = go.Figure()
+
+rec_df = df_period[df_period['recovered'] & df_period['recovery_adj_pnl'].notna()].copy()
+
+for conv, label in WEIGHT_LABELS.items():
+    group = rec_df[rec_df['conviction'] == conv]
+    if len(group) == 0:
+        continue
+    color = COLORS[label]
+
+    hover_texts = [
+        f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
+    ]
+
+    fig_rec_pnl.add_trace(go.Scatter(
+        x=group['weight_at_peak'],
+        y=group['recovery_adj_pnl'],
+        mode='markers',
+        name=f"{label} (n={len(group)})",
+        marker=dict(color=color, size=6, opacity=0.6,
+                    line=dict(width=0.5, color='#272727')),
+        hovertext=hover_texts,
+        hovertemplate='%{hovertext}<br>Weight: %{x:.4f}%<br>Recovery PnL: $%{y:,.0f}<extra></extra>',
+    ))
+
+    if len(group) >= 5:
+        x = group['weight_at_peak'].values
+        y = group['recovery_adj_pnl'].values
+        mask = np.isfinite(x) & np.isfinite(y)
+        if mask.sum() >= 5:
+            coeffs = np.polyfit(x[mask], y[mask], 1)
+            x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
+            y_line = np.polyval(coeffs, x_line)
+            fig_rec_pnl.add_trace(go.Scatter(
+                x=x_line, y=y_line,
+                mode='lines',
+                line=dict(color=color, width=2, dash='dash'),
+                showlegend=False,
+                hoverinfo='skip',
+            ))
+
+fig_rec_pnl.update_layout(
+    **LAYOUT_COMMON,
+    height=520,
+    xaxis=dict(title='Weight (%)', **AXIS_STYLE),
+    yaxis=dict(title='Recovery Adj PnL ($)', **AXIS_STYLE),
+)
+
+with col_rec_pnl:
+    st.subheader("Recovery (Trough → Recovery)")
+    st.plotly_chart(fig_rec_pnl, width='stretch')
 
 # ============================================================================
 # Section 6: Duration vs Depth Scatter (color=weight)
@@ -452,8 +503,8 @@ st.plotly_chart(fig_dur, width='stretch')
 with st.expander("Detailed Data Table", expanded=False):
     display_df = df_period[[
         'ticker', 'rank', 'weight', 'weight_at_peak', 'peak_date', 'trough_date',
-        'peak_price', 'trough_price', 'depth_pct', 'adj_pnl', 'duration_days',
-        'recovered', 'recovery_date', 'days_to_recover'
+        'peak_price', 'trough_price', 'depth_pct', 'adj_pnl', 'recovery_adj_pnl',
+        'duration_days', 'recovered', 'recovery_date', 'days_to_recover'
     ]].copy()
     display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
     display_df['trough_date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
