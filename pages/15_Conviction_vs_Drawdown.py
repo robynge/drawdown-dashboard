@@ -380,12 +380,11 @@ fig_agg.add_trace(go.Bar(
 ))
 
 # Net PnL as small circles with horizontal dashed line from y-axis
-for i, row in agg_df.iterrows():
+for idx, row in enumerate(agg_data):
     fig_agg.add_shape(
         type='line',
-        x0=0, x1=row['label'],
+        x0=-0.5, x1=idx,
         y0=row['Net PnL'], y1=row['Net PnL'],
-        xref='paper', yref='y',
         line=dict(color='#272727', width=1.5, dash='dash'),
     )
 
