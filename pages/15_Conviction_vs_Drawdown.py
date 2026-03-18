@@ -312,7 +312,7 @@ for conv, label in WEIGHT_LABELS.items():
         marker=dict(color=color, size=6, opacity=0.6,
                     line=dict(width=0.5, color='#272727')),
         hovertext=hover_texts,
-        hovertemplate='%{hovertext}<br>Weight: %{x:.1f}%<br>Depth: %{y:.1f}%<extra></extra>',
+        hovertemplate='%{hovertext}<br>Weight: %{x:.4f}%<br>Depth: %{y:.1f}%<extra></extra>',
     ))
 
     # OLS trend line per group
@@ -364,7 +364,7 @@ for conv, label in WEIGHT_LABELS.items():
         marker=dict(color=color, size=6, opacity=0.6,
                     line=dict(width=0.5, color='#272727')),
         hovertext=hover_texts,
-        hovertemplate='%{hovertext}<br>Weight: %{x:.1f}%<br>Adj PnL: $%{y:,.0f}<extra></extra>',
+        hovertemplate='%{hovertext}<br>Weight: %{x:.4f}%<br>Adj PnL: $%{y:,.0f}<extra></extra>',
     ))
 
     # OLS trend line per group

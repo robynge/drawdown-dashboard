@@ -1699,7 +1699,7 @@ def precompute_conviction_drawdowns():
                     'etf': etf,
                     'ticker': clean_ticker,
                     'conviction': conviction,
-                    'weight_at_peak': round(weight_at_peak * 100, 2),
+                    'weight_at_peak': round(weight_at_peak * 100, 4),
                     'rank': dd_row['rank'],
                     'peak_date': peak_date,
                     'trough_date': trough_date,
