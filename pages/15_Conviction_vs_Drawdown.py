@@ -240,7 +240,7 @@ for conv, label in WEIGHT_LABELS.items():
     color = COLORS[label]
 
     hover_texts = [
-        f"{row['ticker']} (PB #{row['rank']})" for _, row in group.iterrows()
+        f"{row['ticker']} (Pullback #{row['rank']})" for _, row in group.iterrows()
     ]
 
     fig_depth.add_trace(go.Scatter(
@@ -502,7 +502,7 @@ for conv, label in WEIGHT_LABELS.items():
     color = COLORS[label]
 
     hover_texts = [
-        f"{row['ticker']} (PB #{row['rank']})" for _, row in group.iterrows()
+        f"{row['ticker']} (Pullback #{row['rank']})" for _, row in group.iterrows()
     ]
 
     fig_dur.add_trace(go.Scatter(
