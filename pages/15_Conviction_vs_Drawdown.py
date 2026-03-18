@@ -19,9 +19,8 @@ from config import ARK_ETFS
 from precomputed_loader import (
     load_conviction_drawdowns,
     check_precomputed_exists,
-    filter_drawdowns_by_period
 )
-from session_utils import init_session_state, get_current_dates, render_period_selector
+from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
 st.set_page_config(page_title="Conviction vs Drawdown", layout="wide")
 
@@ -75,24 +74,19 @@ if not check_precomputed_exists():
     st.stop()
 
 # Load data
-with st.spinner(f"Loading conviction drawdown data for {selected_etf}..."):
-    df = load_conviction_drawdowns(selected_etf)
+period_key = get_current_period()
 
-if len(df) == 0:
+with st.spinner(f"Loading conviction drawdown data for {selected_etf}..."):
+    df_period = load_conviction_drawdowns(selected_etf, period_key=period_key)
+
+if len(df_period) == 0:
     st.warning(
-        f"No conviction drawdown data for {selected_etf}. "
+        f"No conviction drawdown data for {selected_etf} ({period_key}). "
         "Run `python convert_to_parquet.py --step 24`."
     )
     st.stop()
 
-# Filter by period
-df_period = df[
-    (df['peak_date'] >= start_date) & (df['peak_date'] <= end_date)
-].copy()
-
-if len(df_period) == 0:
-    st.info("No drawdown events in this analysis period.")
-    st.stop()
+df_period = df_period.copy()
 
 # Map conviction to weight labels for display
 df_period['weight'] = df_period['conviction'].map(WEIGHT_LABELS)

@@ -126,22 +126,11 @@ if True:
         if stock_data is None or len(stock_data) == 0:
             st.error(f"No data available for {selected_ticker} in {selected_etf}")
         else:
-            # Try to load precomputed stock drawdowns
-            dd_precomputed = load_ark_stock_drawdowns(selected_etf, selected_ticker)
-            if len(dd_precomputed) > 0:
-                dd_data = filter_drawdowns_by_period(dd_precomputed, start_date, end_date)
-                # If filtered result is empty, recalculate
-                if len(dd_data) == 0:
-                    price_col = get_price_column(stock_data)
-                    price_df = stock_data[['Date', price_col]].copy()
-                    price_df.columns = ['Date', 'Close']
-                    dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
-            else:
-                # Fallback to dynamic calculation
-                price_col = get_price_column(stock_data)
-                price_df = stock_data[['Date', price_col]].copy()
-                price_df.columns = ['Date', 'Close']
-                dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
+            # Calculate drawdowns within the analysis period
+            price_col = get_price_column(stock_data)
+            price_df = stock_data[['Date', price_col]].copy()
+            price_df.columns = ['Date', 'Close']
+            dd_data = calculate_drawdowns(price_df, start_date=start_date, end_date=end_date)
 
             # Get GICS industry
             industry_dict = load_industry_info(get_industry_files_hash(), source='ark')
@@ -155,17 +144,8 @@ if True:
                         period_key=get_current_period(), start_date=start_date, end_date=end_date
                     )
 
-                    # Try to load precomputed peer group drawdowns
-                    peer_dd_precomputed = load_peer_group_drawdowns(gics, version=version_param)
-                    if len(peer_dd_precomputed) > 0:
-                        peer_dd_data = filter_drawdowns_by_period(peer_dd_precomputed, start_date, end_date)
-                        # If filtered result is empty, recalculate
-                        if len(peer_dd_data) == 0 and len(peer_prices) > 0:
-                            peer_prices_for_dd = peer_prices.copy()
-                            peer_prices_for_dd = peer_prices_for_dd.rename(columns={'Value': 'Close'})
-                            peer_dd_data = calculate_drawdowns(peer_prices_for_dd, start_date=start_date, end_date=end_date)
-                    elif len(peer_prices) > 0:
-                        # Fallback to dynamic calculation
+                    # Calculate peer group drawdowns within the analysis period
+                    if len(peer_prices) > 0:
                         peer_prices_for_dd = peer_prices.copy()
                         peer_prices_for_dd = peer_prices_for_dd.rename(columns={'Value': 'Close'})
                         peer_dd_data = calculate_drawdowns(peer_prices_for_dd, start_date=start_date, end_date=end_date)

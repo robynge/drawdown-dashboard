@@ -503,21 +503,26 @@ def load_sp500_correlation_matrix(lookback_days: int = 120, period_key: str = No
     return pd.read_parquet(path)
 
 
-def load_conviction_drawdowns(etf: str) -> pd.DataFrame:
-    """Load precomputed conviction vs drawdown data for an ETF
+def load_conviction_drawdowns(etf: str, period_key: str = None) -> pd.DataFrame:
+    """Load precomputed conviction vs drawdown data for an ETF and period
 
     Args:
         etf: ETF name (e.g., 'ARKK')
+        period_key: Analysis period key (e.g., '2024-2026'). If None, uses default.
 
     Returns:
         DataFrame with conviction drawdown data
-        Columns: etf, ticker, conviction, weight_at_peak, peak_date, trough_date,
-                 peak_price, trough_price, depth_pct, duration_days,
-                 recovered, recovery_date, days_to_recover
     """
-    path = ARK_PRECOMPUTED_DIR / f'{etf}_conviction_drawdowns.parquet'
+    if period_key is None:
+        from config import DEFAULT_PERIOD
+        period_key = DEFAULT_PERIOD
+
+    path = ARK_PRECOMPUTED_DIR / f'{etf}_conviction_drawdowns_{period_key}.parquet'
     if not path.exists():
-        return pd.DataFrame()
+        # Fallback to old format without period
+        path = ARK_PRECOMPUTED_DIR / f'{etf}_conviction_drawdowns.parquet'
+        if not path.exists():
+            return pd.DataFrame()
 
     df = pd.read_parquet(path)
     return _ensure_datetime(df, ['peak_date', 'trough_date', 'recovery_date'])

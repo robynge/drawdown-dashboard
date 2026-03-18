@@ -1594,161 +1594,166 @@ def precompute_conviction_drawdowns():
     ensure_dirs()
     files_hash = get_ark_files_hash()
 
-    for etf in ARK_ETFS:
-        print(f"  Processing {etf}...")
-        holdings = load_ark_holdings(files_hash, etf)
-        if len(holdings) == 0:
-            print(f"    No holdings data for {etf}")
-            continue
+    for period_key, period_info in ANALYSIS_PERIODS.items():
+        period_start = period_info['start']
+        period_end = period_info['end']
+        print(f"  Period: {period_key} ({period_start.date()} to {period_end.date()})")
 
-        # Filter non-stocks
-        holdings_filtered = _filter_non_stocks(holdings)
-
-        all_tickers = holdings_filtered['Ticker'].unique()
-        all_rows = []
-
-        for full_ticker in all_tickers:
-            stock_data = holdings_filtered[
-                holdings_filtered['Ticker'] == full_ticker
-            ].copy()
-
-            if len(stock_data) < 30:
+        for etf in ARK_ETFS:
+            print(f"    Processing {etf}...")
+            holdings = load_ark_holdings(files_hash, etf)
+            if len(holdings) == 0:
+                print(f"      No holdings data for {etf}")
                 continue
 
-            clean_ticker = full_ticker.split()[0] if ' ' in full_ticker else full_ticker
+            # Filter non-stocks
+            holdings_filtered = _filter_non_stocks(holdings)
 
-            # Build price DataFrame from Stock_Price in holdings
-            price_df = stock_data[['Date', 'Stock_Price']].copy()
-            price_df.columns = ['Date', 'Close']
-            price_df = price_df.dropna()
+            all_tickers = holdings_filtered['Ticker'].unique()
+            all_rows = []
 
-            if len(price_df) < 30:
-                continue
+            for full_ticker in all_tickers:
+                stock_data = holdings_filtered[
+                    holdings_filtered['Ticker'] == full_ticker
+                ].copy()
 
-            # Calculate drawdowns for full date range
-            dd_data = calculate_drawdowns(
-                price_df,
-                start_date=price_df['Date'].min(),
-                end_date=price_df['Date'].max()
-            )
-
-            if len(dd_data) == 0:
-                continue
-
-            # Get weight data for this ticker
-            ticker_weights = stock_data[['Date', 'Weight']].sort_values('Date')
-
-            # Prepare daily holdings for Adjusted PnL (sorted by date)
-            ticker_daily = stock_data[['Date', 'Position', 'Stock_Price', 'Market Value']].copy()
-            ticker_daily = ticker_daily.sort_values('Date').reset_index(drop=True)
-
-            # Process each drawdown (exclude Current, require >= 7 calendar days)
-            for _, dd_row in dd_data.iterrows():
-                if dd_row['rank'] == 'Current':
+                if len(stock_data) < 30:
                     continue
 
-                peak_date = dd_row['peak_date']
-                trough_date = dd_row['trough_date']
+                clean_ticker = full_ticker.split()[0] if ' ' in full_ticker else full_ticker
 
-                # Skip short drawdowns (less than 1 week)
-                if (trough_date - peak_date).days < 7:
+                # Build price DataFrame from Stock_Price in holdings
+                price_df = stock_data[['Date', 'Stock_Price']].copy()
+                price_df.columns = ['Date', 'Close']
+                price_df = price_df.dropna()
+
+                if len(price_df) < 30:
                     continue
 
-                peak_price = dd_row['peak_price']
-                depth_pct = dd_row['depth_pct']
+                # Calculate drawdowns within the analysis period
+                dd_data = calculate_drawdowns(
+                    price_df,
+                    start_date=period_start,
+                    end_date=period_end
+                )
 
-                # Classify conviction by majority weight level during drawdown
-                # Look at daily weights from peak_date to trough_date
-                dd_weights = ticker_weights[
-                    (ticker_weights['Date'] >= peak_date) &
-                    (ticker_weights['Date'] <= trough_date)
-                ]['Weight']
+                if len(dd_data) == 0:
+                    continue
 
-                if len(dd_weights) > 0:
-                    avg_weight = dd_weights.mean()
-                    # Skip ghost positions (avg weight < 0.01% = 0.0001)
-                    if avg_weight < 0.0001:
+                # Get weight data for this ticker
+                ticker_weights = stock_data[['Date', 'Weight']].sort_values('Date')
+
+                # Prepare daily holdings for Adjusted PnL (sorted by date)
+                ticker_daily = stock_data[['Date', 'Position', 'Stock_Price', 'Market Value']].copy()
+                ticker_daily = ticker_daily.sort_values('Date').reset_index(drop=True)
+
+                # Process each drawdown (exclude Current, require >= 7 calendar days)
+                for _, dd_row in dd_data.iterrows():
+                    if dd_row['rank'] == 'Current':
                         continue
 
-                if len(dd_weights) == 0:
-                    # Fallback: use last known weight before peak
-                    weights_before_peak = ticker_weights[
-                        ticker_weights['Date'] <= peak_date
-                    ]
-                    weight_at_peak = weights_before_peak.tail(10)['Weight'].mean() if len(weights_before_peak) > 0 else 0.0
-                    if weight_at_peak < 0.0001:
+                    peak_date = dd_row['peak_date']
+                    trough_date = dd_row['trough_date']
+
+                    # Skip short drawdowns (less than 1 week)
+                    if (trough_date - peak_date).days < 7:
                         continue
-                    if weight_at_peak >= 0.05:
-                        conviction = 'High'
-                    elif weight_at_peak >= 0.01:
-                        conviction = 'Mid'
+
+                    peak_price = dd_row['peak_price']
+                    depth_pct = dd_row['depth_pct']
+
+                    # Classify conviction by majority weight level during drawdown
+                    # Look at daily weights from peak_date to trough_date
+                    dd_weights = ticker_weights[
+                        (ticker_weights['Date'] >= peak_date) &
+                        (ticker_weights['Date'] <= trough_date)
+                    ]['Weight']
+
+                    if len(dd_weights) > 0:
+                        avg_weight = dd_weights.mean()
+                        # Skip ghost positions (avg weight < 0.01% = 0.0001)
+                        if avg_weight < 0.0001:
+                            continue
+
+                    if len(dd_weights) == 0:
+                        # Fallback: use last known weight before peak
+                        weights_before_peak = ticker_weights[
+                            ticker_weights['Date'] <= peak_date
+                        ]
+                        weight_at_peak = weights_before_peak.tail(10)['Weight'].mean() if len(weights_before_peak) > 0 else 0.0
+                        if weight_at_peak < 0.0001:
+                            continue
+                        if weight_at_peak >= 0.05:
+                            conviction = 'High'
+                        elif weight_at_peak >= 0.01:
+                            conviction = 'Mid'
+                        else:
+                            conviction = 'Low'
                     else:
-                        conviction = 'Low'
-                else:
-                    # Classify by average weight during drawdown period
-                    weight_at_peak = dd_weights.mean()
-                    if weight_at_peak >= 0.05:
-                        conviction = 'High'
-                    elif weight_at_peak >= 0.01:
-                        conviction = 'Mid'
-                    else:
-                        conviction = 'Low'
+                        # Classify by average weight during drawdown period
+                        weight_at_peak = dd_weights.mean()
+                        if weight_at_peak >= 0.05:
+                            conviction = 'High'
+                        elif weight_at_peak >= 0.01:
+                            conviction = 'Mid'
+                        else:
+                            conviction = 'Low'
 
-                # Duration in calendar days
-                duration_days = (trough_date - peak_date).days
+                    # Duration in calendar days
+                    duration_days = (trough_date - peak_date).days
 
-                # Check recovery: did price reach peak_price after trough?
-                future_prices = price_df[price_df['Date'] > trough_date]
-                recovered = False
-                recovery_date = None
-                days_to_recover = None
+                    # Check recovery: did price reach peak_price after trough?
+                    future_prices = price_df[price_df['Date'] > trough_date]
+                    recovered = False
+                    recovery_date = None
+                    days_to_recover = None
 
-                if len(future_prices) > 0:
-                    recovery_prices = future_prices[future_prices['Close'] >= peak_price]
-                    if len(recovery_prices) > 0:
-                        recovered = True
-                        recovery_date = recovery_prices.iloc[0]['Date']
-                        days_to_recover = (recovery_date - trough_date).days
+                    if len(future_prices) > 0:
+                        recovery_prices = future_prices[future_prices['Close'] >= peak_price]
+                        if len(recovery_prices) > 0:
+                            recovered = True
+                            recovery_date = recovery_prices.iloc[0]['Date']
+                            days_to_recover = (recovery_date - trough_date).days
 
-                # --- Adjusted PnL for drawdown period (peak → trough) ---
-                adj_pnl = _calc_period_adj_pnl(ticker_daily, peak_date, trough_date)
+                    # --- Adjusted PnL for drawdown period (peak → trough) ---
+                    adj_pnl = _calc_period_adj_pnl(ticker_daily, peak_date, trough_date)
 
-                # --- Adjusted PnL for recovery period (trough → recovery_date) ---
-                recovery_adj_pnl = None
-                if recovered and recovery_date is not None:
-                    recovery_adj_pnl = round(
-                        _calc_period_adj_pnl(ticker_daily, trough_date, recovery_date), 2
-                    )
+                    # --- Adjusted PnL for recovery period (trough → recovery_date) ---
+                    recovery_adj_pnl = None
+                    if recovered and recovery_date is not None:
+                        recovery_adj_pnl = round(
+                            _calc_period_adj_pnl(ticker_daily, trough_date, recovery_date), 2
+                        )
 
-                all_rows.append({
-                    'etf': etf,
-                    'ticker': clean_ticker,
-                    'conviction': conviction,
-                    'weight_at_peak': round(weight_at_peak * 100, 4),
-                    'rank': dd_row['rank'],
-                    'peak_date': peak_date,
-                    'trough_date': trough_date,
-                    'peak_price': peak_price,
-                    'trough_price': dd_row['trough_price'],
-                    'depth_pct': depth_pct,
-                    'duration_days': duration_days,
-                    'recovered': recovered,
-                    'recovery_date': recovery_date,
-                    'days_to_recover': days_to_recover,
-                    'adj_pnl': round(adj_pnl, 2),
-                    'recovery_adj_pnl': recovery_adj_pnl,
-                })
+                    all_rows.append({
+                        'etf': etf,
+                        'ticker': clean_ticker,
+                        'conviction': conviction,
+                        'weight_at_peak': round(weight_at_peak * 100, 4),
+                        'rank': dd_row['rank'],
+                        'peak_date': peak_date,
+                        'trough_date': trough_date,
+                        'peak_price': peak_price,
+                        'trough_price': dd_row['trough_price'],
+                        'depth_pct': depth_pct,
+                        'duration_days': duration_days,
+                        'recovered': recovered,
+                        'recovery_date': recovery_date,
+                        'days_to_recover': days_to_recover,
+                        'adj_pnl': round(adj_pnl, 2),
+                        'recovery_adj_pnl': recovery_adj_pnl,
+                    })
 
-        if all_rows:
-            result_df = pd.DataFrame(all_rows)
-            output_path = ARK_PRECOMPUTED_DIR / f'{etf}_conviction_drawdowns.parquet'
-            result_df.to_parquet(output_path, index=False)
-            print(f"    Saved {len(result_df)} conviction drawdown records "
-                  f"({len(result_df[result_df['conviction']=='High'])} High, "
-                  f"{len(result_df[result_df['conviction']=='Mid'])} Mid, "
-                  f"{len(result_df[result_df['conviction']=='Low'])} Low)")
-        else:
-            print(f"    No conviction drawdown data for {etf}")
+            if all_rows:
+                result_df = pd.DataFrame(all_rows)
+                output_path = ARK_PRECOMPUTED_DIR / f'{etf}_conviction_drawdowns_{period_key}.parquet'
+                result_df.to_parquet(output_path, index=False)
+                print(f"      Saved {len(result_df)} records "
+                      f"({len(result_df[result_df['conviction']=='High'])} High, "
+                      f"{len(result_df[result_df['conviction']=='Mid'])} Mid, "
+                      f"{len(result_df[result_df['conviction']=='Low'])} Low)")
+            else:
+                print(f"    No conviction drawdown data for {etf}")
 
 
 STEPS = {

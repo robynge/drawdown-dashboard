@@ -325,26 +325,11 @@ with left_panel:
             ark_price_df = load_ark_stock_prices(ark_files_hash, selected_etf, ark_ticker, start_date, end_date)
             r3000_price_df = load_r3000_stock_prices(r3000_files_hash, r3000_ticker, start_date, end_date)
 
-            # Try to load precomputed drawdowns for ARK stock
-            ark_dd_precomputed = load_ark_stock_drawdowns(selected_etf, ark_ticker)
-            if len(ark_dd_precomputed) > 0:
-                ark_dd = filter_drawdowns_by_period(ark_dd_precomputed, start_date, end_date)
-                # If filtered result is empty, recalculate for the period
-                if len(ark_dd) == 0 and len(ark_price_df) > 0:
-                    ark_dd = calculate_drawdowns(ark_price_df, ticker=ark_ticker, start_date=start_date, end_date=end_date)
-            elif len(ark_price_df) > 0:
-                # Fallback to dynamic calculation
+            # Calculate drawdowns within the analysis period
+            if len(ark_price_df) > 0:
                 ark_dd = calculate_drawdowns(ark_price_df, ticker=ark_ticker, start_date=start_date, end_date=end_date)
 
-            # Try to load precomputed drawdowns for R3000 stock
-            r3000_dd_precomputed = load_r3000_stock_drawdowns_detailed(r3000_ticker)
-            if len(r3000_dd_precomputed) > 0:
-                r3000_dd = filter_drawdowns_by_period(r3000_dd_precomputed, start_date, end_date)
-                # If filtered result is empty, recalculate for the period
-                if len(r3000_dd) == 0 and len(r3000_price_df) > 0:
-                    r3000_dd = calculate_drawdowns(r3000_price_df, ticker=r3000_ticker, start_date=start_date, end_date=end_date)
-            elif len(r3000_price_df) > 0:
-                # Fallback to dynamic calculation
+            if len(r3000_price_df) > 0:
                 r3000_dd = calculate_drawdowns(r3000_price_df, ticker=r3000_ticker, start_date=start_date, end_date=end_date)
 
     ""  # Space

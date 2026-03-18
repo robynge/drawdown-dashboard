@@ -15,7 +15,7 @@ from config import ARK_ETFS, INPUT_DIR
 from precomputed_loader import (
     load_r3000_drawdowns,
     load_r3000_drawdowns_with_dates,
-    load_etf_drawdowns,
+    load_etf_prices,
     load_ark_holdings_max_drawdowns,
     filter_by_period,
     filter_drawdowns_by_period,
@@ -140,13 +140,12 @@ def get_r3000_drawdowns_filtered(detailed_drawdowns, peer_group, start_date, end
 
 
 def get_etf_max_drawdown(etf, _start_date, _end_date):
-    """Get ETF's maximum drawdown from precomputed data"""
-    dd_df = load_etf_drawdowns(etf)
-    if len(dd_df) == 0:
+    """Get ETF's maximum drawdown, calculated within the analysis period"""
+    from drawdown_calculator import calculate_drawdowns
+    etf_prices = load_etf_prices(etf)
+    if len(etf_prices) == 0:
         return None
-
-    # Filter by period (use filter_drawdowns_by_period since dd_df has peak_date, not Date)
-    dd_df = filter_drawdowns_by_period(dd_df, _start_date, _end_date)
+    dd_df = calculate_drawdowns(etf_prices[['Date', 'Close']].copy(), start_date=_start_date, end_date=_end_date)
     if len(dd_df) == 0:
         return None
 

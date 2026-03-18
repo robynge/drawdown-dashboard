@@ -160,20 +160,13 @@ if iwv_prices is not None and iwv_dd is not None:
             data_hash = get_r3000_data_hash()
             prices = calculate_iwv_total_market_value(data_hash, get_current_period(), start_date, end_date)
 
-            # Try to load precomputed drawdowns
-            dd_precomputed = load_iwv_total_mv_drawdowns()
-            if len(dd_precomputed) > 0:
-                dd_data = filter_drawdowns_by_period(dd_precomputed, start_date, end_date)
-                # If filtered result is empty, recalculate
-                if len(dd_data) == 0 and len(prices) > 0:
-                    prices_for_dd = prices.copy()
-                    prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
-                    dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
-            else:
-                # Fallback to dynamic calculation
+            # Calculate drawdowns within the analysis period
+            if len(prices) > 0:
                 prices_for_dd = prices.copy()
                 prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
                 dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
+            else:
+                dd_data = pd.DataFrame()
 
             if len(dd_data) > 0:
                 dd_data['peak_date'] = pd.to_datetime(dd_data['peak_date'])
@@ -190,20 +183,13 @@ if iwv_prices is not None and iwv_dd is not None:
                     period_key=get_current_period(), start_date=start_date, end_date=end_date
                 )
 
-            # Try to load precomputed peer group drawdowns
-            dd_precomputed = load_peer_group_drawdowns(selected_target, version=version_param)
-            if len(dd_precomputed) > 0:
-                dd_data = filter_drawdowns_by_period(dd_precomputed, start_date, end_date)
-                # If filtered result is empty, recalculate
-                if len(dd_data) == 0 and len(prices) > 0:
-                    prices_for_dd = prices.copy()
-                    prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
-                    dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
-            else:
-                # Fallback to dynamic calculation
+            # Calculate peer group drawdowns within the analysis period
+            if len(prices) > 0:
                 prices_for_dd = prices.copy()
                 prices_for_dd = prices_for_dd.rename(columns={'Value': 'Close'})
                 dd_data = calculate_drawdowns(prices_for_dd, start_date=start_date, end_date=end_date)
+            else:
+                dd_data = pd.DataFrame()
 
             if len(dd_data) > 0:
                 dd_data['peak_date'] = pd.to_datetime(dd_data['peak_date'])

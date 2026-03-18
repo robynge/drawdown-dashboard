@@ -73,9 +73,14 @@ with col1:
 
 # Load precomputed data
 with st.spinner("Loading data..."):
-    # Load precomputed ETF drawdowns
-    drawdowns_full = load_etf_drawdowns(selected_etf)
-    drawdowns = filter_drawdowns_by_period(drawdowns_full, start_date, end_date)
+    # Load ETF drawdowns - compute within analysis period
+    etf_prices_for_dd = load_etf_prices(selected_etf)
+    if len(etf_prices_for_dd) > 0:
+        from drawdown_calculator import calculate_drawdowns
+        dd_price_df = etf_prices_for_dd[['Date', 'Close']].copy()
+        drawdowns = calculate_drawdowns(dd_price_df, start_date=start_date, end_date=end_date)
+    else:
+        drawdowns = pd.DataFrame()
 
     # Load precomputed position changes
     position_changes_full = load_position_changes(selected_etf)

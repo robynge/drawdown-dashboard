@@ -20,9 +20,8 @@ from config import ARK_ETFS, OUTPUT_DIR
 from precomputed_loader import (
     load_concentration_performance,
     load_hhi_timeseries,
-    load_etf_drawdowns,
+    load_etf_prices,
     filter_by_period,
-    filter_drawdowns_by_period,
     check_precomputed_exists
 )
 from chart_config import CHART_CONFIG
@@ -274,9 +273,13 @@ if len(spread_data) > 0:
 
         price_card = st.container(border=True)
         with price_card:
-            # Load precomputed drawdowns
-            etf_dd_data = load_etf_drawdowns(selected_etf)
-            etf_dd_data = filter_drawdowns_by_period(etf_dd_data, start_date, end_date)
+            # Calculate drawdowns within analysis period
+            from drawdown_calculator import calculate_drawdowns
+            _etf_prices = load_etf_prices(selected_etf)
+            if len(_etf_prices) > 0:
+                etf_dd_data = calculate_drawdowns(_etf_prices[['Date', 'Close']].copy(), start_date=start_date, end_date=end_date)
+            else:
+                etf_dd_data = pd.DataFrame()
 
             # Create figure
             fig_price = go.Figure()

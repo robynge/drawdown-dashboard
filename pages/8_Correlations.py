@@ -16,8 +16,7 @@ from precomputed_loader import (
     load_weighted_correlation_matrix,
     load_correlation_returns,
     load_current_weights,
-    load_etf_drawdowns,
-    filter_drawdowns_by_period,
+    load_etf_prices,
     check_precomputed_exists,
     ARK_PRECOMPUTED_DIR
 )
@@ -557,9 +556,13 @@ def load_weight_matrix(etf, period_start, period_end):
 
 # Load data based on correlation mode
 with st.spinner("Loading correlations..."):
-    # Load ETF drawdowns for period-based calculations, filtered to analysis period
-    etf_drawdowns = load_etf_drawdowns(selected_etf)
-    etf_drawdowns = filter_drawdowns_by_period(etf_drawdowns, start_date, end_date)
+    # Calculate ETF drawdowns within the analysis period
+    from drawdown_calculator import calculate_drawdowns
+    _etf_prices_corr = load_etf_prices(selected_etf)
+    if len(_etf_prices_corr) > 0:
+        etf_drawdowns = calculate_drawdowns(_etf_prices_corr[['Date', 'Close']].copy(), start_date=start_date, end_date=end_date)
+    else:
+        etf_drawdowns = pd.DataFrame()
     drawdown_periods, recovery_periods = get_period_dates(etf_drawdowns)
 
     # Load current weights first (needed for filtering)
