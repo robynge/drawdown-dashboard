@@ -1616,18 +1616,14 @@ def precompute_conviction_drawdowns():
                     else:
                         conviction = 'Low'
                 else:
-                    # Count days in each conviction level
-                    n_high = (dd_weights >= 0.05).sum()
-                    n_mid = ((dd_weights >= 0.01) & (dd_weights < 0.05)).sum()
-                    n_low = (dd_weights < 0.01).sum()
-                    # Majority wins
-                    if n_high >= n_mid and n_high >= n_low:
+                    # Classify by average weight during drawdown period
+                    weight_at_peak = dd_weights.mean()
+                    if weight_at_peak >= 0.05:
                         conviction = 'High'
-                    elif n_mid >= n_high and n_mid >= n_low:
+                    elif weight_at_peak >= 0.01:
                         conviction = 'Mid'
                     else:
                         conviction = 'Low'
-                    weight_at_peak = dd_weights.mean()
 
                 # Duration in calendar days
                 duration_days = (trough_date - peak_date).days
