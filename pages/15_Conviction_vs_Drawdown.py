@@ -286,7 +286,7 @@ else:
 # ============================================================================
 # Section 5: Weight vs Depth & Weight vs PnL (side by side)
 # ============================================================================
-st.header("Weight at Peak vs Drawdown Depth / PnL")
+st.header("Weight vs Drawdown Depth / PnL")
 
 col_depth, col_pnl = st.columns(2)
 
@@ -335,7 +335,7 @@ for conv, label in WEIGHT_LABELS.items():
 fig_depth.update_layout(
     **LAYOUT_COMMON,
     height=520,
-    xaxis=dict(title='Weight at Peak (%)', **AXIS_STYLE),
+    xaxis=dict(title='Weight (%)', **AXIS_STYLE),
     yaxis=dict(title='Drawdown Depth (%)', autorange='reversed', **AXIS_STYLE),
 )
 
@@ -387,7 +387,7 @@ for conv, label in WEIGHT_LABELS.items():
 fig_pnl.update_layout(
     **LAYOUT_COMMON,
     height=520,
-    xaxis=dict(title='Weight at Peak (%)', **AXIS_STYLE),
+    xaxis=dict(title='Weight (%)', **AXIS_STYLE),
     yaxis=dict(title='Adjusted PnL ($)', **AXIS_STYLE),
 )
 
