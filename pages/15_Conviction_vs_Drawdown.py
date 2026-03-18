@@ -28,6 +28,7 @@ st.set_page_config(page_title="Conviction vs Drawdown", layout="wide")
 WEIGHT_LABELS = {'High': '≥5%', 'Mid': '1%-5%', 'Low': '<1%'}
 WEIGHT_ORDER = ['≥5%', '1%-5%', '<1%']
 COLORS = {'≥5%': '#D62728', '1%-5%': '#1F77B4', '<1%': '#F5A623'}
+CONVICTION_ORDER = ['High', 'Mid', 'Low']
 
 # Shared layout: remove top/right spines, light grid, clean font
 AXIS_STYLE = dict(
@@ -91,6 +92,9 @@ df_period = df_period.copy()
 # Map conviction to weight labels for display
 df_period['weight'] = df_period['conviction'].map(WEIGHT_LABELS)
 
+# Compute net PnL per event (drawdown + recovery, recovery is 0 if not recovered)
+df_period['net_pnl'] = df_period['adj_pnl'] + df_period['recovery_adj_pnl'].fillna(0)
+
 # ============================================================================
 # Section 1: Summary Statistics
 # ============================================================================
@@ -105,6 +109,7 @@ for conv, label in WEIGHT_LABELS.items():
             'Avg Depth (%)': None, 'Median Depth (%)': None,
             'Recovery Rate (%)': None,
             'Avg Recovery Days': None, 'Median Recovery Days': None,
+            'Total Drawdown PnL ($)': None, 'Total Net PnL ($)': None,
         })
         continue
 
@@ -126,13 +131,15 @@ for conv, label in WEIGHT_LABELS.items():
         'Recovery Rate (%)': round(recovery_rate, 1),
         'Avg Recovery Days': round(avg_recovery) if avg_recovery is not None else None,
         'Median Recovery Days': round(med_recovery) if med_recovery is not None else None,
+        'Total Drawdown PnL ($)': f"${group['adj_pnl'].sum():,.0f}",
+        'Total Net PnL ($)': f"${group['net_pnl'].sum():,.0f}",
     })
 
 summary_df = pd.DataFrame(summary_rows)
 st.dataframe(summary_df, width='stretch', hide_index=True)
 
 # ============================================================================
-# Section 2: Drawdown Depth — Violin + Strip
+# Section 2: Drawdown Depth Distribution — Violin + Strip
 # ============================================================================
 st.header("Drawdown Depth Distribution by Weight")
 
@@ -190,8 +197,6 @@ for conv, label in WEIGHT_LABELS.items():
 
     n_total = len(group)
     recovery_days = group['days_to_recover'].copy()
-    # Not recovered → treated as censored (not counted as recovered)
-    not_recovered_count = recovery_days.isna().sum()
 
     cumulative_pct = []
     for d in day_range:
@@ -330,118 +335,222 @@ fig_depth.update_layout(
 st.plotly_chart(fig_depth, width='stretch')
 
 # ============================================================================
-# Section 5b: Drawdown PnL vs Recovery PnL (side by side)
+# Section 6: Aggregate PnL Analysis (replaces individual PnL scatters)
 # ============================================================================
-st.header("Adjusted PnL: Drawdown vs Recovery")
+st.header("Aggregate PnL Impact by Conviction")
 
-col_dd_pnl, col_rec_pnl = st.columns(2)
+col_agg_pnl, col_eff = st.columns(2)
 
-# --- Left: Drawdown PnL (peak → trough) ---
-fig_dd_pnl = go.Figure()
-
-for conv, label in WEIGHT_LABELS.items():
+# --- Left: Total Drawdown PnL vs Recovery PnL vs Net PnL ---
+agg_data = []
+for conv in CONVICTION_ORDER:
+    label = WEIGHT_LABELS[conv]
     group = df_period[df_period['conviction'] == conv]
     if len(group) == 0:
         continue
-    color = COLORS[label]
+    total_dd_pnl = group['adj_pnl'].sum()
+    total_rec_pnl = group['recovery_adj_pnl'].fillna(0).sum()
+    total_net = total_dd_pnl + total_rec_pnl
+    agg_data.append({
+        'conviction': conv, 'label': label,
+        'Drawdown PnL': total_dd_pnl,
+        'Recovery PnL': total_rec_pnl,
+        'Net PnL': total_net,
+    })
 
-    hover_texts = [
-        f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
-    ]
+agg_df = pd.DataFrame(agg_data)
 
-    fig_dd_pnl.add_trace(go.Scatter(
-        x=group['weight_at_peak'],
-        y=group['adj_pnl'],
-        mode='markers',
-        name=f"{label} (n={len(group)})",
-        marker=dict(color=color, size=6, opacity=0.6,
-                    line=dict(width=0.5, color='#272727')),
-        hovertext=hover_texts,
-        hovertemplate='%{hovertext}<br>Weight: %{x:.4f}%<br>Adj PnL: $%{y:,.0f}<extra></extra>',
-    ))
+fig_agg = go.Figure()
 
-    if len(group) >= 5:
-        x = group['weight_at_peak'].values
-        y = group['adj_pnl'].values
-        mask = np.isfinite(x) & np.isfinite(y)
-        if mask.sum() >= 5:
-            coeffs = np.polyfit(x[mask], y[mask], 1)
-            x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
-            y_line = np.polyval(coeffs, x_line)
-            fig_dd_pnl.add_trace(go.Scatter(
-                x=x_line, y=y_line,
-                mode='lines',
-                line=dict(color=color, width=2, dash='dash'),
-                showlegend=False,
-                hoverinfo='skip',
-            ))
+# Drawdown PnL bars (expect negative)
+fig_agg.add_trace(go.Bar(
+    x=agg_df['label'],
+    y=agg_df['Drawdown PnL'],
+    name='Drawdown PnL',
+    marker_color='#D62728',
+    opacity=0.8,
+    hovertemplate='%{x}<br>Drawdown PnL: $%{y:,.0f}<extra></extra>',
+))
 
-fig_dd_pnl.update_layout(
+# Recovery PnL bars (expect positive)
+fig_agg.add_trace(go.Bar(
+    x=agg_df['label'],
+    y=agg_df['Recovery PnL'],
+    name='Recovery PnL',
+    marker_color='#2CA02C',
+    opacity=0.8,
+    hovertemplate='%{x}<br>Recovery PnL: $%{y:,.0f}<extra></extra>',
+))
+
+# Net PnL as diamond markers
+fig_agg.add_trace(go.Scatter(
+    x=agg_df['label'],
+    y=agg_df['Net PnL'],
+    mode='markers+text',
+    name='Net PnL',
+    marker=dict(color='#272727', size=14, symbol='diamond'),
+    text=[f"${v:,.0f}" for v in agg_df['Net PnL']],
+    textposition='top center',
+    textfont=dict(size=12, color='#272727'),
+    hovertemplate='%{x}<br>Net PnL: $%{y:,.0f}<extra></extra>',
+))
+
+fig_agg.update_layout(
     **LAYOUT_COMMON,
     height=520,
-    xaxis=dict(title='Weight (%)', **AXIS_STYLE),
-    yaxis=dict(title='Drawdown Adj PnL ($)', **AXIS_STYLE),
+    barmode='group',
+    xaxis=dict(title='Conviction', **AXIS_STYLE),
+    yaxis=dict(title='Total PnL ($)', **AXIS_STYLE),
 )
 
-with col_dd_pnl:
-    st.subheader("Drawdown (Peak → Trough)")
-    st.plotly_chart(fig_dd_pnl, width='stretch')
+with col_agg_pnl:
+    st.subheader("Total PnL by Conviction")
+    st.plotly_chart(fig_agg, width='stretch')
 
-# --- Right: Recovery PnL (trough → recovery_date) ---
-fig_rec_pnl = go.Figure()
-
-rec_df = df_period[df_period['recovered'] & df_period['recovery_adj_pnl'].notna()].copy()
-
-for conv, label in WEIGHT_LABELS.items():
-    group = rec_df[rec_df['conviction'] == conv]
+# --- Right: Recovery Efficiency ---
+eff_data = []
+for conv in CONVICTION_ORDER:
+    label = WEIGHT_LABELS[conv]
+    group = df_period[df_period['conviction'] == conv]
     if len(group) == 0:
         continue
-    color = COLORS[label]
 
-    hover_texts = [
-        f"{row['ticker']} (DD #{row['rank']})" for _, row in group.iterrows()
-    ]
+    total_dd_pnl = group['adj_pnl'].sum()
+    total_rec_pnl = group['recovery_adj_pnl'].fillna(0).sum()
+    # Recovery efficiency: how much of the drawdown loss was recovered
+    # (drawdown PnL is typically negative, so we use abs)
+    efficiency = (total_rec_pnl / abs(total_dd_pnl) * 100) if total_dd_pnl != 0 else 0
 
-    fig_rec_pnl.add_trace(go.Scatter(
-        x=group['weight_at_peak'],
-        y=group['recovery_adj_pnl'],
-        mode='markers',
-        name=f"{label} (n={len(group)})",
-        marker=dict(color=color, size=6, opacity=0.6,
-                    line=dict(width=0.5, color='#272727')),
-        hovertext=hover_texts,
-        hovertemplate='%{hovertext}<br>Weight: %{x:.4f}%<br>Recovery PnL: $%{y:,.0f}<extra></extra>',
-    ))
+    # Recovery rate: % of events that fully recovered
+    recovery_rate = group['recovered'].mean() * 100
 
-    if len(group) >= 5:
-        x = group['weight_at_peak'].values
-        y = group['recovery_adj_pnl'].values
-        mask = np.isfinite(x) & np.isfinite(y)
-        if mask.sum() >= 5:
-            coeffs = np.polyfit(x[mask], y[mask], 1)
-            x_line = np.linspace(x[mask].min(), x[mask].max(), 50)
-            y_line = np.polyval(coeffs, x_line)
-            fig_rec_pnl.add_trace(go.Scatter(
-                x=x_line, y=y_line,
-                mode='lines',
-                line=dict(color=color, width=2, dash='dash'),
-                showlegend=False,
-                hoverinfo='skip',
-            ))
+    # Net negative rate: % of events with net negative PnL
+    net_negative_rate = (group['net_pnl'] < 0).mean() * 100
 
-fig_rec_pnl.update_layout(
+    eff_data.append({
+        'label': label,
+        'Recovery Efficiency (%)': efficiency,
+        'Recovery Rate (%)': recovery_rate,
+        'Net Negative Rate (%)': net_negative_rate,
+    })
+
+eff_df = pd.DataFrame(eff_data)
+
+fig_eff = go.Figure()
+
+fig_eff.add_trace(go.Bar(
+    x=eff_df['label'],
+    y=eff_df['Recovery Efficiency (%)'],
+    name='PnL Recovery Efficiency',
+    marker_color='#2CA02C',
+    opacity=0.8,
+    hovertemplate='%{x}<br>Recovery Efficiency: %{y:.1f}%<extra></extra>',
+))
+
+fig_eff.add_trace(go.Bar(
+    x=eff_df['label'],
+    y=eff_df['Recovery Rate (%)'],
+    name='Event Recovery Rate',
+    marker_color='#1F77B4',
+    opacity=0.8,
+    hovertemplate='%{x}<br>Recovery Rate: %{y:.1f}%<extra></extra>',
+))
+
+fig_eff.add_trace(go.Bar(
+    x=eff_df['label'],
+    y=eff_df['Net Negative Rate (%)'],
+    name='Net Negative Event Rate',
+    marker_color='#D62728',
+    opacity=0.8,
+    hovertemplate='%{x}<br>Net Negative: %{y:.1f}%<extra></extra>',
+))
+
+fig_eff.update_layout(
     **LAYOUT_COMMON,
     height=520,
-    xaxis=dict(title='Weight (%)', **AXIS_STYLE),
-    yaxis=dict(title='Recovery Adj PnL ($)', **AXIS_STYLE),
+    barmode='group',
+    xaxis=dict(title='Conviction', **AXIS_STYLE),
+    yaxis=dict(title='%', **AXIS_STYLE, range=[0, 105]),
 )
 
-with col_rec_pnl:
-    st.subheader("Recovery (Trough → Recovery)")
-    st.plotly_chart(fig_rec_pnl, width='stretch')
+with col_eff:
+    st.subheader("Recovery Efficiency")
+    st.plotly_chart(fig_eff, width='stretch')
 
 # ============================================================================
-# Section 6: Duration vs Depth Scatter (color=weight)
+# Section 7: "Death by a Thousand Cuts" — Per-Stock Net PnL for Low Conviction
+# ============================================================================
+st.header("Small Position Net Drawdown Impact by Stock")
+st.caption(
+    "Net PnL (Drawdown + Recovery) summed per stock for **<1% weight** positions. "
+    "Red = net loss, green = net gain."
+)
+
+low_df = df_period[df_period['conviction'] == 'Low'].copy()
+
+if len(low_df) > 0:
+    # Sum net PnL per stock
+    stock_net = low_df.groupby('ticker').agg(
+        net_pnl=('net_pnl', 'sum'),
+        n_events=('net_pnl', 'count'),
+        avg_weight=('weight_at_peak', 'mean'),
+    ).reset_index()
+    stock_net = stock_net.sort_values('net_pnl', ascending=True)
+
+    # Color by sign
+    bar_colors = ['#D62728' if v < 0 else '#2CA02C' for v in stock_net['net_pnl']]
+
+    fig_cuts = go.Figure()
+    fig_cuts.add_trace(go.Bar(
+        y=stock_net['ticker'],
+        x=stock_net['net_pnl'],
+        orientation='h',
+        marker_color=bar_colors,
+        opacity=0.85,
+        customdata=np.stack([stock_net['n_events'], stock_net['avg_weight']], axis=-1),
+        hovertemplate=(
+            '%{y}<br>'
+            'Net PnL: $%{x:,.0f}<br>'
+            'Events: %{customdata[0]:.0f}<br>'
+            'Avg Weight: %{customdata[1]:.4f}%'
+            '<extra></extra>'
+        ),
+    ))
+
+    # Summary annotation
+    total_loss = stock_net[stock_net['net_pnl'] < 0]['net_pnl'].sum()
+    total_gain = stock_net[stock_net['net_pnl'] >= 0]['net_pnl'].sum()
+    n_negative = (stock_net['net_pnl'] < 0).sum()
+    n_positive = (stock_net['net_pnl'] >= 0).sum()
+
+    fig_cuts.update_layout(
+        **LAYOUT_COMMON,
+        height=max(400, len(stock_net) * 22 + 80),
+        xaxis=dict(title='Net PnL ($)', **AXIS_STYLE),
+        yaxis=dict(
+            title='', **AXIS_STYLE,
+            tickfont=dict(size=11),
+            autorange='reversed',  # most negative at top
+        ),
+        showlegend=False,
+    )
+
+    # Add vertical line at 0
+    fig_cuts.add_vline(x=0, line_color='#272727', line_width=1.5)
+
+    st.plotly_chart(fig_cuts, width='stretch')
+
+    # Summary metrics
+    mc1, mc2, mc3, mc4 = st.columns(4)
+    mc1.metric("Stocks with Net Loss", f"{n_negative}")
+    mc2.metric("Stocks with Net Gain", f"{n_positive}")
+    mc3.metric("Total Net Loss", f"${total_loss:,.0f}")
+    mc4.metric("Total Net Gain", f"${total_gain:,.0f}")
+else:
+    st.info("No Low conviction drawdown events in this period.")
+
+# ============================================================================
+# Section 8: Duration vs Depth Scatter (color=weight)
 # ============================================================================
 st.header("Drawdown Duration vs Depth")
 
@@ -492,13 +601,13 @@ fig_dur.update_layout(
 st.plotly_chart(fig_dur, width='stretch')
 
 # ============================================================================
-# Section 7: Detailed Table
+# Section 9: Detailed Table
 # ============================================================================
 with st.expander("Detailed Data Table", expanded=False):
     display_df = df_period[[
         'ticker', 'rank', 'weight', 'weight_at_peak', 'peak_date', 'trough_date',
         'peak_price', 'trough_price', 'depth_pct', 'adj_pnl', 'recovery_adj_pnl',
-        'duration_days', 'recovered', 'recovery_date', 'days_to_recover'
+        'net_pnl', 'duration_days', 'recovered', 'recovery_date', 'days_to_recover'
     ]].copy()
     display_df['peak_date'] = display_df['peak_date'].dt.strftime('%Y-%m-%d')
     display_df['trough_date'] = display_df['trough_date'].dt.strftime('%Y-%m-%d')
