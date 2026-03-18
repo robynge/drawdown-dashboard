@@ -336,7 +336,7 @@ fig_depth.update_layout(
     **LAYOUT_COMMON,
     height=520,
     xaxis=dict(title='Weight (%)', **AXIS_STYLE),
-    yaxis=dict(title='Drawdown Depth (%)', autorange='reversed', **AXIS_STYLE),
+    yaxis=dict(title='Drawdown Depth (%)', **AXIS_STYLE),
 )
 
 with col_depth:
