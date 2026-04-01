@@ -15,13 +15,12 @@ from config import ARK_ETFS, INPUT_DIR
 from precomputed_loader import (
     load_r3000_drawdowns,
     load_r3000_drawdowns_with_dates,
-    load_etf_prices,
     load_ark_holdings_max_drawdowns,
     filter_by_period,
     filter_drawdowns_by_period,
     check_precomputed_exists
 )
-from data_loader import load_ark_holdings, load_industry_info, get_ark_files_hash, get_r3000_files_hash, get_industry_files_hash
+from data_loader import load_ark_holdings, load_etf_prices, load_industry_info, get_ark_files_hash, get_r3000_files_hash, get_industry_files_hash
 from session_utils import init_session_state, get_current_dates, has_r3000_data, render_period_selector
 
 st.set_page_config(
