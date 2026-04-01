@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS
+from chart_config import CHART_CONFIG
 from precomputed_loader import (
     load_correlation_matrix,
     load_sp500_correlation_matrix,
@@ -290,7 +291,7 @@ with cols[1]:
                 paper_bgcolor='white'
             )
 
-            st.plotly_chart(fig_bench, width='stretch')
+            st.plotly_chart(fig_bench, width='stretch', config=CHART_CONFIG)
 
             st.markdown(f"<small>*{bench_label} by market cap. Lower average correlation = better diversification potential.*</small>", unsafe_allow_html=True)
 
@@ -366,7 +367,7 @@ with cols[1]:
                 yaxis=dict(gridcolor='lightgray')
             )
 
-            st.plotly_chart(fig_dist, width='stretch')
+            st.plotly_chart(fig_dist, width='stretch', config=CHART_CONFIG)
 
             # Show excluded tickers caption if any were excluded
             if ark_excluded_tickers:

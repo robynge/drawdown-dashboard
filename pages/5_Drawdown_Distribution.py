@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, INPUT_DIR
+from chart_config import CHART_CONFIG
 from precomputed_loader import (
     load_r3000_drawdowns,
     load_r3000_drawdowns_with_dates,
@@ -413,7 +414,7 @@ if len(ark_dd) > 0 and len(r3000_dd) > 0:
             fig.update_yaxes(title_text="% of Stocks", gridcolor='lightgray', row=1, col=1)
             fig.update_yaxes(title_text="Number of Stocks", gridcolor='lightgray', row=2, col=1)
 
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, width='stretch', config=CHART_CONFIG)
 
     ""  # Space
 

@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS
+from chart_config import CHART_CONFIG
 from precomputed_loader import (
     load_correlation_matrix,
     load_weighted_correlation_matrix,
@@ -747,7 +748,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
                 paper_bgcolor='white'
             )
 
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, width='stretch', config=CHART_CONFIG)
 
             # Show excluded tickers caption if any were excluded
             if excluded_tickers:
@@ -825,7 +826,7 @@ if corr_matrix is not None and len(corr_matrix) > 0:
             yaxis=dict(gridcolor='lightgray')
         )
 
-        st.plotly_chart(fig_hist, width='stretch')
+        st.plotly_chart(fig_hist, width='stretch', config=CHART_CONFIG)
 
     ""  # Space
 

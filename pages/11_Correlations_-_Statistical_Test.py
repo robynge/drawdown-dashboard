@@ -14,6 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS, INPUT_DIR
+from chart_config import CHART_CONFIG
 from data_loader import load_ark_holdings, get_ark_files_hash
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 from precomputed_loader import load_correlation_returns, load_current_weights, check_precomputed_exists
@@ -371,7 +372,7 @@ if len(returns) >= window_size * 2:
                 yaxis=dict(gridcolor='lightgray')
             )
 
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, width='stretch', config=CHART_CONFIG)
 
         with chart_cols[1]:
             fig_dist = go.Figure()
@@ -407,7 +408,7 @@ if len(returns) >= window_size * 2:
                 yaxis=dict(gridcolor='lightgray')
             )
 
-            st.plotly_chart(fig_dist, width='stretch')
+            st.plotly_chart(fig_dist, width='stretch', config=CHART_CONFIG)
 
         st.markdown(f"<small>*Left: Under H₀, the observed Δ should fall within the bulk of the null distribution. Right: Comparison of pairwise correlation distributions between the two windows.</small>", unsafe_allow_html=True)
 

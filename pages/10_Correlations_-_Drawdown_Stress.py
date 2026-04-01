@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS
+from chart_config import CHART_CONFIG
 from precomputed_loader import (
     load_stress_correlations,
     check_precomputed_exists
@@ -417,7 +418,7 @@ if len(stress_corr) > 0:
                     yaxis2=dict(title=f"{corr_label} Correlation", overlaying='y', side='right', range=[0, 1], showgrid=False)
                 )
 
-                st.plotly_chart(fig_stress, width='stretch')
+                st.plotly_chart(fig_stress, width='stretch', config=CHART_CONFIG)
 
                 # Show excluded tickers caption if any were excluded
                 if recovery_excluded:

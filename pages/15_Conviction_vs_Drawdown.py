@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import ARK_ETFS
+from chart_config import CHART_CONFIG
 from precomputed_loader import (
     load_conviction_drawdowns,
     check_precomputed_exists,
@@ -179,7 +180,7 @@ fig_violin.update_layout(
     violingap=0.35,
     violinmode='group',
 )
-st.plotly_chart(fig_violin, width='stretch')
+st.plotly_chart(fig_violin, width='stretch', config=CHART_CONFIG)
 
 # ============================================================================
 # Section 2b: Recovery Curve (Kaplan-Meier style)
@@ -224,7 +225,7 @@ fig_km.update_layout(
     xaxis=dict(title='Days After Trough', **AXIS_STYLE, range=[0, max_days]),
     yaxis=dict(title='Cumulative Recovery Rate (%)', **AXIS_STYLE, range=[0, 105]),
 )
-st.plotly_chart(fig_km, width='stretch')
+st.plotly_chart(fig_km, width='stretch', config=CHART_CONFIG)
 
 # ============================================================================
 # Section 3: Weight vs Pullback Depth (full width)
@@ -276,7 +277,7 @@ fig_depth.update_layout(
     xaxis=dict(title='Weight (%)', **AXIS_STYLE),
     yaxis=dict(title='Pullback Depth (%)', **AXIS_STYLE),
 )
-st.plotly_chart(fig_depth, width='stretch')
+st.plotly_chart(fig_depth, width='stretch', config=CHART_CONFIG)
 
 # ============================================================================
 # Section 6: Aggregate PnL Analysis (replaces individual PnL scatters)
@@ -357,7 +358,7 @@ fig_agg.update_layout(
 
 with col_agg_pnl:
     st.subheader("Total PnL by Conviction")
-    st.plotly_chart(fig_agg, width='stretch')
+    st.plotly_chart(fig_agg, width='stretch', config=CHART_CONFIG)
 
 # --- Right: Recovery Efficiency ---
 eff_data = []
@@ -414,7 +415,7 @@ fig_eff.update_layout(
 
 with col_eff:
     st.subheader("Recovery Efficiency")
-    st.plotly_chart(fig_eff, width='stretch')
+    st.plotly_chart(fig_eff, width='stretch', config=CHART_CONFIG)
 
 # ============================================================================
 # Section 7: "Death by a Thousand Cuts" — Per-Stock Net PnL for Low Conviction
@@ -477,7 +478,7 @@ if len(low_df) > 0:
     # Add vertical line at 0
     fig_cuts.add_vline(x=0, line_color='#272727', line_width=1.5)
 
-    st.plotly_chart(fig_cuts, width='stretch')
+    st.plotly_chart(fig_cuts, width='stretch', config=CHART_CONFIG)
 
     # Summary metrics
     mc1, mc2, mc3, mc4 = st.columns(4)
@@ -537,7 +538,7 @@ fig_dur.update_layout(
     xaxis=dict(title='Duration (days, peak to trough)', **AXIS_STYLE),
     yaxis=dict(title='Pullback Depth (%)', **AXIS_STYLE),
 )
-st.plotly_chart(fig_dur, width='stretch')
+st.plotly_chart(fig_dur, width='stretch', config=CHART_CONFIG)
 
 # ============================================================================
 # Section 9: Detailed Table
