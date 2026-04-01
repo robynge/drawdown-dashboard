@@ -20,10 +20,10 @@ from config import ARK_ETFS, OUTPUT_DIR
 from precomputed_loader import (
     load_concentration_performance,
     load_hhi_timeseries,
-    load_etf_prices,
     filter_by_period,
     check_precomputed_exists
 )
+from data_loader import load_etf_prices
 from chart_config import CHART_CONFIG
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector, is_latest_period
 

@@ -16,10 +16,10 @@ from precomputed_loader import (
     load_weighted_correlation_matrix,
     load_correlation_returns,
     load_current_weights,
-    load_etf_prices,
     check_precomputed_exists,
     ARK_PRECOMPUTED_DIR
 )
+from data_loader import load_etf_prices
 from data_loader import load_ark_holdings, get_ark_files_hash, is_non_stock_ticker
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
