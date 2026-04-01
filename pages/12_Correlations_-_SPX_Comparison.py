@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import ARK_ETFS
 from precomputed_loader import (
     load_correlation_matrix,
-    load_bench_correlation_matrix,
+    load_sp500_correlation_matrix,
     load_qqq_correlation_matrix,
     load_current_weights,
     check_precomputed_exists
@@ -158,7 +158,7 @@ with cols[0]:
 # Load correlation matrices
 ark_corr = load_correlation_matrix(selected_etf, period_key, lookback_days)
 if selected_benchmark == "S&P 500":
-    bench_corr = load_bench_correlation_matrix(lookback_days, period_key=period_key)
+    bench_corr = load_sp500_correlation_matrix(lookback_days, period_key=period_key)
     bench_label = "S&P 500 Top 50"
     bench_short = "SPX"
 else:
