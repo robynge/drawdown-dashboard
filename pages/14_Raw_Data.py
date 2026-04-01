@@ -51,12 +51,12 @@ st.caption("📅 Showing only the most recent 1 year of data for faster loading"
 
 ark_etfs_dir = INPUT_DIR / 'ark_etfs'
 ark_files = {
-    'ARKF': 'ARKF_Transformed_Data.xlsx',
-    'ARKG': 'ARKG_Transformed_Data.xlsx',
-    'ARKK': 'ARKK_Transformed_Data.xlsx',
-    'ARKQ': 'ARKQ_Transformed_Data.xlsx',
-    'ARKW': 'ARKW_Transformed_Data.xlsx',
-    'ARKX': 'ARKX_Transformed_Data.xlsx'
+    'ARKF': 'ARKF_Transformed_Data.parquet',
+    'ARKG': 'ARKG_Transformed_Data.parquet',
+    'ARKK': 'ARKK_Transformed_Data.parquet',
+    'ARKQ': 'ARKQ_Transformed_Data.parquet',
+    'ARKW': 'ARKW_Transformed_Data.parquet',
+    'ARKX': 'ARKX_Transformed_Data.parquet'
 }
 
 # Create tabs for each ETF
@@ -71,7 +71,7 @@ for idx, (etf, filename) in enumerate(ark_files.items()):
         file_path = ark_etfs_dir / filename
         if file_path.exists():
             try:
-                df = pd.read_excel(file_path)
+                df = pd.read_parquet(file_path)
 
                 # Drop unwanted columns
                 cols_to_drop = [col for col in df.columns if 'company' in col.lower() and 'name' in col.lower()]
@@ -162,31 +162,29 @@ st.subheader("iShares Russell 3000 ETF (IWV)")
 st.caption("📅 Showing only the most recent 1 year of data for faster loading")
 
 russell_dir = INPUT_DIR / 'russell_3000'
-russell_file = 'IWV_Transformed_Data.xlsx'
+russell_file = 'IWV_Transformed_Data.parquet'
 
-# Skip temporary Excel files
-if not russell_file.startswith('~$'):
-    file_path = russell_dir / russell_file
-    if file_path.exists():
-        try:
-            df = pd.read_excel(file_path)
+file_path = russell_dir / russell_file
+if file_path.exists():
+    try:
+        df = pd.read_parquet(file_path)
 
-            # Drop unwanted columns
-            cols_to_drop = [col for col in df.columns if 'company' in col.lower() and 'name' in col.lower()]
-            cols_to_drop += [col for col in df.columns if 'yfinance' in col.lower() and 'price' in col.lower()]
-            df = df.drop(columns=cols_to_drop, errors='ignore')
+        # Drop unwanted columns
+        cols_to_drop = [col for col in df.columns if 'company' in col.lower() and 'name' in col.lower()]
+        cols_to_drop += [col for col in df.columns if 'yfinance' in col.lower() and 'price' in col.lower()]
+        df = df.drop(columns=cols_to_drop, errors='ignore')
 
-            # Filter to last 1 year if Date column exists
-            total_rows = len(df)
-            if 'Date' in df.columns:
-                df['Date'] = pd.to_datetime(df['Date'])
-                df = df[df['Date'] >= ONE_YEAR_AGO]
-                df = df.sort_values('Date', ascending=False)
+        # Filter to last 1 year if Date column exists
+        total_rows = len(df)
+        if 'Date' in df.columns:
+            df['Date'] = pd.to_datetime(df['Date'])
+            df = df[df['Date'] >= ONE_YEAR_AGO]
+            df = df.sort_values('Date', ascending=False)
 
-            st.markdown(f"**File:** `{russell_file}`")
-            st.markdown(f"**Rows:** {len(df):,} / {total_rows:,} (last 1 year) | **Columns:** {len(df.columns)}")
-            st.dataframe(df, width='stretch', height=500)
-        except Exception as e:
-            st.error(f"Error loading {russell_file}: {e}")
-    else:
-        st.warning(f"File not found: {russell_file}")
+        st.markdown(f"**File:** `{russell_file}`")
+        st.markdown(f"**Rows:** {len(df):,} / {total_rows:,} (last 1 year) | **Columns:** {len(df.columns)}")
+        st.dataframe(df, width='stretch', height=500)
+    except Exception as e:
+        st.error(f"Error loading {russell_file}: {e}")
+else:
+    st.warning(f"File not found: {russell_file}")
