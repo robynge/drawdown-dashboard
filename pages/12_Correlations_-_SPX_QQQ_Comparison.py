@@ -23,7 +23,7 @@ from data_loader import is_non_stock_ticker
 from session_utils import init_session_state, get_current_dates, get_current_period, render_period_selector
 
 st.set_page_config(
-    page_title="Correlations - SPX Comparison",
+    page_title="Correlations - SPX/QQQ Comparison",
     page_icon="📊",
     layout="wide"
 )
