@@ -360,6 +360,7 @@ with cols[1]:
                 yaxis_title="Count",
                 barmode='overlay',
                 height=400,
+                margin=dict(r=20),
                 legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
                 plot_bgcolor='white',
                 paper_bgcolor='white',

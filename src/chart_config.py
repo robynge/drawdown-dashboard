@@ -11,7 +11,7 @@ from config import RUSSELL_RECONSTITUTION_DATES, START_DATE, END_DATE
 CHART_CONFIG = {
     'toImageButtonOptions': {
         'format': 'png',
-        'scale': 3  # 3x DPI for crisp images, keeps chart's own dimensions
+        'scale': 2
     },
     'displayModeBar': True,
     'displaylogo': False
