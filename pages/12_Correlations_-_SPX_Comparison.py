@@ -13,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from config import ARK_ETFS
 from precomputed_loader import (
     load_correlation_matrix,
-    load_sp500_correlation_matrix,
+    load_bench_correlation_matrix,
+    load_qqq_correlation_matrix,
     load_current_weights,
     check_precomputed_exists
 )
@@ -33,9 +34,9 @@ with st.sidebar:
 start_date, end_date = get_current_dates()
 
 """
-# Correlations - S&P 500 Comparison
+# Correlations - Benchmark Comparison
 
-Compare ARK ETF correlation structure with S&P 500 Top 50 holdings.
+Compare ARK ETF correlation structure with S&P 500 / QQQ Top 50 holdings.
 """
 
 period_key = get_current_period()
@@ -119,6 +120,19 @@ with cols[0]:
 
         "" # Space
 
+        st.markdown("##### Benchmark")
+        benchmark_options = ["S&P 500", "QQQ"]
+        selected_benchmark = st.pills(
+            "Benchmark",
+            options=benchmark_options,
+            default="S&P 500",
+            label_visibility="collapsed"
+        )
+        if selected_benchmark is None:
+            selected_benchmark = "S&P 500"
+
+        "" # Space
+
         st.markdown("##### Lookback Period")
         lookback_options = {
             "60 Days": 60,
@@ -143,7 +157,14 @@ with cols[0]:
 
 # Load correlation matrices
 ark_corr = load_correlation_matrix(selected_etf, period_key, lookback_days)
-sp500_corr = load_sp500_correlation_matrix(lookback_days, period_key=period_key)
+if selected_benchmark == "S&P 500":
+    bench_corr = load_bench_correlation_matrix(lookback_days, period_key=period_key)
+    bench_label = "S&P 500 Top 50"
+    bench_short = "SPX"
+else:
+    bench_corr = load_qqq_correlation_matrix(lookback_days, period_key=period_key)
+    bench_label = "QQQ Top 50"
+    bench_short = "QQQ"
 
 # Load current weights to determine excluded tickers
 current_weights = load_current_weights(selected_etf, period_key)
@@ -158,12 +179,12 @@ if ark_corr is not None and len(ark_corr) > 0 and len(current_tickers) > 0:
     ark_excluded_tickers = sorted([t for t in excluded_raw if not is_non_stock_ticker(t)])
 
 # Filter out tickers with no valid correlations before computing stats
-sp500_excluded_tickers = []
-if len(sp500_corr) > 0:
-    has_valid = (sp500_corr.notna().sum() > 1)
+bench_excluded_tickers = []
+if len(bench_corr) > 0:
+    has_valid = (bench_corr.notna().sum() > 1)
     if not has_valid.all():
-        sp500_excluded_tickers = sorted(has_valid[~has_valid].index.tolist())
-        sp500_corr = sp500_corr.loc[has_valid[has_valid].index, has_valid[has_valid].index]
+        bench_excluded_tickers = sorted(has_valid[~has_valid].index.tolist())
+        bench_corr = bench_corr.loc[has_valid[has_valid].index, has_valid[has_valid].index]
 
 if ark_corr is not None and len(ark_corr) > 0:
     has_valid_ark = (ark_corr.notna().sum() > 1)
@@ -176,80 +197,80 @@ if ark_corr is not None and len(ark_corr) > 0:
 # Get stats after filtering
 ark_stats = get_correlation_stats(ark_corr) if ark_corr is not None and len(ark_corr) > 0 else None
 
-sp500_stats = None
-if len(sp500_corr) > 0:
-    sp500_stats = get_correlation_stats(sp500_corr)
+bench_stats = None
+if len(bench_corr) > 0:
+    bench_stats = get_correlation_stats(bench_corr)
 
 # Summary Statistics in left panel
 with cols[0]:
     "" # Space
 
-    if sp500_stats and ark_stats:
+    if bench_stats and ark_stats:
         stats_card = st.container(border=True)
         with stats_card:
-            st.markdown("##### S&P 500 Top 50")
+            st.markdown(f"##### {bench_label}")
 
-            st.markdown(f"**Holdings:** {sp500_stats['n_holdings']}")
-            st.markdown(f"**Pairs:** {sp500_stats['n_pairs']}")
+            st.markdown(f"**Holdings:** {bench_stats['n_holdings']}")
+            st.markdown(f"**Pairs:** {bench_stats['n_pairs']}")
 
             "" # Space
 
             st.markdown("**Correlation**")
-            st.markdown(f"Mean: **{sp500_stats['mean']:.3f}**")
-            st.markdown(f"Median: **{sp500_stats['median']:.3f}**")
-            st.markdown(f"Std: **{sp500_stats['std']:.3f}**")
-            st.markdown(f"Range: **{sp500_stats['min']:.3f}** to **{sp500_stats['max']:.3f}**")
+            st.markdown(f"Mean: **{bench_stats['mean']:.3f}**")
+            st.markdown(f"Median: **{bench_stats['median']:.3f}**")
+            st.markdown(f"Std: **{bench_stats['std']:.3f}**")
+            st.markdown(f"Range: **{bench_stats['min']:.3f}** to **{bench_stats['max']:.3f}**")
 
             "" # Space
 
             # Comparison with selected ARK ETF
             st.markdown(f"**vs {selected_etf}**")
-            delta_mean = sp500_stats['mean'] - ark_stats['mean']
-            delta_median = sp500_stats['median'] - ark_stats['median']
+            delta_mean = bench_stats['mean'] - ark_stats['mean']
+            delta_median = bench_stats['median'] - ark_stats['median']
             st.markdown(f"Mean Δ: **{delta_mean:+.3f}**")
             st.markdown(f"Median Δ: **{delta_median:+.3f}**")
 
 # Right panel: Charts
 with cols[1]:
-    st.markdown("""
-    **S&P 500 Top 50** represents a diversified large-cap portfolio for comparison.
+    st.markdown(f"""
+    **{bench_label}** represents a diversified large-cap portfolio for comparison.
     Lower average correlation indicates better diversification potential.
     """)
 
     "" # Space
 
-    if len(sp500_corr) > 0:
+    if len(bench_corr) > 0:
         # Side by side comparison metrics
-        if sp500_stats and ark_stats:
+        if bench_stats and ark_stats:
             metric_cols = st.columns(4)
             with metric_cols[0]:
                 st.metric(f"{selected_etf} Mean ρ", f"{ark_stats['mean']:.3f}")
             with metric_cols[1]:
-                st.metric("S&P 500 Mean ρ", f"{sp500_stats['mean']:.3f}")
+                st.metric(f"{bench_short} Mean ρ", f"{bench_stats['mean']:.3f}")
             with metric_cols[2]:
-                delta = sp500_stats['mean'] - ark_stats['mean']
+                delta = bench_stats['mean'] - ark_stats['mean']
                 st.metric("Difference", f"{delta:+.3f}",
-                          delta="SPX lower" if delta < 0 else "ARK lower" if delta > 0 else "Equal",
+                          delta=f"{bench_short} lower" if delta < 0 else "ARK lower" if delta > 0 else "Equal",
                           delta_color="inverse" if delta > 0 else "normal")
             with metric_cols[3]:
-                st.metric("Holdings", f"{ark_stats['n_holdings']} vs {sp500_stats['n_holdings']}")
+                st.metric("Holdings", f"{ark_stats['n_holdings']} vs {bench_stats['n_holdings']}")
 
         "" # Space
 
         # S&P 500 Heatmap
-        st.markdown("#### S&P 500 Top 50 Correlation Matrix")
+        st.markdown(f"#### {bench_label} Correlation Matrix")
 
         heatmap_card = st.container(border=True)
         with heatmap_card:
-            fig_sp500 = go.Figure(data=go.Heatmap(
-                z=sp500_corr.values,
-                x=sp500_corr.columns.tolist(),
-                y=sp500_corr.columns.tolist(),
+            fig_bench = go.Figure(data=go.Heatmap(
+                z=bench_corr.values,
+                x=bench_corr.columns.tolist(),
+                y=bench_corr.columns.tolist(),
                 colorscale='RdBu_r',
                 zmid=0,
                 zmin=-1,
                 zmax=1,
-                text=np.round(sp500_corr.values, 2),
+                text=np.round(bench_corr.values, 2),
                 texttemplate='%{text}',
                 textfont={"size": 6},
                 hovertemplate='%{x} - %{y}<br>Correlation: %{z:.3f}<extra></extra>',
@@ -260,8 +281,8 @@ with cols[1]:
                 )
             ))
 
-            fig_sp500.update_layout(
-                title=f"S&P 500 Top 50 Correlation Matrix ({selected_lookback})",
+            fig_bench.update_layout(
+                title=f"{bench_label} Correlation Matrix ({selected_lookback})",
                 height=750,
                 xaxis=dict(tickangle=45, side='bottom', dtick=1, tickfont=dict(size=8)),
                 yaxis=dict(autorange='reversed', dtick=1, tickfont=dict(size=8)),
@@ -269,27 +290,27 @@ with cols[1]:
                 paper_bgcolor='white'
             )
 
-            st.plotly_chart(fig_sp500, width='stretch')
+            st.plotly_chart(fig_bench, width='stretch')
 
-            st.markdown("<small>*S&P 500 Top 50 by market cap. Lower average correlation = better diversification potential.*</small>", unsafe_allow_html=True)
+            st.markdown(f"<small>*{bench_label} by market cap. Lower average correlation = better diversification potential.*</small>", unsafe_allow_html=True)
 
-            if sp500_excluded_tickers:
-                excluded_sp_str = ', '.join(sp500_excluded_tickers)
-                st.markdown(f"<small>*S&P 500 excluded (less than 20 overlapping days with all other stocks): {excluded_sp_str}*</small>", unsafe_allow_html=True)
+            if bench_excluded_tickers:
+                excluded_sp_str = ', '.join(bench_excluded_tickers)
+                st.markdown(f"<small>*{bench_label} excluded (less than 20 overlapping days with all other stocks): {excluded_sp_str}*</small>", unsafe_allow_html=True)
 
             "" # Space
 
             # Highest and Lowest Correlations
-            if sp500_stats:
+            if bench_stats:
                 corr_pair_cols = st.columns(2)
                 with corr_pair_cols[0]:
                     st.markdown("##### Highest Correlations")
-                    for t1, t2, corr in sp500_stats['highest_pairs']:
+                    for t1, t2, corr in bench_stats['highest_pairs']:
                         st.markdown(f"{t1} - {t2}: **{corr:.3f}**")
 
                 with corr_pair_cols[1]:
                     st.markdown("##### Lowest Correlations")
-                    for t1, t2, corr in sp500_stats['lowest_pairs']:
+                    for t1, t2, corr in bench_stats['lowest_pairs']:
                         st.markdown(f"{t1} - {t2}: **{corr:.3f}**")
 
         "" # Space
@@ -302,18 +323,18 @@ with cols[1]:
             fig_dist = go.Figure()
 
             # S&P 500 distribution
-            n_sp = len(sp500_corr.columns)
+            n_sp = len(bench_corr.columns)
             triu_i_sp, triu_j_sp = np.triu_indices(n_sp, k=1)
-            sp500_corr_values = sp500_corr.values[triu_i_sp, triu_j_sp]
-            sp500_corr_values = sp500_corr_values[~np.isnan(sp500_corr_values)]
+            bench_corr_values = bench_corr.values[triu_i_sp, triu_j_sp]
+            bench_corr_values = bench_corr_values[~np.isnan(bench_corr_values)]
 
             fig_dist.add_trace(go.Histogram(
-                x=sp500_corr_values,
+                x=bench_corr_values,
                 nbinsx=30,
                 marker_color='steelblue',
                 opacity=0.6,
-                name='S&P 500 Top 50',
-                hovertemplate='<b>S&P 500</b><br>Correlation (x): %{x:.4f}<br>Count (y): %{y}<extra></extra>'
+                name=bench_label,
+                hovertemplate=f'<b>{bench_label}</b><br>Correlation (x): %{{x:.4f}}<br>Count (y): %{{y}}<extra></extra>'
             ))
 
             # ARK distribution
@@ -333,7 +354,7 @@ with cols[1]:
                 ))
 
             fig_dist.update_layout(
-                title=f"Correlation Distribution: S&P 500 vs {selected_etf}",
+                title=f"Correlation Distribution: {bench_label} vs {selected_etf}",
                 xaxis_title="Pairwise Correlation",
                 yaxis_title="Count",
                 barmode='overlay',
@@ -353,11 +374,11 @@ with cols[1]:
                 st.markdown(f"<small>*{selected_etf} excluded (less than 20 overlapping days with all other stocks): {excluded_str}*</small>", unsafe_allow_html=True)
 
             # Insight
-            if sp500_stats and ark_stats:
-                if sp500_stats['mean'] < ark_stats['mean']:
-                    st.success(f"S&P 500 Top 50 has **lower average correlation** ({sp500_stats['mean']:.3f}) than {selected_etf} ({ark_stats['mean']:.3f}), indicating better diversification.")
+            if bench_stats and ark_stats:
+                if bench_stats['mean'] < ark_stats['mean']:
+                    st.success(f"{bench_label} has **lower average correlation** ({bench_stats['mean']:.3f}) than {selected_etf} ({ark_stats['mean']:.3f}), indicating better diversification.")
                 else:
-                    st.warning(f"{selected_etf} has **lower average correlation** ({ark_stats['mean']:.3f}) than S&P 500 Top 50 ({sp500_stats['mean']:.3f}), indicating better diversification.")
+                    st.warning(f"{selected_etf} has **lower average correlation** ({ark_stats['mean']:.3f}) than {bench_label} ({bench_stats['mean']:.3f}), indicating better diversification.")
 
     else:
-        st.warning("S&P 500 Top 50 correlation data not found. Run `python convert_to_parquet.py` to generate.")
+        st.warning(f"{bench_label} correlation data not found. Run `python convert_to_parquet.py` to generate.")
