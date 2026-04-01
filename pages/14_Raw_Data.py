@@ -3,17 +3,12 @@ import streamlit as st
 import pandas as pd
 import sys
 from pathlib import Path
-from datetime import datetime, timedelta
-
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from config import INPUT_DIR
 from session_utils import init_session_state, render_period_selector
-
-# Filter to show only last 1 year of data
-ONE_YEAR_AGO = datetime.now() - timedelta(days=365)
 
 st.set_page_config(
     page_title="Raw Data",
@@ -45,57 +40,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Section 1: ETF Holdings Data
-st.subheader("ETF Holdings Data")
-st.caption("📅 Showing only the most recent 1 year of data for faster loading")
-
-ark_etfs_dir = INPUT_DIR / 'ark_etfs'
-ark_files = {
-    'ARKF': 'ARKF_Transformed_Data.parquet',
-    'ARKG': 'ARKG_Transformed_Data.parquet',
-    'ARKK': 'ARKK_Transformed_Data.parquet',
-    'ARKQ': 'ARKQ_Transformed_Data.parquet',
-    'ARKW': 'ARKW_Transformed_Data.parquet',
-    'ARKX': 'ARKX_Transformed_Data.parquet'
-}
-
-# Create tabs for each ETF
-ark_tabs = st.tabs(list(ark_files.keys()))
-
-for idx, (etf, filename) in enumerate(ark_files.items()):
-    with ark_tabs[idx]:
-        # Skip temporary Excel files
-        if filename.startswith('~$'):
-            continue
-
-        file_path = ark_etfs_dir / filename
-        if file_path.exists():
-            try:
-                df = pd.read_parquet(file_path)
-
-                # Drop unwanted columns
-                cols_to_drop = [col for col in df.columns if 'company' in col.lower() and 'name' in col.lower()]
-                cols_to_drop += [col for col in df.columns if 'yfinance' in col.lower() and 'price' in col.lower()]
-                df = df.drop(columns=cols_to_drop, errors='ignore')
-
-                # Filter to last 1 year if Date column exists
-                total_rows = len(df)
-                if 'Date' in df.columns:
-                    df['Date'] = pd.to_datetime(df['Date'])
-                    df = df[df['Date'] >= ONE_YEAR_AGO]
-                    df = df.sort_values('Date', ascending=False)
-
-                st.markdown(f"**File:** `{filename}`")
-                st.markdown(f"**Rows:** {len(df):,} / {total_rows:,} (last 1 year) | **Columns:** {len(df.columns)}")
-                st.dataframe(df, width='stretch', height=500)
-            except Exception as e:
-                st.error(f"Error loading {filename}: {e}")
-        else:
-            st.warning(f"File not found: {filename}")
-
-""  # Space
-
-# Section 2: Company Name Mappings
+# Section 1: Company Name Mappings
 st.subheader("Company Name Mappings")
 
 companyname_dir = INPUT_DIR / 'companyname_mappings'
@@ -155,36 +100,3 @@ for idx, (name, filename) in enumerate(industry_files.items()):
         else:
             st.warning(f"File not found: {filename}")
 
-""  # Space
-
-# Section 4: Russell 3000 Data
-st.subheader("iShares Russell 3000 ETF (IWV)")
-st.caption("📅 Showing only the most recent 1 year of data for faster loading")
-
-russell_dir = INPUT_DIR / 'russell_3000'
-russell_file = 'IWV_Transformed_Data.parquet'
-
-file_path = russell_dir / russell_file
-if file_path.exists():
-    try:
-        df = pd.read_parquet(file_path)
-
-        # Drop unwanted columns
-        cols_to_drop = [col for col in df.columns if 'company' in col.lower() and 'name' in col.lower()]
-        cols_to_drop += [col for col in df.columns if 'yfinance' in col.lower() and 'price' in col.lower()]
-        df = df.drop(columns=cols_to_drop, errors='ignore')
-
-        # Filter to last 1 year if Date column exists
-        total_rows = len(df)
-        if 'Date' in df.columns:
-            df['Date'] = pd.to_datetime(df['Date'])
-            df = df[df['Date'] >= ONE_YEAR_AGO]
-            df = df.sort_values('Date', ascending=False)
-
-        st.markdown(f"**File:** `{russell_file}`")
-        st.markdown(f"**Rows:** {len(df):,} / {total_rows:,} (last 1 year) | **Columns:** {len(df.columns)}")
-        st.dataframe(df, width='stretch', height=500)
-    except Exception as e:
-        st.error(f"Error loading {russell_file}: {e}")
-else:
-    st.warning(f"File not found: {russell_file}")
