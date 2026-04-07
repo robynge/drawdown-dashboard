@@ -283,6 +283,29 @@ with cols[1]:
 
         heatmap_card = st.container(border=True)
         with heatmap_card:
+            # Adjust size based on number of holdings
+            n_holdings = len(bench_corr.columns)
+            if n_holdings > 60:
+                chart_height = 1500
+                text_size = 5
+                tick_size = 8
+                # Larger PNG export for 100-stock heatmap
+                heatmap_export_config = {
+                    'toImageButtonOptions': {
+                        'format': 'png',
+                        'width': 3000,
+                        'height': 3000,
+                        'scale': 3
+                    },
+                    'displayModeBar': True,
+                    'displaylogo': False
+                }
+            else:
+                chart_height = 750
+                text_size = 6
+                tick_size = 8
+                heatmap_export_config = CHART_CONFIG
+
             fig_bench = go.Figure(data=go.Heatmap(
                 z=bench_corr.values,
                 x=bench_corr.columns.tolist(),
@@ -293,7 +316,7 @@ with cols[1]:
                 zmax=1,
                 text=np.round(bench_corr.values, 2),
                 texttemplate='%{text}',
-                textfont={"size": 6},
+                textfont={"size": text_size},
                 hovertemplate='%{x} - %{y}<br>Correlation: %{z:.3f}<extra></extra>',
                 colorbar=dict(
                     title="Correlation",
@@ -304,14 +327,14 @@ with cols[1]:
 
             fig_bench.update_layout(
                 title=f"{bench_label} Correlation Matrix ({selected_lookback})",
-                height=750,
-                xaxis=dict(tickangle=45, side='bottom', dtick=1, tickfont=dict(size=8)),
-                yaxis=dict(autorange='reversed', dtick=1, tickfont=dict(size=8)),
+                height=chart_height,
+                xaxis=dict(tickangle=45, side='bottom', dtick=1, tickfont=dict(size=tick_size)),
+                yaxis=dict(autorange='reversed', dtick=1, tickfont=dict(size=tick_size)),
                 plot_bgcolor='white',
                 paper_bgcolor='white'
             )
 
-            st.plotly_chart(fig_bench, width='stretch', config=CHART_CONFIG)
+            st.plotly_chart(fig_bench, width='stretch', config=heatmap_export_config)
 
             st.markdown(f"<small>*{bench_label} by market cap. Lower average correlation = better diversification potential.*</small>", unsafe_allow_html=True)
 
