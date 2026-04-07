@@ -287,15 +287,15 @@ with cols[1]:
             n_holdings = len(bench_corr.columns)
             if n_holdings > 60:
                 chart_height = 1500
-                text_size = 14
-                tick_size = 16
-                # Larger PNG export for 100-stock heatmap (8000x8000 px)
+                text_size = 6
+                tick_size = 8
+                # Export at display size with high scale so fonts scale up proportionally
                 heatmap_export_config = {
                     'toImageButtonOptions': {
                         'format': 'png',
-                        'width': 8000,
-                        'height': 8000,
-                        'scale': 1
+                        'width': 1500,
+                        'height': 1500,
+                        'scale': 5
                     },
                     'displayModeBar': True,
                     'displaylogo': False
