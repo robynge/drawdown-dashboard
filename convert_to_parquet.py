@@ -1327,54 +1327,56 @@ def precompute_sp500_correlations():
 
 
 def precompute_qqq_correlations():
-    """Precompute QQQ Top 50 correlation matrices per analysis period"""
+    """Precompute QQQ Top 50 and Top 100 correlation matrices per analysis period"""
     from config import ANALYSIS_PERIODS
 
     ensure_dirs()
 
-    # Load QQQ Top 50 prices
-    qqq_file = OUTPUT_DIR / 'QQQ_top50_prices.csv'
-    if not qqq_file.exists():
-        print("  QQQ Top 50 prices not found. Run fetch_qqq_prices.py first.")
-        return
-
-    prices = pd.read_csv(qqq_file)
-    prices['Date'] = pd.to_datetime(prices['Date'])
-    prices = prices.set_index('Date')
+    top_n_configs = [
+        (50, OUTPUT_DIR / 'QQQ_top50_prices.csv'),
+        (100, OUTPUT_DIR / 'QQQ_top100_prices.csv'),
+    ]
 
     lookback_periods = [60, 120, 250]
 
-    for period_key, period_config in ANALYSIS_PERIODS.items():
-        period_end = period_config["end"]
-        # Use prices up to the period end date
-        prices_period = prices[prices.index <= period_end]
-        if len(prices_period) == 0:
-            print(f"  No price data for period {period_key}")
+    for top_n, qqq_file in top_n_configs:
+        if not qqq_file.exists():
+            print(f"  QQQ Top {top_n} prices not found. Run fetch_qqq_prices.py first.")
             continue
 
-        for lookback_days in lookback_periods:
-            latest_date = prices_period.index.max()
-            lookback_start = latest_date - pd.Timedelta(days=lookback_days)
+        prices = pd.read_csv(qqq_file)
+        prices['Date'] = pd.to_datetime(prices['Date'])
+        prices = prices.set_index('Date')
 
-            # Filter to lookback period
-            prices_lookback = prices_period[prices_period.index >= lookback_start].copy()
-
-            if len(prices_lookback.columns) < 2:
+        for period_key, period_config in ANALYSIS_PERIODS.items():
+            period_end = period_config["end"]
+            prices_period = prices[prices.index <= period_end]
+            if len(prices_period) == 0:
+                print(f"  No price data for period {period_key}")
                 continue
 
-            # Calculate returns and correlation
-            # Use min_periods=20 to require at least 20 overlapping days
-            returns = prices_lookback.pct_change().iloc[1:]
-            corr_matrix = returns.corr(min_periods=20)
+            for lookback_days in lookback_periods:
+                latest_date = prices_period.index.max()
+                lookback_start = latest_date - pd.Timedelta(days=lookback_days)
 
-            # Remove tickers with no valid correlations (all NaN off-diagonal)
-            has_valid = (corr_matrix.notna().sum() > 1)
-            corr_matrix = corr_matrix.loc[has_valid, has_valid]
+                prices_lookback = prices_period[prices_period.index >= lookback_start].copy()
 
-            # Save correlation matrix with period key in filename
-            output_path = ARK_PRECOMPUTED_DIR / f'QQQ_top50_correlation_matrix_{period_key}_{lookback_days}d.parquet'
-            corr_matrix.to_parquet(output_path)
-            print(f"    Saved {output_path.name} ({len(corr_matrix)} tickers)")
+                if len(prices_lookback.columns) < 2:
+                    continue
+
+                # Calculate returns and correlation
+                # Use min_periods=20 to require at least 20 overlapping days
+                returns = prices_lookback.pct_change().iloc[1:]
+                corr_matrix = returns.corr(min_periods=20)
+
+                # Remove tickers with no valid correlations (all NaN off-diagonal)
+                has_valid = (corr_matrix.notna().sum() > 1)
+                corr_matrix = corr_matrix.loc[has_valid, has_valid]
+
+                # Save correlation matrix with top_n in filename
+                output_path = ARK_PRECOMPUTED_DIR / f'QQQ_top{top_n}_correlation_matrix_{period_key}_{lookback_days}d.parquet'
+                corr_matrix.to_parquet(output_path)
+                print(f"    Saved {output_path.name} ({len(corr_matrix)} tickers)")
 
 
 def precompute_stress_correlations():

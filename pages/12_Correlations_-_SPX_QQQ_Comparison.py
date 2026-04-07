@@ -37,7 +37,7 @@ start_date, end_date = get_current_dates()
 """
 # Correlations - Benchmark Comparison
 
-Compare ARK ETF correlation structure with S&P 500 / QQQ Top 50 holdings.
+Compare ARK ETF correlation structure with S&P 500 / QQQ holdings.
 """
 
 period_key = get_current_period()
@@ -134,6 +134,26 @@ with cols[0]:
 
         "" # Space
 
+        # Top N selector (QQQ only)
+        if selected_benchmark == "QQQ":
+            st.markdown("##### Holdings Count")
+            top_n_options = {"Top 50": 50, "Top 100": 100}
+            selected_top_n_label = st.pills(
+                "Holdings",
+                options=list(top_n_options.keys()),
+                default="Top 50",
+                label_visibility="collapsed"
+            )
+            if selected_top_n_label is None:
+                selected_top_n_label = "Top 50"
+            qqq_top_n = top_n_options[selected_top_n_label]
+
+            "" # Space
+
+        # Default qqq_top_n when S&P 500 is selected
+        if selected_benchmark == "S&P 500":
+            qqq_top_n = 50
+
         st.markdown("##### Lookback Period")
         lookback_options = {
             "60 Days": 60,
@@ -163,8 +183,8 @@ if selected_benchmark == "S&P 500":
     bench_label = "S&P 500 Top 50"
     bench_short = "SPX"
 else:
-    bench_corr = load_qqq_correlation_matrix(lookback_days, period_key=period_key)
-    bench_label = "QQQ Top 50"
+    bench_corr = load_qqq_correlation_matrix(lookback_days, period_key=period_key, top_n=qqq_top_n)
+    bench_label = f"QQQ Top {qqq_top_n}"
     bench_short = "QQQ"
 
 # Load current weights to determine excluded tickers

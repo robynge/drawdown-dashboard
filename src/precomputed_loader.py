@@ -503,22 +503,23 @@ def load_sp500_correlation_matrix(lookback_days: int = 120, period_key: str = No
     return pd.read_parquet(path)
 
 
-def load_qqq_correlation_matrix(lookback_days: int = 120, period_key: str = None) -> pd.DataFrame:
-    """Load precomputed QQQ Top 50 correlation matrix
+def load_qqq_correlation_matrix(lookback_days: int = 120, period_key: str = None, top_n: int = 50) -> pd.DataFrame:
+    """Load precomputed QQQ correlation matrix
 
     Args:
         lookback_days: Number of days used for correlation calculation (60, 120, or 250)
         period_key: Analysis period key (e.g., '2024-2026' or '2021-2023')
+        top_n: Number of top holdings (50 or 100)
 
     Returns:
         DataFrame with correlation matrix (tickers as both index and columns)
     """
     if period_key is not None:
-        path = ARK_PRECOMPUTED_DIR / f'QQQ_top50_correlation_matrix_{period_key}_{lookback_days}d.parquet'
+        path = ARK_PRECOMPUTED_DIR / f'QQQ_top{top_n}_correlation_matrix_{period_key}_{lookback_days}d.parquet'
         if path.exists():
             return pd.read_parquet(path)
 
-    path = ARK_PRECOMPUTED_DIR / f'QQQ_top50_correlation_matrix_{lookback_days}d.parquet'
+    path = ARK_PRECOMPUTED_DIR / f'QQQ_top{top_n}_correlation_matrix_{lookback_days}d.parquet'
     if not path.exists():
         return pd.DataFrame()
 
