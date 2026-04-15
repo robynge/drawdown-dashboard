@@ -11,18 +11,18 @@ from config import ANALYSIS_PERIODS, OUTPUT_DIR
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# S&P 500 Top 50 tickers (extracted from Bloomberg screenshots)
+# S&P 500 Top 50 tickers by market cap (as of Jan 2026, verified Apr 2026)
 SP500_TOP50 = [
     # Rank 1-10
-    'NVDA', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'GOOG', 'META', 'TSLA', 'BRK-B', 'JPM',
+    'NVDA', 'AAPL', 'GOOG', 'GOOGL', 'MSFT', 'AMZN', 'AVGO', 'META', 'TSLA', 'BRK-B',
     # Rank 11-20
-    'LLY', 'XOM', 'JNJ', 'WMT', 'V', 'UNH', 'COST', 'MA', 'AVGO', 'HD',
+    'LLY', 'WMT', 'JPM', 'V', 'ORCL', 'XOM', 'MA', 'JNJ', 'BAC', 'ABBV',
     # Rank 21-30
-    'PG', 'GE', 'CVX', 'BAC', 'NFLX', 'AMD', 'CSCO', 'KO', 'PLTR', 'LRCX',
+    'NFLX', 'COST', 'AMD', 'MU', 'HD', 'GE', 'PG', 'CVX', 'WFC', 'UNH',
     # Rank 31-40
-    'MRK', 'AMAT', 'PM', 'WFC', 'RTX', 'GS', 'ORCL', 'IBM', 'MCD', 'LIN',
+    'CSCO', 'KO', 'MS', 'CAT', 'GS', 'IBM', 'MRK', 'AXP', 'RTX', 'PM',
     # Rank 41-50
-    'PEP', 'GEV', 'MS', 'VZ', 'AMGN', 'C', 'TXN', 'T', 'INTC', 'KLAC'
+    'CRM', 'LRCX', 'TMUS', 'TMO', 'C', 'MCD', 'ABT', 'AMAT', 'ISRG', 'LIN',
 ]
 
 # Fetch price data covering ALL analysis periods
