@@ -251,10 +251,9 @@ if hist_panels:
         )
 
     fig_hist.update_layout(
-        **LAYOUT_COMMON,
+        **{**LAYOUT_COMMON, 'margin': dict(t=50, b=60, l=60, r=20)},
         height=200 + 200 * len(hist_panels),
         showlegend=False,
-        margin=dict(t=50, b=60, l=60, r=20),
     )
 
     st.plotly_chart(fig_hist, width='stretch', config=CHART_CONFIG)
