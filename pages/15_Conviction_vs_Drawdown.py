@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+from plotly.subplots import make_subplots
 import sys
 from pathlib import Path
 
@@ -183,41 +184,80 @@ fig_violin.update_layout(
 st.plotly_chart(fig_violin, width='stretch', config=CHART_CONFIG)
 
 # ============================================================================
-# Section 2a: Pullback Depth Distribution — Histogram
+# Section 2a: Pullback Depth Distribution — Histogram (Faceted Small Multiples)
 # ============================================================================
 st.header("Pullback Depth Distribution by Weight (Histogram)")
 
-fig_hist = go.Figure()
-
+# Build list of (conviction, label, group) with data
+hist_panels = []
 for conv, label in WEIGHT_LABELS.items():
     group = df_period[df_period['conviction'] == conv]
-    if len(group) == 0:
-        continue
-    color = COLORS[label]
+    if len(group) > 0:
+        hist_panels.append((conv, label, group))
 
-    fig_hist.add_trace(go.Histogram(
-        x=group['depth_pct'],
-        name=f"{label} (n={len(group)})",
-        marker_color=color,
-        opacity=0.55,
-        nbinsx=20,
-        hovertemplate=(
-            f'{label}<br>'
-            'Depth: %{x}%<br>'
-            'Count: %{y}'
-            '<extra></extra>'
-        ),
-    ))
+if hist_panels:
+    fig_hist = make_subplots(
+        rows=len(hist_panels), cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.06,
+        subplot_titles=[
+            f"{label} (n={len(group)})" for _, label, group in hist_panels
+        ],
+    )
 
-fig_hist.update_layout(
-    **LAYOUT_COMMON,
-    height=520,
-    barmode='overlay',
-    xaxis=dict(title='Pullback Depth (%)', **AXIS_STYLE, range=[-100, 0]),
-    yaxis=dict(title='Count', **AXIS_STYLE),
-    showlegend=True,
-)
-st.plotly_chart(fig_hist, width='stretch', config=CHART_CONFIG)
+    for i, (conv, label, group) in enumerate(hist_panels, start=1):
+        color = COLORS[label]
+        fig_hist.add_trace(
+            go.Histogram(
+                x=group['depth_pct'],
+                name=f"{label} (n={len(group)})",
+                marker_color=color,
+                marker_line_color='white',
+                marker_line_width=0.5,
+                opacity=0.85,
+                nbinsx=20,
+                hovertemplate=(
+                    f'{label}<br>'
+                    'Depth: %{x}%<br>'
+                    'Count: %{y}'
+                    '<extra></extra>'
+                ),
+                showlegend=False,
+            ),
+            row=i, col=1,
+        )
+
+        # Y-axis label for each row
+        fig_hist.update_yaxes(
+            title_text='Count', **AXIS_STYLE, row=i, col=1,
+        )
+
+    # Shared X-axis on the bottom panel only
+    fig_hist.update_xaxes(
+        title_text='Pullback Depth (%)', **AXIS_STYLE,
+        range=[-100, 0],
+        row=len(hist_panels), col=1,
+    )
+    # Apply same range to upper panels (no title)
+    for i in range(1, len(hist_panels)):
+        fig_hist.update_xaxes(range=[-100, 0], **AXIS_STYLE, row=i, col=1)
+
+    # Style subplot titles (conviction labels) with matching colors
+    for i, (conv, label, group) in enumerate(hist_panels):
+        fig_hist.layout.annotations[i].update(
+            font=dict(size=14, color=COLORS[label]),
+            x=0.0,
+            xanchor='left',
+        )
+
+    fig_hist.update_layout(
+        **LAYOUT_COMMON,
+        height=200 + 200 * len(hist_panels),
+        showlegend=False,
+        margin=dict(t=50, b=60, l=60, r=20),
+    )
+
+    st.plotly_chart(fig_hist, width='stretch', config=CHART_CONFIG)
 
 # ============================================================================
 # Section 2b: Recovery Curve (Kaplan-Meier style)
