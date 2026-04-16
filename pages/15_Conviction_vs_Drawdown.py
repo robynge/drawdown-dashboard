@@ -183,6 +183,43 @@ fig_violin.update_layout(
 st.plotly_chart(fig_violin, width='stretch', config=CHART_CONFIG)
 
 # ============================================================================
+# Section 2a: Pullback Depth Distribution — Histogram
+# ============================================================================
+st.header("Pullback Depth Distribution by Weight (Histogram)")
+
+fig_hist = go.Figure()
+
+for conv, label in WEIGHT_LABELS.items():
+    group = df_period[df_period['conviction'] == conv]
+    if len(group) == 0:
+        continue
+    color = COLORS[label]
+
+    fig_hist.add_trace(go.Histogram(
+        x=group['depth_pct'],
+        name=f"{label} (n={len(group)})",
+        marker_color=color,
+        opacity=0.55,
+        nbinsx=20,
+        hovertemplate=(
+            f'{label}<br>'
+            'Depth: %{x}%<br>'
+            'Count: %{y}'
+            '<extra></extra>'
+        ),
+    ))
+
+fig_hist.update_layout(
+    **LAYOUT_COMMON,
+    height=520,
+    barmode='overlay',
+    xaxis=dict(title='Pullback Depth (%)', **AXIS_STYLE, range=[-100, 0]),
+    yaxis=dict(title='Count', **AXIS_STYLE),
+    showlegend=True,
+)
+st.plotly_chart(fig_hist, width='stretch', config=CHART_CONFIG)
+
+# ============================================================================
 # Section 2b: Recovery Curve (Kaplan-Meier style)
 # ============================================================================
 st.header("Recovery Curve by Weight")
