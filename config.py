@@ -13,7 +13,7 @@ PROCESSED_DIR = DATA_DIR / 'processed'
 ANALYSIS_PERIODS = {
     "2024-2026": {
         "start": pd.to_datetime('2024-01-02'),
-        "end": pd.to_datetime('2026-04-15'),
+        "end": pd.to_datetime('2026-06-26'),
         "label": "2024-2026",
         "has_r3000_data": True
     },

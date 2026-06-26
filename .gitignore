@@ -38,6 +38,10 @@ Thumbs.db
 ~$*
 *.tmp
 
+# Data-source verification artifacts (kept on disk for review, not committed)
+ARK_2026_new_source_verification.xlsx
+ark_2026_new_source_consolidated.parquet
+
 # Claude Code files
 .claude/
 *.local.json
