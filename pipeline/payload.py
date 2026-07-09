@@ -1,6 +1,5 @@
 """Assemble the KV payload for research:risk:etf-drawdowns."""
 from datetime import datetime, timezone
-import pandas as pd
 from pipeline.drawdown import compute_drawdown, summarize_drawdown
 from pipeline.svg import drawdown_chart_svg, heatmap_strip_svg
 

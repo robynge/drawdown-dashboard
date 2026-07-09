@@ -1,3 +1,5 @@
+import xml.etree.ElementTree as ET
+
 import pandas as pd
 from pipeline.svg import drawdown_chart_svg, heatmap_strip_svg
 
@@ -17,6 +19,8 @@ def test_chart_svg_structure():
     assert svg.count("<polyline") == 2
     assert "ARKK" in svg and "ARKQ" in svg
     assert "-50%" in svg
+    # Guard against non-English label leakage: site is English-only, so no
+    # CJK characters may appear anywhere in the rendered SVG.
     assert not any("一" <= ch <= "鿿" for ch in svg)
 
 
@@ -28,3 +32,17 @@ def test_heatmap_has_one_row_per_etf():
     svg = heatmap_strip_svg(SERIES)
     assert svg.count('class="hm-row"') == 2
     assert "<svg" in svg and "</svg>" in svg
+
+
+def test_heatmap_bucket_fallback_below_full_loss():
+    # v <= -1.01 is theoretically unreachable (drawdown is bounded at -1.0),
+    # but the bucket lookup must not raise StopIteration -- it falls back to
+    # the deepest bucket color instead of blowing up the payload build.
+    svg = heatmap_strip_svg({"X": _dd([0, -1.0, -1.5])})
+    assert "#b2182b" in svg
+
+
+def test_chart_svg_escapes_etf_labels():
+    svg = drawdown_chart_svg({"A&B": _dd([0, -0.1])})
+    assert "A&amp;B" in svg
+    ET.fromstring(svg)  # must be well-formed XML despite the raw '&' input
