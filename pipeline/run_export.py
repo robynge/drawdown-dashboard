@@ -8,6 +8,13 @@ ETFS = ["ARKK", "ARKQ", "ARKW", "ARKG", "ARKF", "ARKX"]
 KEY = "research:risk:etf-drawdowns"
 
 
+def _require_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        sys.exit(f"Missing env {name} — set it as a GitHub Actions secret")
+    return value
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
@@ -23,8 +30,8 @@ def main() -> int:
         print(json.dumps(payload["table"], indent=2))
         return 0
 
-    account_id = os.environ["CF_ACCOUNT_ID"]
-    api_token = os.environ["CF_API_TOKEN"]
+    account_id = _require_env("CF_ACCOUNT_ID")
+    api_token = _require_env("CF_API_TOKEN")
     put_kv(f"{KEY}:{as_of}", body, account_id=account_id, api_token=api_token)
     put_kv(f"{KEY}:latest", body, account_id=account_id, api_token=api_token)
     print("uploaded: dated + latest")
