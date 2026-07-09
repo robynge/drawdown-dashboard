@@ -1,0 +1,21 @@
+name: Export ETF drawdowns to KV
+on:
+  schedule:
+    - cron: "30 22 * * 1-5"   # 美股收盘后（UTC）
+  workflow_dispatch: {}
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r pipeline/requirements.txt
+      - run: python -m pytest pipeline/tests/ -q
+      - run: python -m pipeline.run_export
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
