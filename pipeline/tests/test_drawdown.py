@@ -37,3 +37,30 @@ def test_monotonic_rise_has_zero_drawdown():
     out = summarize_drawdown(s)
     assert out["max_dd_pct"] == 0.0
     assert out["current_dd_pct"] == 0.0
+
+
+def test_empty_series_raises():
+    s = _series([])
+    with pytest.raises(ValueError, match="non-empty"):
+        summarize_drawdown(s)
+
+
+def test_all_nan_series_raises():
+    s = _series([float("nan"), float("nan")])
+    with pytest.raises(ValueError, match="non-empty"):
+        summarize_drawdown(s)
+
+
+def test_trailing_nan_raises():
+    s = _series([100, 90, float("nan")])
+    with pytest.raises(ValueError, match="last close"):
+        summarize_drawdown(s)
+
+
+def test_internal_nan_is_skipped():
+    # Internal NaNs are tolerated (pandas skipna semantics): the running max
+    # carries across the gap and the NaN is ignored when locating the trough.
+    s = _series([100, 50, float("nan"), 40, 200])
+    out = summarize_drawdown(s)
+    assert out["trough_date"] == "2024-01-04"
+    assert out["max_dd_pct"] == pytest.approx(-60.0)
