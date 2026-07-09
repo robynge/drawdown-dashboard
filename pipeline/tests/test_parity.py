@@ -5,6 +5,10 @@ from pipeline.drawdown import summarize_drawdown
 
 FIX = Path(__file__).parent / "fixtures"
 
+# Frozen legacy-pipeline outputs (data as of 2026-06-26). Do NOT edit these to
+# make a failing test green — a mismatch means the new code regressed, not that
+# the judge is stale. Values derive from output/<ETF>_prices.csv via the legacy
+# drawdown semantics (first occurrence of episode max).
 EXPECTED = {
     "ARKK": {"current_dd_pct": -49.0812, "max_dd_pct": -80.9168, "peak_date": "2021-02-12", "trough_date": "2022-12-28"},
     "ARKQ": {"current_dd_pct": -13.3570, "max_dd_pct": -59.8859, "peak_date": "2021-02-12", "trough_date": "2022-12-28"},

@@ -7,7 +7,7 @@ class FetchError(RuntimeError):
     pass
 
 
-def _yf_download(ticker: str, **kw) -> pd.DataFrame:
+def _yf_download(ticker: str) -> pd.DataFrame:
     import yfinance as yf
     return yf.Ticker(ticker).history(period="max", auto_adjust=False)
 
@@ -36,5 +36,5 @@ def fetch_closes(etfs, downloader=_yf_download, retries=4, backoff_s=20):
                 if attempt < retries - 1:
                     time.sleep(backoff_s * (attempt + 1))
         else:
-            raise FetchError(f"{etf}: {last_err}")
+            raise FetchError(f"{etf}: {last_err}") from last_err
     return out
