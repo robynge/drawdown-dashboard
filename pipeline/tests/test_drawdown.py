@@ -22,10 +22,13 @@ def test_summarize_picks_deepest_episode():
     s = _series([100, 80, 100, 100, 50, 75])
     out = summarize_drawdown(s)
     assert out["max_dd_pct"] == pytest.approx(-50.0)
-    assert out["peak_date"] == "2024-01-03"
+    # Peak semantics = legacy parity: the date the episode's max close is
+    # FIRST touched (pandas idxmax default), not the last tied high before
+    # the fall. Ties at 100 (01-01/01-03/01-04) resolve to the first.
+    assert out["peak_date"] == "2024-01-01"
     assert out["trough_date"] == "2024-01-05"
     assert out["current_dd_pct"] == pytest.approx(-25.0)
-    assert out["current_peak_date"] == "2024-01-03"
+    assert out["current_peak_date"] == "2024-01-01"
     assert out["last_close"] == pytest.approx(75.0)
 
 
