@@ -46,10 +46,17 @@ def test_normal_path_uploads_dated_key_then_latest(monkeypatch):
     monkeypatch.setenv("CF_API_TOKEN", "tok")
 
     assert run_export.main() == 0
-    assert len(calls) == 2
-    assert calls[0]["key"] == "research:risk:etf-drawdowns:2026-07-09"  # dated first
-    assert calls[1]["key"] == "research:risk:etf-drawdowns:latest"      # latest second
-    assert calls[0]["value"] == calls[1]["value"]  # same body for both keys
+    assert len(calls) == 4
+    # Series data uploaded first (dated, then latest), so the xlsx-download
+    # button never 404s in the window between the page payload landing and
+    # the series data being available.
+    assert calls[0]["key"] == "research:risk:etf-drawdowns:data:2026-07-09"
+    assert calls[1]["key"] == "research:risk:etf-drawdowns:data:latest"
+    # Page payload uploaded last -- it's the key the consumer reads.
+    assert calls[2]["key"] == "research:risk:etf-drawdowns:2026-07-09"
+    assert calls[3]["key"] == "research:risk:etf-drawdowns:latest"
+    assert calls[0]["value"] == calls[1]["value"]  # same body for both data keys
+    assert calls[2]["value"] == calls[3]["value"]  # same body for both page keys
     assert all(c["account_id"] == "acct" and c["api_token"] == "tok" for c in calls)
 
 

@@ -1,11 +1,12 @@
 """Entry point: fetch → compute → payload → KV. `--dry-run` prints and skips upload."""
 import argparse, json, os, sys
 from pipeline.prices import fetch_closes
-from pipeline.payload import build_etf_drawdowns_payload
+from pipeline.payload import build_etf_drawdowns_payload, build_etf_drawdowns_series
 from pipeline.upload_kv import put_kv
 
 ETFS = ["ARKK", "ARKQ", "ARKW", "ARKG", "ARKF", "ARKX"]
 KEY = "research:risk:etf-drawdowns"
+KEY_DATA = "research:risk:etf-drawdowns:data"
 
 
 def _require_env(name: str) -> str:
@@ -24,7 +25,9 @@ def main() -> int:
     as_of = max(s.index.max() for s in closes.values()).strftime("%Y-%m-%d")
     payload = build_etf_drawdowns_payload(closes, as_of=as_of)
     body = json.dumps(payload, separators=(",", ":"))
-    print(f"as_of={as_of} bytes={len(body)}")
+    series_payload = build_etf_drawdowns_series(closes, as_of=as_of)
+    series_body = json.dumps(series_payload, separators=(",", ":"))
+    print(f"as_of={as_of} bytes={len(body)} series_bytes={len(series_body)}")
 
     if args.dry_run:
         print(json.dumps(payload["table"], indent=2))
@@ -32,9 +35,14 @@ def main() -> int:
 
     account_id = _require_env("CF_ACCOUNT_ID")
     api_token = _require_env("CF_API_TOKEN")
+    # Series data first, then the page payload -- the page key is the one the
+    # consumer reads, so it must land last to avoid a 404 window on the
+    # xlsx-download button.
+    put_kv(f"{KEY_DATA}:{as_of}", series_body, account_id=account_id, api_token=api_token)
+    put_kv(f"{KEY_DATA}:latest", series_body, account_id=account_id, api_token=api_token)
     put_kv(f"{KEY}:{as_of}", body, account_id=account_id, api_token=api_token)
     put_kv(f"{KEY}:latest", body, account_id=account_id, api_token=api_token)
-    print("uploaded: dated + latest")
+    print("uploaded: 4 keys (page+data, dated+latest)")
     return 0
 
 
