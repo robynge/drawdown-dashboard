@@ -29,14 +29,14 @@ def drawdown_chart_svg(series_by_etf: dict) -> str:
         dd = dd_min * frac
         y = _y(dd, dd_min)
         parts.append(f'<line x1="{PAD}" y1="{y:.1f}" x2="{W-PAD}" y2="{y:.1f}" stroke="var(--line-soft,#ddd)" stroke-width="1"/>')
-        parts.append(f'<text x="{PAD-6}" y="{y+4:.1f}" text-anchor="end" font-size="11" fill="var(--ink,#555)">{dd*100:.0f}%</text>')
+        parts.append(f'<text x="{PAD-6}" y="{y+4:.1f}" text-anchor="end" font-size="11" fill="var(--muted,#555)">{dd*100:.0f}%</text>')
     for etf, s in weekly.items():
         pts = " ".join(f"{_x(i, len(s)):.1f},{_y(v, dd_min):.1f}" for i, v in enumerate(s))
         parts.append(f'<polyline fill="none" stroke="{PALETTE.get(etf, "#888")}" stroke-width="1.6" points="{pts}"/>')
     for j, etf in enumerate(weekly):
         x = PAD + j * 92
         parts.append(f'<rect x="{x}" y="8" width="10" height="10" fill="{PALETTE.get(etf, "#888")}"/>')
-        parts.append(f'<text x="{x+14}" y="17" font-size="11" fill="var(--ink,#555)">{escape(etf)}</text>')
+        parts.append(f'<text x="{x+14}" y="17" font-size="11" fill="var(--muted,#555)">{escape(etf)}</text>')
     parts.append("</svg>")
     return "".join(parts)
 
@@ -48,7 +48,7 @@ def heatmap_strip_svg(series_by_etf: dict) -> str:
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {h}" width="100%" role="img" aria-label="Drawdown heatmap by ETF">']
     for r, (etf, s) in enumerate(weekly.items()):
         y = r * row_h + 14
-        parts.append(f'<g class="hm-row"><text x="0" y="{y+12}" font-size="11" fill="var(--ink,#555)">{escape(etf)}</text>')
+        parts.append(f'<g class="hm-row"><text x="0" y="{y+12}" font-size="11" fill="var(--muted,#555)">{escape(etf)}</text>')
         cw = (W - label_w) / max(len(s), 1)
         for i, v in enumerate(s):
             color = "#e8f0e8" if v > -0.02 else next((c for lim, c in HEAT_BUCKETS if v > lim), "#b2182b")
