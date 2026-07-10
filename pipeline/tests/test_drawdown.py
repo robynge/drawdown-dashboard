@@ -1,0 +1,66 @@
+import pandas as pd
+import pytest
+from pipeline.drawdown import compute_drawdown, summarize_drawdown
+
+
+def _series(vals, start="2024-01-01"):
+    idx = pd.date_range(start, periods=len(vals), freq="B")
+    return pd.Series(vals, index=idx, dtype=float)
+
+
+def test_drawdown_series_basic():
+    s = _series([100, 110, 99, 121, 60.5])
+    dd = compute_drawdown(s)
+    assert dd.iloc[0] == 0.0
+    assert dd.iloc[1] == 0.0
+    assert dd.iloc[2] == pytest.approx(99 / 110 - 1)
+    assert dd.iloc[3] == 0.0
+    assert dd.iloc[4] == pytest.approx(60.5 / 121 - 1)
+
+
+def test_summarize_picks_deepest_episode():
+    s = _series([100, 80, 100, 100, 50, 75])
+    out = summarize_drawdown(s)
+    assert out["max_dd_pct"] == pytest.approx(-50.0)
+    # Peak semantics = legacy parity: the date the episode's max close is
+    # FIRST touched (pandas idxmax default), not the last tied high before
+    # the fall. Ties at 100 (01-01/01-03/01-04) resolve to the first.
+    assert out["peak_date"] == "2024-01-01"
+    assert out["trough_date"] == "2024-01-05"
+    assert out["current_dd_pct"] == pytest.approx(-25.0)
+    assert out["current_peak_date"] == "2024-01-01"
+    assert out["last_close"] == pytest.approx(75.0)
+
+
+def test_monotonic_rise_has_zero_drawdown():
+    s = _series([1, 2, 3, 4])
+    out = summarize_drawdown(s)
+    assert out["max_dd_pct"] == 0.0
+    assert out["current_dd_pct"] == 0.0
+
+
+def test_empty_series_raises():
+    s = _series([])
+    with pytest.raises(ValueError, match="non-empty"):
+        summarize_drawdown(s)
+
+
+def test_all_nan_series_raises():
+    s = _series([float("nan"), float("nan")])
+    with pytest.raises(ValueError, match="non-empty"):
+        summarize_drawdown(s)
+
+
+def test_trailing_nan_raises():
+    s = _series([100, 90, float("nan")])
+    with pytest.raises(ValueError, match="last close"):
+        summarize_drawdown(s)
+
+
+def test_internal_nan_is_skipped():
+    # Internal NaNs are tolerated (pandas skipna semantics): the running max
+    # carries across the gap and the NaN is ignored when locating the trough.
+    s = _series([100, 50, float("nan"), 40, 200])
+    out = summarize_drawdown(s)
+    assert out["trough_date"] == "2024-01-04"
+    assert out["max_dd_pct"] == pytest.approx(-60.0)
