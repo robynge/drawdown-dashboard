@@ -35,9 +35,9 @@ def main() -> int:
 
     account_id = _require_env("CF_ACCOUNT_ID")
     api_token = _require_env("CF_API_TOKEN")
-    # Series data first, then the page payload -- the page key is the one the
-    # consumer reads, so it must land last to avoid a 404 window on the
-    # xlsx-download button.
+    # Order guarantees data:latest is never older than page:latest (download
+    # button never 404s). A mid-sequence failure can still leave page:latest
+    # stale while data:latest is fresh -- acceptable; the next run heals it.
     put_kv(f"{KEY_DATA}:{as_of}", series_body, account_id=account_id, api_token=api_token)
     put_kv(f"{KEY_DATA}:latest", series_body, account_id=account_id, api_token=api_token)
     put_kv(f"{KEY}:{as_of}", body, account_id=account_id, api_token=api_token)
